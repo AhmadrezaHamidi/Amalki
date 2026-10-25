@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Property> Properties => Set<Property>();
     public DbSet<PropertyPhoto> PropertyPhotos => Set<PropertyPhoto>();
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
+    public DbSet<Lead> Leads => Set<Lead>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -27,5 +28,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasMany(x => x.ChannelPosts).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<ChannelPost>().HasIndex(x => new { x.PropertyId, x.Channel }).IsUnique();
+        b.Entity<Lead>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Message).HasMaxLength(1000);
+            e.HasIndex(x => new { x.Handled, x.CreatedAtUtc });
+            // Keep the lead when its listing is deleted.
+            e.HasOne(x => x.Property).WithMany().HasForeignKey(x => x.PropertyId).OnDelete(DeleteBehavior.SetNull);
+        });
     }
 }

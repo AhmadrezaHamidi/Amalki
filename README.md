@@ -16,6 +16,7 @@
 | [docs/DESIGN.md](docs/DESIGN.md) | تصمیم‌های طراحی و سیستم طراحی |
 | [design-system/amlak/MASTER.md](design-system/amlak/MASTER.md) | سیستم طراحی تولیدشده (منبع حقیقت رنگ و فونت) |
 | [design-options.html](design-options.html) | پیش‌نمایش سه طرح پیشنهادی (طرح ۱ انتخاب شد) |
+| [design/canvas/](design/canvas/) | بوم طراحی نسخهٔ ۲: صفحه‌های وب و اپ موبایل |
 
 ## استک
 
@@ -36,6 +37,15 @@ dotnet ef database update      # ساخت دیتابیس Amlak
 dotnet run --launch-profile http
 ```
 
+اطلاعات تماس سایت (اختیاری؛ اگر خالی باشد نمایش داده نمی‌شود):
+
+```bash
+dotnet user-secrets set "Site:Phone" "۰۲۱-۱۲۳۴۵۶۷۸"
+dotnet user-secrets set "Site:Address" "تهران، ..."
+dotnet user-secrets set "Site:TelegramUrl" "https://t.me/<کانال>"
+dotnet user-secrets set "Site:BaleUrl" "https://ble.ir/<کانال>"
+```
+
 سایت روی `http://localhost:5244` بالا می‌آید. در حالت Development چهار آگهی نمونه خودکار ساخته می‌شود. ورود مدیر: `/Account/Login` ← پنل: `/Admin`.
 
 ## تست
@@ -44,7 +54,7 @@ dotnet run --launch-profile http
 dotnet test tests/Amlak.Tests
 ```
 
-تست‌های ناشر کانال (۸ مورد) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
+۲۴ تست (ناشر کانال، دکمهٔ پست، اعلان سرنخ، سئو، نرمال‌سازی موبایل) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
 
 ## ساختار پوشه‌ها
 

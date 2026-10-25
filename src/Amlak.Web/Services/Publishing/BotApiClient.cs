@@ -17,12 +17,16 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
 
     private Uri Url(string method) => new($"{apiBase.TrimEnd('/')}/bot{token}/{method}");
 
-    public Task<BotResult> SendMessageAsync(string text, CancellationToken ct = default) =>
-        Post("sendMessage", Form(("chat_id", chatId), ("text", Clip(text, 4000))), ct);
+    /// <summary>One inline button that opens <paramref name="url"/>; JSON for the reply_markup field.</summary>
+    public static string LinkButton(string text, string url) =>
+        JsonSerializer.Serialize(new { inline_keyboard = new[] { new[] { new { text, url } } } });
 
-    public async Task<BotResult> SendPhotoAsync(string filePath, string caption, CancellationToken ct = default)
+    public Task<BotResult> SendMessageAsync(string text, string? replyMarkup = null, CancellationToken ct = default) =>
+        Post("sendMessage", Form(replyMarkup, ("chat_id", chatId), ("text", Clip(text, 4000))), ct);
+
+    public async Task<BotResult> SendPhotoAsync(string filePath, string caption, string? replyMarkup = null, CancellationToken ct = default)
     {
-        using var form = Form(("chat_id", chatId), ("caption", Clip(caption, MaxCaption)));
+        using var form = Form(replyMarkup, ("chat_id", chatId), ("caption", Clip(caption, MaxCaption)));
         await using var file = File.OpenRead(filePath);
         var content = new StreamContent(file);
         content.Headers.ContentType = new(MimeFor(filePath));
@@ -30,18 +34,20 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
         return await Post("sendPhoto", form, ct);
     }
 
-    public Task<BotResult> EditAsync(string messageId, string text, bool isPhoto, CancellationToken ct = default) =>
+    // Edits resend reply_markup: Telegram drops the keyboard from an edited message that omits it.
+    public Task<BotResult> EditAsync(string messageId, string text, bool isPhoto, string? replyMarkup = null, CancellationToken ct = default) =>
         isPhoto
-            ? Post("editMessageCaption", Form(("chat_id", chatId), ("message_id", messageId), ("caption", Clip(text, MaxCaption))), ct)
-            : Post("editMessageText", Form(("chat_id", chatId), ("message_id", messageId), ("text", Clip(text, 4000))), ct);
+            ? Post("editMessageCaption", Form(replyMarkup, ("chat_id", chatId), ("message_id", messageId), ("caption", Clip(text, MaxCaption))), ct)
+            : Post("editMessageText", Form(replyMarkup, ("chat_id", chatId), ("message_id", messageId), ("text", Clip(text, 4000))), ct);
 
     public Task<BotResult> DeleteAsync(string messageId, CancellationToken ct = default) =>
-        Post("deleteMessage", Form(("chat_id", chatId), ("message_id", messageId)), ct);
+        Post("deleteMessage", Form(null, ("chat_id", chatId), ("message_id", messageId)), ct);
 
-    private static MultipartFormDataContent Form(params (string Name, string Value)[] fields)
+    private static MultipartFormDataContent Form(string? replyMarkup, params (string Name, string Value)[] fields)
     {
         var form = new MultipartFormDataContent();
         foreach (var (name, value) in fields) form.Add(new StringContent(value), name);
+        if (replyMarkup is not null) form.Add(new StringContent(replyMarkup), "reply_markup");
         return form;
     }
 

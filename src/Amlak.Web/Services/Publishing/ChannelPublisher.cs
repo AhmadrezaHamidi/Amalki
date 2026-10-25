@@ -15,6 +15,7 @@ public class ChannelPublisher
     private readonly ILogger<ChannelPublisher> _log;
     private readonly string _baseUrl;
     private readonly Dictionary<Channel, BotApiClient> _clients = [];
+    private readonly HashSet<Channel> _buttons = [];
 
     public ChannelPublisher(AppDbContext db, IHttpClientFactory httpFactory, IConfiguration cfg,
         IWebHostEnvironment env, ILogger<ChannelPublisher> log)
@@ -32,6 +33,8 @@ public class ChannelPublisher
             var chat = cfg[$"{section}:ChatId"];
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chat)) return;
             _clients[channel] = new BotApiClient(http, cfg[$"{section}:ApiBase"] ?? defaultBase, token, chat);
+            // The "view listing" button is on unless explicitly turned off for a messenger that rejects it.
+            if (!string.Equals(cfg[$"{section}:InlineButton"], "false", StringComparison.OrdinalIgnoreCase)) _buttons.Add(channel);
         }
     }
 
@@ -67,10 +70,11 @@ public class ChannelPublisher
     private async Task PublishOrEditAsync(Property p, ChannelPost? post, Channel channel, BotApiClient client, CancellationToken ct)
     {
         var caption = CaptionBuilder.Build(p, _baseUrl);
+        var markup = _buttons.Contains(channel) ? BotApiClient.LinkButton("مشاهده و درخواست تماس", CaptionBuilder.Url(p, _baseUrl)) : null;
 
         if (post?.ExternalMessageId is { } messageId)
         {
-            var edit = await client.EditAsync(messageId, caption, post.HasPhoto, ct);
+            var edit = await client.EditAsync(messageId, caption, post.HasPhoto, markup, ct);
             // Telegram answers "message is not modified" when nothing changed; that is success for us.
             var unchanged = edit.Error?.Contains("not modified", StringComparison.OrdinalIgnoreCase) == true;
             post.Error = edit.Ok || unchanged ? null : edit.Error;
@@ -79,8 +83,8 @@ public class ChannelPublisher
 
         var photoPath = p.Photos.OrderBy(x => x.SortOrder).Select(x => LocalPath(x.Url)).FirstOrDefault(File.Exists);
         var send = photoPath is not null
-            ? await client.SendPhotoAsync(photoPath, caption, ct)
-            : await client.SendMessageAsync(caption, ct);
+            ? await client.SendPhotoAsync(photoPath, caption, markup, ct)
+            : await client.SendMessageAsync(caption, markup, ct);
 
         if (post is null)
         {

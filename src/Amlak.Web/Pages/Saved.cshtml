@@ -1,0 +1,20 @@
+@page "/نشان‌شده"
+@model SavedModel
+@{ ViewData["Title"] = "نشان‌شده‌ها"; ViewData["Robots"] = "noindex"; }
+<div class="wrap page-pad" data-saved-page data-has-ids="@(Model.HasIds ? "1" : "0")">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / نشان‌شده‌ها</nav>
+    <div class="list-head"><div><h1>نشان‌شده‌ها</h1><p>آگهی‌هایی که پسندیده‌اید، روی همین دستگاه نگه داشته می‌شود.</p></div></div>
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">
+            @Icons.Get("heart", 48)
+            <h2>هنوز آگهی‌ای نشان نکرده‌اید</h2>
+            <p>روی قلب هر آگهی بزنید تا اینجا بماند و بعداً راحت مقایسه کنید.</p>
+            <a class="btn" href="/املاک">دیدن آگهی‌ها</a>
+        </div>
+    }
+    else
+    {
+        <div class="grid">@foreach (var p in Model.Items) { <partial name="_PropertyCard" model="p" /> }</div>
+    }
+</div>

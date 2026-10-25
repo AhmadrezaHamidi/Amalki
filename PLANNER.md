@@ -14,9 +14,12 @@
 
 - SEO/GEO files: `/sitemap.xml`, `/robots.txt` (AI crawlers allowed), `/llms.txt`; JSON-LD RealEstateAgent+WebSite (home), BreadcrumbList (list, detail); login noindex; base URL from `Site:BaseUrl`. 6 new xunit tests (14 total pass); endpoints verified over HTTP. Not yet: Search Console submission, FAQPage, WebP/srcset, city/district pages.
 
+- UI/UX v2 redesign: design canvas (`design/canvas/`, 4 web pages + 3 mobile-app screens), then backend + frontend to match. Lead entity + `Leads` migration, `/تماس` contact form (mobile validation, honeypot, 5 posts/10 min/IP rate limit), `/Admin/Leads`, listing sort + beds/area filters + active-filter chips, similar listings, OSM map embed, favorites `/نشان‌شده` (localStorage), FAQPage JSON-LD, Persian 404, admin dashboard stats. Bots: inline "view listing" button on posts (toggle `{Section}:InlineButton`), lead alert to `{Section}:AdminChatId`. 24 tests pass. Visually checked at 390px and 1440px against SQLite locally (SQL Server migration not applied in this environment).
+
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
-- Then: contact/lead form (PUB-06), FAQPage + city/district pages, image WebP/srcset.
+- Apply the `Leads` migration on the real SQL Server (`dotnet ef database update`).
+- Then: city/district pages, image WebP/srcset, photo reordering (ADM-09).
 
 ## Backlog
 - Multi-photo albums in channels (sendMediaGroup); currently first photo + caption only.
@@ -25,4 +28,4 @@
 - Map (Leaflet/Neshan), favorites, contact/lead form.
 - Deploy.
 
-Last updated: 2026-10-25 12:00
+Last updated: 2026-10-25 20:00

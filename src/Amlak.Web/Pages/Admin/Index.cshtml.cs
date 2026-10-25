@@ -10,9 +10,16 @@ namespace Amlak.Web.Pages.Admin;
 public class IndexModel(AppDbContext db, PhotoStorage photos, ChannelPublisher publisher) : PageModel
 {
     public List<Property> Items { get; private set; } = [];
+    public int NewLeads { get; private set; }
+    public int ChannelErrors { get; private set; }
 
-    public async Task OnGetAsync() =>
-        Items = await db.Properties.AsNoTracking().OrderByDescending(p => p.CreatedAtUtc).ToListAsync();
+    public async Task OnGetAsync()
+    {
+        Items = await db.Properties.AsNoTracking().Include(p => p.Photos.OrderBy(x => x.SortOrder).Take(1)).Include(p => p.ChannelPosts)
+            .OrderByDescending(p => p.CreatedAtUtc).ToListAsync();
+        NewLeads = await db.Leads.CountAsync(l => !l.Handled);
+        ChannelErrors = Items.Sum(p => p.ChannelPosts.Count(c => c.Error != null));
+    }
 
     public async Task<IActionResult> OnPostTogglePublishAsync(int id)
     {

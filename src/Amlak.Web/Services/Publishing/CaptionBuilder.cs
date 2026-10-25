@@ -20,8 +20,19 @@ public static class CaptionBuilder
             lines.Add($"🗓 اجارهٔ ماهانه: {Fa.Money(p.MonthlyRent)} تومان");
         }
 
-        lines.Add($"🔗 {baseUrl.TrimEnd('/')}/ملک/{Uri.EscapeDataString(p.Slug)}");
+        lines.Add($"🔗 {Url(p, baseUrl)}");
         lines.Add($"#{deal} #{Tag(p.City)} #{Tag(p.District)}");
+        return string.Join("\n", lines);
+    }
+
+    public static string Url(Property p, string baseUrl) => $"{baseUrl.TrimEnd('/')}/ملک/{Uri.EscapeDataString(p.Slug)}";
+
+    /// <summary>Private message to the admin chat about a new contact request.</summary>
+    public static string Lead(Lead lead, Property? p, string baseUrl)
+    {
+        var lines = new List<string> { "📩 درخواست تماس جدید", $"👤 {lead.Name}", $"📞 {lead.Phone}" };
+        if (p is not null) lines.Add($"🏠 {p.Title} — {Url(p, baseUrl)}");
+        if (!string.IsNullOrWhiteSpace(lead.Message)) lines.Add($"💬 {lead.Message}");
         return string.Join("\n", lines);
     }
 

@@ -2,6 +2,7 @@ using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
 using Amlak.Web.Services.Seo;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,23 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
+builder.Services.AddScoped<LeadNotifier>();
+
+// Contact form: at most 5 submissions per IP per 10 minutes (NFR-09). Every other request is unlimited.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        HttpMethods.IsPost(ctx.Request.Method) && ctx.Request.Path.Equals(Amlak.Web.Pages.ContactModel.Path)
+            ? RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "?",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(10) })
+            : RateLimitPartition.GetNoLimiter(""));
+    o.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await ctx.HttpContext.Response.WriteAsync("درخواست‌های زیادی فرستاده‌اید. لطفاً چند دقیقهٔ دیگر دوباره تلاش کنید.", ct);
+    };
+});
 builder.Services.AddRazorPages(o => o.Conventions.AuthorizeFolder("/Admin", "Admin"));
 
 var app = builder.Build();
@@ -52,7 +70,9 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles(); // serves runtime uploads in wwwroot/uploads
+app.UseStatusCodePagesWithReExecute("/Error", "?code={0}");
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -36,6 +36,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
     [BindProperty] public List<IFormFile> Uploads { get; set; } = [];
     public List<PropertyPhoto> Photos { get; private set; } = [];
     public int? Id { get; private set; }
+    public string? Slug { get; private set; }
     public List<ChannelPost> Posts { get; private set; } = [];
     public IReadOnlyCollection<Channel> Configured => publisher.ConfiguredChannels;
 
@@ -44,7 +45,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         if (id is null) return Page();
         var p = await db.Properties.AsNoTracking().Include(x => x.Photos.OrderBy(f => f.SortOrder)).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return NotFound();
-        Id = p.Id; Photos = p.Photos; Posts = p.ChannelPosts;
+        Id = p.Id; Slug = p.Slug; Photos = p.Photos; Posts = p.ChannelPosts;
         Input = new InputModel
         {
             Title = p.Title, Description = p.Description, Deal = p.Deal, Kind = p.Kind, Status = p.Status,
@@ -142,7 +143,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
     private Task<IActionResult> Redisplay(Property? p)
     {
-        Id = p?.Id; Photos = p?.Photos.OrderBy(x => x.SortOrder).ToList() ?? []; Posts = p?.ChannelPosts ?? [];
+        Id = p?.Id; Slug = p?.Slug; Photos = p?.Photos.OrderBy(x => x.SortOrder).ToList() ?? []; Posts = p?.ChannelPosts ?? [];
         return Task.FromResult<IActionResult>(Page());
     }
 }
