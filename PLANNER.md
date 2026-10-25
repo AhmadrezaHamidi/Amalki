@@ -1,8 +1,9 @@
 # Amlak — Real estate site (sale + rent)
 
 ## Current status
+- Backend rebuilt on DDD + CQRS with the usual structure (same as DentV2 / Salmandan, `AhmadBase.*` packages in `Nuget/`): `Src/{Domain,Application,Infrastructure,Rest,Host}`, .NET 8. See `docs/BACKEND.md`. Old Razor site moved to `Src/Web/Amlak.Web` and still runs on its own DB.
 - Design chosen: Option 1 "Modern & Trustworthy" (teal/blue, light, Vazirmatn, RTL). Mockup: `design-options.html`. Design system: `design-system/amlak/MASTER.md`.
-- Stack: ASP.NET Core 9 Razor Pages + EF Core (SQL Server) + Identity. Solution builds clean.
+- Stack: API = .NET 8 DDD (AhmadBase, EF Core 8 + Dapper, Autofac, JWT/OTP). Razor site = ASP.NET Core 9 Razor Pages + EF Core 9 + Identity.
 
 ## Done
 - Design options (3) built and one chosen.
@@ -14,9 +15,13 @@
 
 - SEO/GEO files: `/sitemap.xml`, `/robots.txt` (AI crawlers allowed), `/llms.txt`; JSON-LD RealEstateAgent+WebSite (home), BreadcrumbList (list, detail); login noindex; base URL from `Site:BaseUrl`. 6 new xunit tests (14 total pass); endpoints verified over HTTP. Not yet: Search Console submission, FAQPage, WebP/srcset, city/district pages.
 
+- DDD backend API (net8): Listing (Property + photos: create/edit/publish/unpublish/close/delete, photo upload with signature check, reorder, cover, alt), Publishing (ChannelPost aggregate; sync to Telegram/Bale through domain events, errors per post, manual re-sync, failed list), Lead (new: public contact request, 3 per phone per 10 min, SMS to admins, admin status workflow), Identity (OTP + JWT, admin only from `Platform:AdminPhones`, OTP cooldown 1 min + burn after 5 wrong tries, refresh rotation). Dapper read side: search with advanced filters, by-slug (404 for non-published), similar, locations, sitemap data, admin lists. EF migration `Initial` (DB `AmlakApi`). 62 tests pass (31 domain, 31 application on SQLite with real event handlers + fake Bot API). Host starts; Swagger lists 33 routes; admin routes 401 without token; validation 422 in Persian. NOT verified against a real SQL Server (Dapper SQL untested) or real bots.
+
 ## Next task
+- Run `dotnet ef database update` for `AmlakApi` on SQL Server and smoke-test every endpoint (Dapper SQL is untested).
+- Point the Razor public pages + lead form at the API, then move the admin panel (see `docs/BACKEND.md` → migration plan).
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
-- Then: contact/lead form (PUB-06), FAQPage + city/district pages, image WebP/srcset.
+- Then: FAQPage + city/district pages, image WebP/srcset.
 
 ## Backlog
 - Multi-photo albums in channels (sendMediaGroup); currently first photo + caption only.
@@ -25,4 +30,4 @@
 - Map (Leaflet/Neshan), favorites, contact/lead form.
 - Deploy.
 
-Last updated: 2026-10-25 12:00
+Last updated: 2026-10-25 20:40

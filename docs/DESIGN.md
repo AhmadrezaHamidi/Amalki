@@ -8,7 +8,7 @@
 
 ## توکن‌ها
 
-تعریف در `src/Amlak.Web/wwwroot/css/site.css` (`:root`).
+تعریف در `Src/Web/Amlak.Web/wwwroot/css/site.css` (`:root`).
 
 | توکن | مقدار | کاربرد |
 |---|---|---|

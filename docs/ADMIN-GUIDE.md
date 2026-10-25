@@ -3,7 +3,7 @@
 ## ورود
 
 ۱. به `/Account/Login` بروید.
-۲. ایمیل و رمز مدیر را وارد کنید (در محیط توسعه از user-secrets: `dotnet user-secrets list` در پوشهٔ `src/Amlak.Web`).
+۲. ایمیل و رمز مدیر را وارد کنید (در محیط توسعه از user-secrets: `dotnet user-secrets list` در پوشهٔ `Src/Web/Amlak.Web`).
 ۳. پس از ۵ تلاش ناموفق، حساب برای مدتی قفل می‌شود.
 
 خروج: دکمهٔ «خروج» بالای لیست مدیریت.

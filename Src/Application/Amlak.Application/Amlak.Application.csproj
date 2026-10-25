@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Amlak.Estate.Application</AssemblyName>
+    <RootNamespace>Amlak.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AhmadBase.Application"      Version="1.0.1" />
+    <PackageReference Include="AhmadBase.Helper"           Version="1.0.10" />
+    <PackageReference Include="AhmadBase.External.Service" Version="1.0.10" />
+    <PackageReference Include="AhmadBase.Web"              Version="1.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\Amlak.Domain\Amlak.Domain.csproj" />
+    <ProjectReference Include="..\Amlak.Application.Contract\Amlak.Application.Contract.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Amlak.Persistence.EF\Amlak.Persistence.EF.csproj" />
+  </ItemGroup>
+
+</Project>

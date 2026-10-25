@@ -22,7 +22,7 @@
 
 ایندکس: `Properties(Status, Deal, City)` برای لیست و فیلتر. زمان‌ها UTC هستند.
 
-مهاجرت‌ها: `Initial` و `ChannelPostUniqueAndPhoto` در `src/Amlak.Web/Migrations`.
+مهاجرت‌ها: `Initial` و `ChannelPostUniqueAndPhoto` در `Src/Web/Amlak.Web/Migrations`.
 
 ## صفحه‌ها و مسیرها
 
@@ -76,7 +76,7 @@
 
 ## تست
 
-`tests/Amlak.Tests/PublishingTests.cs` (xUnit، SQLite درون‌حافظه، Bot API ساختگی):
+`Test/Amlak.Tests/PublishingTests.cs` (xUnit، SQLite درون‌حافظه، Bot API ساختگی):
 کپشن، ارسال یک‌باره و سپس ویرایش، عدم انتشار پیش‌نویس، حذف پیام هنگام لغو انتشار، مسیر عکس‌دار، ثبت خطا بدون نشت توکن و تلاش مجدد، دو کانال با دو میزبان، و بدون کانال = بدون اثر.
 
 پوشش‌داده‌نشده: صفحه‌های Razor (فقط با درخواست HTTP دستی بررسی شده‌اند)، `PhotoStorage`، ورود/خروج.

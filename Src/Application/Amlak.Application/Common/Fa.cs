@@ -1,0 +1,22 @@
+namespace Amlak.Application.Common;
+
+/// <summary>قالب‌بندی فارسی برای متن کانال‌ها و پیامک</summary>
+public static class Fa
+{
+    public static string Digits(string s) => string.Create(s.Length, s, (span, src) =>
+    {
+        for (var i = 0; i < src.Length; i++)
+            span[i] = src[i] is >= '0' and <= '9' ? (char)('۰' + (src[i] - '0')) : src[i];
+    });
+
+    /// <summary>مبلغ تومانی به‌صورت «۱۲٫۵ میلیارد» / «۴۰۰ میلیون»؛ خالی یعنی «توافقی»</summary>
+    public static string Money(long? toman)
+    {
+        if (toman is null or 0) return "توافقی";
+        var v = toman.Value;
+        var t = v >= 1_000_000_000 ? $"{v / 1_000_000_000m:0.##} میلیارد"
+              : v >= 1_000_000     ? $"{v / 1_000_000m:0.##} میلیون"
+              : $"{v:N0}";
+        return Digits(t.Replace('.', '٫'));
+    }
+}

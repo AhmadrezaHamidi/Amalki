@@ -1,0 +1,15 @@
+global using AhmadBase.Web;
+global using AhmadBase.Web.Securities;
+global using AhmadBase.Application;
+global using AhmadBase.Application.Query;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
+global using Identity.Application.Commands;
+global using Listing.Application.Commands;
+global using Listing.Application.Queries;
+global using Publishing.Application.Commands;
+global using Publishing.Application.Queries;
+global using Lead.Application.Commands;
+global using Lead.Application.Queries;

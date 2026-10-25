@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Amlak.Estate.Config</AssemblyName>
+    <RootNamespace>Amlak.Config</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AhmadBase.Web"            Version="1.0.7" />
+    <PackageReference Include="AhmadBase.Config"         Version="1.0.7" />
+    <PackageReference Include="Ahmad.Base.Doamin"        Version="1.0.8" />
+    <PackageReference Include="AhmadBase.Event.Handler"  Version="1.0.10" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Application\Amlak.Application.Contract\Amlak.Application.Contract.csproj" />
+    <ProjectReference Include="..\..\Application\Amlak.Application.Validators\Amlak.Application.Validators.csproj" />
+    <ProjectReference Include="..\..\Domain\Amlak.Domain\Amlak.Domain.csproj" />
+    <ProjectReference Include="..\Amlak.Persistence.EF\Amlak.Persistence.EF.csproj" />
+    <ProjectReference Include="..\Amlak.Read.Dapper\Amlak.Read.Dapper.csproj" />
+  </ItemGroup>
+
+</Project>

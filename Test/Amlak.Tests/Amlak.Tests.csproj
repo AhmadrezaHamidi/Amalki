@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Amlak.Web\Amlak.Web.csproj" />
+    <ProjectReference Include="..\..\Src\Web\Amlak.Web\Amlak.Web.csproj" />
   </ItemGroup>
 
 </Project>
