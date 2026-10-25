@@ -1,0 +1,55 @@
+@page "/ملک/{slug}"
+@model Amlak.Web.Pages.Properties.DetailsModel
+@using System.Text.Json
+@{
+    var p = Model.Item;
+    var url = $"{Model.Request.Scheme}://{Model.Request.Host}/ملک/{p.Slug}";
+    var dealLabel = p.Deal == DealType.Sale ? "فروش" : "اجارهٔ";
+    ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
+    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (p.Deal == DealType.Sale ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    ViewData["Canonical"] = url;
+    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = first.Url;
+    var ld = new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "RealEstateListing",
+        ["name"] = p.Title,
+        ["description"] = p.Description,
+        ["url"] = url,
+        ["datePosted"] = p.PublishedAtUtc?.ToString("yyyy-MM-dd"),
+        ["image"] = p.Photos.Select(x => x.Url).ToArray(),
+        ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["addressLocality"] = p.City, ["addressRegion"] = p.District, ["addressCountry"] = "IR" },
+        ["floorSize"] = new Dictionary<string, object> { ["@type"] = "QuantitativeValue", ["value"] = p.AreaM2, ["unitCode"] = "MTK" },
+        ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["price"] = p.Deal == DealType.Sale ? p.Price : p.MonthlyRent, ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" }
+    };
+    var ldJson = JsonSerializer.Serialize(ld, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }).Replace("</", "<\\/");
+}
+@section Head {
+    <script type="application/ld+json">@Html.Raw(ldJson)</script>
+}
+<div class="wrap">
+    <p class="crumbs"><a href="/">خانه</a> / <a href="/املاک?deal=@p.Deal">@(p.Deal == DealType.Sale ? "خرید" : "اجاره")</a> / @p.City</p>
+    <h1 style="margin-top:8px">@p.Title</h1>
+    <p class="loc">@p.City، @p.District</p>
+    <div class="detail">
+        <div>
+            <div class="gallery">@foreach (var f in p.Photos) { <img src="@f.Url" alt="@f.Alt" loading="lazy" /> }</div>
+            <h2>توضیحات</h2>
+            <p style="white-space:pre-line">@p.Description</p>
+        </div>
+        <aside class="panel">
+            <div class="price" style="font-size:1.3rem">
+                @if (p.Deal == DealType.Sale) { <text>@Fa.Money(p.Price) <small>تومان</small></text> }
+                else { <text>رهن @Fa.Money(p.Deposit)<br />اجاره @Fa.Money(p.MonthlyRent) <small>در ماه</small></text> }
+            </div>
+            <ul class="specs">
+                <li>متراژ: @Fa.Digits(p.AreaM2.ToString())</li>
+                @if (p.Bedrooms is { } b) {<li>خواب: @Fa.Digits(b.ToString())</li>}
+                @if (p.Floor is { } fl) {<li>طبقه: @Fa.Digits(fl.ToString())</li>}
+                @if (p.Parking is { } pk) {<li>پارکینگ: @Fa.Digits(pk.ToString())</li>}
+                @if (p.YearBuilt is { } y) {<li>سال ساخت: @Fa.Digits(y.ToString())</li>}
+            </ul>
+            <a class="btn" href="#contact" style="width:100%">درخواست تماس</a>
+        </aside>
+    </div>
+</div>

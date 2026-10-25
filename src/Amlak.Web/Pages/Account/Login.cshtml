@@ -1,0 +1,17 @@
+@page
+@model Amlak.Web.Pages.Account.LoginModel
+@{ ViewData["Title"] = "ورود مدیر"; }
+<div class="wrap">
+    <form method="post" class="panel form" style="max-width:420px;margin:48px auto;position:static">
+        <h1>ورود به پنل مدیریت</h1>
+        <div asp-validation-summary="ModelOnly" class="err" role="alert"></div>
+        <input type="hidden" asp-for="ReturnUrl" />
+        <label for="Email">ایمیل</label>
+        <input asp-for="Email" autocomplete="username" dir="ltr" />
+        <span asp-validation-for="Email" class="err"></span>
+        <label for="Password">رمز عبور</label>
+        <input asp-for="Password" autocomplete="current-password" dir="ltr" />
+        <span asp-validation-for="Password" class="err"></span>
+        <button class="btn" style="margin-top:16px;width:100%">ورود</button>
+    </form>
+</div>

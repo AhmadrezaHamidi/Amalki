@@ -1,0 +1,43 @@
+﻿@{
+    var title = ViewData["Title"] as string;
+    var desc = ViewData["Description"] as string ?? "خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا و ملک تجاری با آگهی‌های بررسی‌شده.";
+    var canonical = ViewData["Canonical"] as string ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    var ogImage = ViewData["OgImage"] as string;
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(string.IsNullOrEmpty(title) ? "آشیانه | خرید و اجارهٔ ملک" : title + " | آشیانه")</title>
+    <meta name="description" content="@desc" />
+    <link rel="canonical" href="@canonical" />
+    @if (ViewData["Robots"] is string robots) { <meta name="robots" content="@robots" /> }
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fa_IR" />
+    <meta property="og:title" content="@title" />
+    <meta property="og:description" content="@desc" />
+    <meta property="og:url" content="@canonical" />
+    @if (ogImage is not null) { <meta property="og:image" content="@ogImage" /> }
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+<a class="skip" href="#main">رفتن به محتوا</a>
+<div class="wrap">
+    <nav class="nav" aria-label="منوی اصلی">
+        <a class="logo" href="/">آشیانه</a>
+        <ul>
+            <li><a asp-page="/Properties/Index" asp-route-deal="Sale">خرید</a></li>
+            <li><a asp-page="/Properties/Index" asp-route-deal="Rent">اجاره و رهن</a></li>
+        </ul>
+        <a class="btn" asp-page="/Properties/Index">همهٔ آگهی‌ها</a>
+    </nav>
+</div>
+<main id="main">@RenderBody()</main>
+<footer class="wrap foot">© آشیانه · خرید، فروش و اجارهٔ ملک</footer>
+</body>
+</html>
