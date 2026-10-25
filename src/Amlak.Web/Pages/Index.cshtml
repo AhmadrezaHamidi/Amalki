@@ -1,6 +1,16 @@
 ﻿@page
 @model IndexModel
 @{ ViewData["Title"] = "خرید، فروش و اجارهٔ ملک"; }
+@section Head {
+    @{
+        var cfg = Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var site = (cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
+    }
+    @foreach (var node in Amlak.Web.Services.Seo.JsonLd.Site(cfg["Site:Name"] ?? "آشیانه", site))
+    {
+        <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(node))</script>
+    }
+}
 <div class="wrap">
     <section class="hero">
         <h1>خانهٔ مناسبت را سریع و مطمئن پیدا کن</h1>

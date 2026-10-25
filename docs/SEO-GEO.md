@@ -14,19 +14,24 @@
 | نشانی تمیز و فارسی (`/ملک/{slug}`) | هست | `Slugger` |
 | `lang="fa" dir="rtl"` | هست | `_Layout` |
 | `alt` برای عکس‌ها (عنوان + محله + شهر) | هست | `PhotoStorage` / ثبت عکس |
-| `noindex` برای پنل مدیریت و ورود | هست (مدیریت)؛ ورود: برنامه‌ریزی | `ViewData["Robots"]` |
+| `noindex` برای پنل مدیریت و ورود | هست | `ViewData["Robots"]` |
+| `/sitemap.xml` پویا (صفحه‌های اصلی، لیست‌ها، آگهی‌های منتشرشده با `lastmod` و عکس) | هست | `Services/Seo/SeoEndpoints.cs` |
+| `/robots.txt` با `Disallow` برای Admin/Account، خط Sitemap و گروه صریح خزنده‌های هوش مصنوعی | هست | `SeoFiles.Robots` |
+| `/llms.txt` (معرفی، صفحه‌های اصلی، ۲۰ آگهی آخر) | هست | `SeoFiles.Llms` |
+| JSON-LD `RealEstateAgent` + `WebSite` (صفحهٔ اصلی) و `BreadcrumbList` (لیست و جزئیات) | هست | `Services/Seo/JsonLd.cs` |
+| آدرس پایه از `Site:BaseUrl` (نه هدر Host) تا جعل Host فایل‌ها را مسموم نکند | هست | `SeoEndpoints.BaseUrl` |
 | `loading="lazy"` و ابعاد عکس کارت‌ها | هست | `_PropertyCard` |
 
 ## برنامه (به ترتیب اولویت)
 
-### ۱. فایل‌های کشف (SEO-04, SEO-05)
+### ۱. فایل‌های کشف (SEO-04, SEO-05) — انجام‌شده، ثبت در Search Console مانده
 
 - **`/sitemap.xml`** پویا: صفحهٔ اصلی، لیست، همهٔ آگهی‌های منتشرشده با `lastmod` (بر پایهٔ `PublishedAtUtc`/آخرین ویرایش) و `<image:image>`. اگر آگهی‌ها از ۵۰٬۰۰۰ بیشتر شد، sitemap index.
 - **`/robots.txt`**: اجازهٔ خزیدن عمومی، `Disallow: /Admin`, `/Account`, `/uploads` نیازی به مسدود کردن ندارد (عکس‌ها باید ایندکس شوند)، خط `Sitemap:`.
 - **`/llms.txt`**: خلاصهٔ سایت برای مدل‌ها (معرفی، بخش‌های اصلی، نحوهٔ یافتن آگهی‌ها، اطلاعات تماس). فایل متنی ساده و کوتاه.
 - در `robots.txt` خزندهٔ هوش مصنوعی را صریح مجاز کنید یا مسدود کنید (تصمیم کسب‌وکاری): `GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`, `CCBot`.
 
-### ۲. داده ساختاریافتهٔ بیشتر (SEO-06)
+### ۲. داده ساختاریافتهٔ بیشتر (SEO-06) — سازمان/وب‌سایت/مسیر انجام‌شده؛ FAQPage و ItemList مانده
 
 - `Organization` / `RealEstateAgent` + `WebSite` (با `SearchAction`) در صفحهٔ اصلی: نام، لوگو، تلفن، نشانی، ساعات کار.
 - `BreadcrumbList` در لیست و جزئیات (الان فقط مسیر متنی هست).
@@ -62,6 +67,10 @@
 - Google Search Console (ثبت sitemap، پوشش ایندکس، Core Web Vitals).
 - ابزارهای تحلیل ترافیک سازگار با ایران (مثلاً متریکا) در کنار یا به‌جای GA.
 - برای GEO: بررسی دوره‌ای پرسش‌های هدف (مثلاً «خرید آپارتمان در سعادت‌آباد») در موتورهای هوش مصنوعی و ثبت اینکه سایت نقل می‌شود یا نه.
+
+## نکتهٔ تصمیم: خزندهٔ هوش مصنوعی
+
+در `robots.txt` خزنده‌های GPTBot، OAI-SearchBot، ChatGPT-User، ClaudeBot، Claude-User، PerplexityBot، Google-Extended و CCBot **مجاز** هستند تا آگهی‌ها در پاسخ‌های هوش مصنوعی نقل شوند. اگر نمی‌خواهید محتوا برای آموزش مدل‌ها استفاده شود، `Google-Extended` و `CCBot` را از `AiCrawlers` در `SeoFiles.cs` حذف کنید و `Disallow: /` بگذارید.
 
 ## چک‌لیست پیش از انتشار
 

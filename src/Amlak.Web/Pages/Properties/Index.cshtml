@@ -7,6 +7,9 @@
     // Filtered/paged variants point to the base listing to avoid duplicate-content indexing.
     ViewData["Canonical"] = $"{Model.Request.Scheme}://{Model.Request.Host}/املاک" + (Model.Deal is { } d ? "?deal=" + d : "");
 }
+@section Head {
+    <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(Amlak.Web.Services.Seo.JsonLd.Breadcrumbs(("خانه", Model.Request.Scheme + "://" + Model.Request.Host + "/"), (label, (string)ViewData["Canonical"]!))))</script>
+}
 <div class="wrap">
     <h1 style="margin-top:24px">@ViewData["Title"]</h1>
     <p class="crumbs">@Fa.Digits(Model.Total.ToString()) آگهی</p>

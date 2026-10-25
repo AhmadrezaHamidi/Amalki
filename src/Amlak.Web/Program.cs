@@ -1,6 +1,7 @@
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
+using Amlak.Web.Services.Seo;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,6 +56,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapSeo();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
