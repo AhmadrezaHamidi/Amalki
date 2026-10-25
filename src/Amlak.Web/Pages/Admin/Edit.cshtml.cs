@@ -2,13 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
+using Amlak.Web.Services.Sms;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher publisher) : PageModel
+public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher publisher, AlertService alerts) : PageModel
 {
     public class InputModel
     {
@@ -20,6 +21,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         [Range(0, long.MaxValue)] public long? Price { get; set; }
         [Range(0, long.MaxValue)] public long? Deposit { get; set; }
         [Range(0, long.MaxValue)] public long? MonthlyRent { get; set; }
+        public PriceDisplay PriceDisplay { get; set; } = PriceDisplay.Full;
         [Range(1, 1_000_000, ErrorMessage = "متراژ نامعتبر است")] public int AreaM2 { get; set; }
         [Range(0, 50)] public int? Bedrooms { get; set; }
         [Range(-5, 200)] public int? Floor { get; set; }
@@ -48,7 +50,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         Input = new InputModel
         {
             Title = p.Title, Description = p.Description, Deal = p.Deal, Kind = p.Kind, Status = p.Status,
-            Price = p.Price, Deposit = p.Deposit, MonthlyRent = p.MonthlyRent, AreaM2 = p.AreaM2, Bedrooms = p.Bedrooms,
+            Price = p.Price, Deposit = p.Deposit, MonthlyRent = p.MonthlyRent, PriceDisplay = p.PriceDisplay, AreaM2 = p.AreaM2, Bedrooms = p.Bedrooms,
             Floor = p.Floor, Parking = p.Parking, YearBuilt = p.YearBuilt, City = p.City, District = p.District,
             Address = p.Address, Latitude = p.Latitude, Longitude = p.Longitude,
         };
@@ -67,6 +69,8 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         if (!ModelState.IsValid) return await Redisplay(p);
 
         var isNew = p is null;
+        // Price before this edit, only when it was already live: a lower price then triggers price-drop alerts.
+        var previousPrice = p?.Status == ListingStatus.Published ? Pricing.Effective(p) : null;
         p ??= new Property();
         Apply(p);
         if (isNew)
@@ -89,6 +93,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
         await db.SaveChangesAsync();
         await publisher.SyncAsync(p.Id);
+        await alerts.NotifyAsync(p.Id, previousPrice);
         return RedirectToPage("Edit", new { id = p.Id });
     }
 
@@ -123,6 +128,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         p.Price = Input.Deal == DealType.Sale ? Input.Price : null;
         p.Deposit = Input.Deal == DealType.Rent ? Input.Deposit : null;
         p.MonthlyRent = Input.Deal == DealType.Rent ? Input.MonthlyRent : null;
+        p.PriceDisplay = Input.PriceDisplay;
         p.AreaM2 = Input.AreaM2; p.Bedrooms = Input.Bedrooms; p.Floor = Input.Floor;
         p.Parking = Input.Parking; p.YearBuilt = Input.YearBuilt;
         p.City = Input.City.Trim(); p.District = Input.District.Trim(); p.Address = Input.Address?.Trim();

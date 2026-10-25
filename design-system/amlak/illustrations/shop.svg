@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+<defs>
+<pattern id="aw" x="120" y="190" width="80" height="70" patternUnits="userSpaceOnUse"><rect width="40" height="70" fill="#0369A1"/><rect x="40" width="40" height="70" fill="#F4F1EA"/></pattern>
+</defs>
+<rect width="800" height="600" fill="#E7F2F1"/>
+<rect x="80" y="40" width="640" height="490" fill="#E9DDCB"/>
+<rect x="80" y="40" width="640" height="130" fill="#DCCDB6"/>
+<rect x="140" y="70" width="90" height="70" rx="4" fill="#9CC4CE"/><rect x="355" y="70" width="90" height="70" rx="4" fill="#9CC4CE"/><rect x="570" y="70" width="90" height="70" rx="4" fill="#9CC4CE"/>
+<rect x="200" y="152" width="400" height="34" rx="6" fill="#134E4A"/>
+<rect x="230" y="164" width="120" height="10" rx="5" fill="#E6F5F2"/><rect x="370" y="164" width="60" height="10" rx="5" fill="#99F6E4"/>
+<path d="M120 190 H680 V250 Q660 270 640 250 Q620 270 600 250 Q580 270 560 250 Q540 270 520 250 Q500 270 480 250 Q460 270 440 250 Q420 270 400 250 Q380 270 360 250 Q340 270 320 250 Q300 270 280 250 Q260 270 240 250 Q220 270 200 250 Q180 270 160 250 Q140 270 120 250z" fill="url(#aw)"/>
+<rect x="140" y="280" width="330" height="230" fill="#BFDDE4"/>
+<path d="M140 280 L260 280 L180 510 L140 510z" fill="#D5EAEE"/>
+<rect x="170" y="420" width="70" height="90" fill="#F2C48D"/><rect x="260" y="400" width="60" height="110" fill="#E79A6F"/><rect x="340" y="440" width="90" height="70" fill="#7FB8A4"/>
+<rect x="500" y="280" width="160" height="230" fill="#0F766E"/>
+<rect x="515" y="296" width="130" height="150" fill="#9CC4CE"/>
+<circle cx="632" cy="470" r="6" fill="#F5D88A"/>
+<rect x="60" y="510" width="680" height="20" fill="#C8BBA6"/>
+<rect x="0" y="530" width="800" height="70" fill="#CFCAC0"/>
+<rect x="0" y="560" width="800" height="4" fill="#BDB7AB"/>
+<rect x="700" y="420" width="8" height="110" fill="#5C6B6A"/><circle cx="704" cy="414" r="14" fill="#FCE3A6"/>
+</svg>

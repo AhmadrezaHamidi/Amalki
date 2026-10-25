@@ -12,8 +12,10 @@ public static class CaptionBuilder
             "📐 " + Fa.Digits(p.AreaM2.ToString()) + " متر" + (p.Bedrooms is { } b ? $" | {Fa.Digits(b.ToString())} خواب" : ""),
         };
 
-        if (p.Deal == DealType.Sale)
-            lines.Add($"💰 قیمت: {Fa.Money(p.Price)} تومان");
+        if (p.PriceDisplay == PriceDisplay.Negotiable)
+            lines.Add("💰 قیمت: توافقی");
+        else if (p.Deal == DealType.Sale)
+            lines.Add($"💰 قیمت: {Pricing.Label(p)}");
         else
         {
             lines.Add($"💰 رهن: {Fa.Money(p.Deposit)} تومان");

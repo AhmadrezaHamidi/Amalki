@@ -32,6 +32,10 @@
             <div><label for="Input_MonthlyRent">اجارهٔ ماهانه (تومان)</label><input asp-for="Input.MonthlyRent" inputmode="numeric" dir="ltr" /></div>
         </div>
         <p class="hint">برای فروش فقط «قیمت»، برای اجاره «رهن» و «اجاره» را پر کنید.</p>
+        <label for="Input_PriceDisplay">نمایش قیمت در سایت، کانال و پیامک</label>
+        <select asp-for="Input.PriceDisplay">
+            <option value="Full">قیمت کل و قیمت هر متر</option><option value="TotalOnly">فقط قیمت کل</option><option value="Negotiable">توافقی (قیمت پنهان)</option>
+        </select>
 
         <div class="row">
             <div><label for="Input_AreaM2">متراژ</label><input asp-for="Input.AreaM2" inputmode="numeric" dir="ltr" /></div>

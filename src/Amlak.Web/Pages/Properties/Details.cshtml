@@ -6,7 +6,11 @@
     var url = $"{Model.Request.Scheme}://{Model.Request.Host}/ملک/{p.Slug}";
     var dealLabel = p.Deal == DealType.Sale ? "فروش" : "اجارهٔ";
     ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
-    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (p.Deal == DealType.Sale ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    var hidePrice = p.PriceDisplay == PriceDisplay.Negotiable;
+    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. "
+        + (hidePrice ? "قیمت توافقی" : p.Deal == DealType.Sale ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    var offer = new Dictionary<string, object?> { ["@type"] = "Offer", ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" };
+    if (!hidePrice) offer["price"] = p.Deal == DealType.Sale ? p.Price : p.MonthlyRent;
     ViewData["Canonical"] = url;
     if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = first.Url;
     var ld = new Dictionary<string, object?>
@@ -20,7 +24,7 @@
         ["image"] = p.Photos.Select(x => x.Url).ToArray(),
         ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["addressLocality"] = p.City, ["addressRegion"] = p.District, ["addressCountry"] = "IR" },
         ["floorSize"] = new Dictionary<string, object> { ["@type"] = "QuantitativeValue", ["value"] = p.AreaM2, ["unitCode"] = "MTK" },
-        ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["price"] = p.Deal == DealType.Sale ? p.Price : p.MonthlyRent, ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" }
+        ["offers"] = offer
     };
     var site = (Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>()["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var ldJson = JsonLd.Serialize(ld);
@@ -45,9 +49,12 @@
         </div>
         <aside class="panel">
             <div class="price" style="font-size:1.3rem">
-                @if (p.Deal == DealType.Sale) { <text>@Fa.Money(p.Price) <small>تومان</small></text> }
+                @if (hidePrice) { <text>قیمت توافقی</text> }
+                else if (p.Deal == DealType.Sale) { <text>@Fa.Money(p.Price) <small>تومان</small></text> }
                 else { <text>رهن @Fa.Money(p.Deposit)<br />اجاره @Fa.Money(p.MonthlyRent) <small>در ماه</small></text> }
             </div>
+            @if (!hidePrice && p.PriceDisplay == PriceDisplay.Full && Pricing.PerSquareMeter(p) is { } perM) { <p class="hint">متری @Fa.Money(perM) تومان</p> }
+            @if (!hidePrice && p.Deal == DealType.Rent && p.MonthlyRent is > 0) { <p class="hint">معادل رهن کامل: @Fa.Money(Pricing.FullDeposit(p.Deposit, p.MonthlyRent)) تومان</p> }
             <ul class="specs">
                 <li>متراژ: @Fa.Digits(p.AreaM2.ToString())</li>
                 @if (p.Bedrooms is { } b) {<li>خواب: @Fa.Digits(b.ToString())</li>}

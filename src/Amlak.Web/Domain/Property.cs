@@ -18,6 +18,7 @@ public class Property
     public long? Price { get; set; }
     public long? Deposit { get; set; }
     public long? MonthlyRent { get; set; }
+    public PriceDisplay PriceDisplay { get; set; } = PriceDisplay.Full;
 
     public int AreaM2 { get; set; }
     public int? Bedrooms { get; set; }

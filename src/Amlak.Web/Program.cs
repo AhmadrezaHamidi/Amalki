@@ -2,6 +2,7 @@ using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
 using Amlak.Web.Services.Seo;
+using Amlak.Web.Services.Sms;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,14 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
+builder.Services.AddSingleton(TimeProvider.System);
+// Until an SMS provider (Kavenegar, SMS.ir, ...) is wired up, messages are written to the log.
+builder.Services.AddScoped<ISmsSender, LogSmsSender>();
+builder.Services.AddScoped<SmsGateway>();
+builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<AlertService>();
+builder.Services.AddScoped<BulkSmsService>();
+builder.Services.AddHostedService<CampaignWorker>();
 builder.Services.AddRazorPages(o => o.Conventions.AuthorizeFolder("/Admin", "Admin"));
 
 var app = builder.Build();

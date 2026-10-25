@@ -8,10 +8,7 @@
         <h3>@Model.Title</h3>
         <div class="loc">@Model.City، @Model.District</div>
         <div class="meta"><span>@Fa.Digits(Model.AreaM2.ToString()) متر</span>@if (Model.Bedrooms is { } r) {<span>@Fa.Digits(r.ToString()) خواب</span>}</div>
-        <div class="price">
-            @if (Model.Deal == DealType.Sale) { <text>@Fa.Money(Model.Price) <small>تومان</small></text> }
-            else { <text>@Fa.Money(Model.Deposit) رهن <small>+ @Fa.Money(Model.MonthlyRent) اجاره</small></text> }
-        </div>
+        <div class="price">@Pricing.Label(Model)</div>
     </div>
     <a class="cover" asp-page="/Properties/Details" asp-route-slug="@Model.Slug" aria-label="@Model.Title"></a>
 </article>
