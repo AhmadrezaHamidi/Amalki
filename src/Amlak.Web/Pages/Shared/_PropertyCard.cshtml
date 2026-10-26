@@ -15,7 +15,7 @@
             @if (Model.Bedrooms is { } r and > 0) { <span>@Icons.Get("bed", 16) @Fa.Digits(r.ToString()) خواب</span> }
         </div>
         <div class="price @(rent ? "rent" : "")">
-            @if (!rent) { <text>@Fa.Money(Model.Price) <small>تومان</small></text> }
+            @if (!rent) { <text>@Fa.Money(Model.Price) <small>@(Model.Deal == DealType.ShortTerm ? "تومان / شب" : "تومان")</small></text> }
             else { <text>@Fa.Money(Model.Deposit) <small>رهن · اجاره @Fa.Money(Model.MonthlyRent)</small></text> }
         </div>
     </div>

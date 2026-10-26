@@ -120,6 +120,38 @@ public class LandingPageTests : IDisposable
     }
 
     [Fact]
+    public async Task Several_districts_stay_in_the_query_and_unticking_clears_the_path_district()
+    {
+        using var db = Seed();
+        var page = Page(db, "/املاک/تهران/خرید-آپارتمان", "?district=ونک&district=سعادت‌آباد");
+        Assert.IsType<PageResult>(await page.OnGetAsync("تهران", "خرید-آپارتمان", null));
+        Assert.Equal(["a", "b", "c"], page.Items.Select(x => x.Slug).Order());
+        Assert.Equal(2, page.Areas.Count);
+        Assert.Contains("district=", page.Link());
+
+        // The filter form sends an empty district when no box is ticked.
+        var cleared = Assert.IsType<RedirectResult>(await Page(db, "/املاک/تهران/خرید-آپارتمان/ونک", "?district=")
+            .OnGetAsync("تهران", "خرید-آپارتمان", "ونک"));
+        Assert.Equal("/املاک/تهران/خرید-آپارتمان", Uri.UnescapeDataString(cleared.Url));
+    }
+
+    [Fact]
+    public void Short_term_rent_has_categories_and_nightly_price_captions()
+    {
+        Assert.Equal("اجاره-روزانه-ویلا", Taxonomy.For(DealType.ShortTerm, PropertyKind.Villa)!.Slug);
+        Assert.Equal("اجاره-کوتاه-مدت", Taxonomy.For(DealType.ShortTerm, PropertyKind.Land)!.Slug); // falls back to the deal
+        var p = Property.Create("v", ListingDetails.Of("ویلا", "ویلا", PropertyKind.Villa, 200, "رامسر", "ساحلی"),
+            Pricing.For(DealType.ShortTerm, 3_000_000, null, null), DateTime.UtcNow);
+        p.Publish(DateTime.UtcNow);
+        Assert.Equal(3_000_000, p.Price);
+        Assert.Throws<DomainException>(() => Property.Create("w", ListingDetails.Of("ویلا", "ویلا", PropertyKind.Villa, 200, "رامسر", "ساحلی"),
+            Pricing.ForNightly(null), DateTime.UtcNow).Publish(DateTime.UtcNow));
+        var caption = Amlak.Web.Services.Publishing.CaptionBuilder.Build(p, "https://example.ir");
+        Assert.Contains("هر شب: ۳ میلیون تومان", caption);
+        Assert.Contains("#اجاره_روزانه", caption);
+    }
+
+    [Fact]
     public void Sitemap_lists_landing_pages_that_have_listings_only()
     {
         using var db = Seed();
