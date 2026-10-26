@@ -18,6 +18,8 @@
 
 - Admin panel v2 + support desk + storage (2026-10-26): canvas boards AdminDashboard/AdminTickets/Support; `/Admin` dashboard, listings at `/Admin/Listings`, sidebar with pending counts; tickets (`Ticket`/`TicketMessage`, migration `Tickets`): public `/پشتیبانی` new + track (code+mobile), `/پشتیبانی/{code}` thread, `/Admin/Tickets` inbox with reply/close; admin bot alerts for tickets (`AdminNotifier`). Storage: `IFileStore` with Local + MinIO (`Storage:Provider`, docs/STORAGE.md), verified against moto S3, not real MinIO. Channels: albums via sendMediaGroup, repost on photo change, delete all album messages (migration `ChannelAlbums`). 29 tests pass.
 
+- UI/UX v3 (2026-10-26): installable PWA (manifest, icons, service worker with offline page, install button), mobile bottom tab bar, phone home page without hero photo and with swipe rails, admin stat grid fills the row. Offline navigation verified in headless Chromium. 31 tests pass. Docs: docs/DESIGN.md section 3.
+
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
 - Apply the `Leads` migration on the real SQL Server (`dotnet ef database update`).
