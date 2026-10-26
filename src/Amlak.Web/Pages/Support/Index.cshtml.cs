@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>Public support desk: open a ticket, or look one up by tracking code + mobile.</summary>
-public class IndexModel(AppDbContext db, TimeProvider clock) : PageModel
+public class IndexModel(AppDbContext db, TimeProvider clock, TicketAccess access) : PageModel
 {
     /// <summary>Route prefix of the support pages; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/پشتیبانی";
@@ -34,7 +34,11 @@ public class IndexModel(AppDbContext db, TimeProvider clock) : PageModel
     [BindProperty] public TrackInput Track { get; set; } = new();
     public string? TrackError { get; private set; }
 
-    public void OnGet() { }
+    /// <param name="code">Prefills the tracking form, e.g. when a ticket link was opened in another browser.</param>
+    public void OnGet(string? code)
+    {
+        if (!string.IsNullOrWhiteSpace(code)) Track.Code = TicketCodes.Pretty(TicketCodes.Normalize(code));
+    }
 
     public async Task<IActionResult> OnPostNewAsync()
     {
@@ -59,6 +63,7 @@ public class IndexModel(AppDbContext db, TimeProvider clock) : PageModel
         }
         db.Tickets.Add(ticket);
         await db.SaveChangesAsync();
+        access.Grant(HttpContext, ticket.Code);
         return Redirect(TicketModel.Url(ticket.Code, created: true));
     }
 
@@ -68,7 +73,11 @@ public class IndexModel(AppDbContext db, TimeProvider clock) : PageModel
         var code = TicketCodes.Normalize(Track.Code);
         var phone = Fa.Mobile(Track.Phone);
         var found = code.Length > 0 && phone is not null && await db.Tickets.AnyAsync(t => t.Code == code && t.Phone == phone);
-        if (found) return Redirect(TicketModel.Url(code));
+        if (found)
+        {
+            access.Grant(HttpContext, code);
+            return Redirect(TicketModel.Url(code));
+        }
         // Same message whether the code or the phone is wrong, so the form can't be used to probe codes.
         TrackError = "تیکتی با این کد پیگیری و شمارهٔ موبایل پیدا نشد.";
         return Page();

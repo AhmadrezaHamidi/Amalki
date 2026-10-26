@@ -85,6 +85,9 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 - **پشت پراکسی:** `UseForwardedHeaders` اول pipeline است. IP پراکسی (nginx) را در `Proxy:KnownProxies` یا `Proxy:KnownNetworks` بگذارید (loopback پیش‌فرض قبول است)؛ وگرنه همهٔ بازدیدکننده‌ها یک IP دارند و rate limit برای همه با هم بسته می‌شود.
 - **Host:** در Production، scheme و host درخواست از `Site:BaseUrl` گرفته می‌شود تا canonical و sitemap با هدر Host جعلی ساخته نشوند.
 - **هدرها:** `X-Content-Type-Options`، `Referrer-Policy`، `Permissions-Policy`، `X-Frame-Options` و CSP پایه (`frame-ancestors`، `base-uri`، `object-src`، `form-action`).
+- **تیکت:** کد پیگیری به‌تنهایی تیکت را باز نمی‌کند. مرورگری که تیکت را ساخته یا با کد + موبایل پیگیری کرده، کوکی رمزشدهٔ `amlak_tickets` می‌گیرد؛ بقیه به فرم پیگیری فرستاده می‌شوند. کلیدهای Data Protection باید بین ری‌استارت‌ها بمانند (پیش‌فرض لینوکس: `~/.aspnet/DataProtection-Keys`؛ در Docker یک volume بدهید)، وگرنه این کوکی و کوکی ورود ادمین باطل می‌شوند.
+- **عکس:** نسخهٔ اصلی بدون EXIF (مختصات GPS، مدل گوشی) و چرخیده به حالت درست ذخیره می‌شود.
+- **سلامت:** `/healthz` وقتی SQL Server در دسترس است ۲۰۰ و وگرنه ۵۰۳ می‌دهد.
 - **مجوز:** سیاست `Admin` روی کل پوشهٔ `/Admin` (convention در `Program.cs`).
 - **CSRF:** توکن ضدجعل روی همهٔ فرم‌های POST (پیش‌فرض Razor Pages)؛ درخواست بدون توکن ۴۰۰ می‌گیرد.
 - **آپلود:** فقط `.jpg/.jpeg/.png/.webp`، حداکثر ۵ مگابایت، بررسی امضای بایتی فایل (نه فقط پسوند)، نام فایل تصادفی (GUID).

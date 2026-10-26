@@ -25,6 +25,30 @@ public static class PhotoVariants
         return $"{stem}-{width}.webp";
     }
 
+    /// <summary>
+    /// The photo re-encoded upright in its own format, without metadata. Phone photos carry EXIF with the
+    /// exact GPS position and the device; the original is public, so that must not reach visitors.
+    /// </summary>
+    /// <returns>The clean bytes, or null when the photo cannot be decoded (it is then kept as uploaded).</returns>
+    public static byte[]? Clean(Stream input, string ext)
+    {
+        // Leave the caller's stream open: it is stored as-is when decoding fails.
+        using var codec = SKCodec.Create(new SKManagedStream(input, disposeManagedStream: false));
+        if (codec is null) return null;
+        using var decoded = SKBitmap.Decode(codec);
+        if (decoded is null) return null;
+        using var upright = Orient(decoded, codec.EncodedOrigin);
+        using var image = SKImage.FromBitmap(upright);
+        var (format, quality) = ext switch
+        {
+            ".png" => (SKEncodedImageFormat.Png, 100),
+            ".webp" => (SKEncodedImageFormat.Webp, 90),
+            _ => (SKEncodedImageFormat.Jpeg, 90),
+        };
+        using var data = image.Encode(format, quality);
+        return data?.ToArray();
+    }
+
     /// <returns>Size of the (upright) photo and its WebP copies, or null when it cannot be decoded.</returns>
     public static Result? Make(Stream input)
     {

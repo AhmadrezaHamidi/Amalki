@@ -35,8 +35,12 @@ public class PhotoStorage(IFileStore primary, LocalFileStore local)
     {
         if (!LooksValid(file)) return null;
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        await using var input = file.OpenReadStream();
-        var url = await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, file.Length, MimeFor(ext), ct);
+        await using var upload = file.OpenReadStream();
+        // Store a copy without EXIF (GPS position, device); a photo the decoder cannot read is kept as uploaded.
+        var clean = PhotoVariants.Clean(upload, ext);
+        upload.Position = 0;
+        await using var input = clean is null ? upload : new MemoryStream(clean);
+        var url = await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, input.Length, MimeFor(ext), ct);
         var photo = PropertyPhoto.Stored(url);
 
         input.Position = 0;
