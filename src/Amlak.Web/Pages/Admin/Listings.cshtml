@@ -22,7 +22,7 @@
                     <tr>
                         <td class="wrap-cell">
                             <div class="cell-title">
-                                @if (p.Photos.FirstOrDefault() is { } ph) { <img class="thumb" src="@ph.Url" alt="" loading="lazy" /> } else { <span class="thumb"></span> }
+                                @if (Model.Covers.GetValueOrDefault(p.Id) is { } cover) { <img class="thumb" src="@cover" alt="" loading="lazy" /> } else { <span class="thumb"></span> }
                                 <span><a asp-page="Edit" asp-route-id="@p.Id"><strong>@p.Title</strong></a><small>@p.District، @p.City</small></span>
                             </div>
                         </td>
@@ -40,10 +40,10 @@
                         </td>
                         <td>
                             <div class="actions">
-                                <form method="post" asp-page-handler="TogglePublish" asp-route-id="@p.Id"><button class="btn sm @(p.Status == ListingStatus.Published ? "ghost" : "")">@(p.Status == ListingStatus.Published ? "لغو انتشار" : "انتشار")</button></form>
+                                <form method="post" asp-page-handler="TogglePublish" asp-route-id="@p.Id" asp-route-p="@Model.P"><button class="btn sm @(p.Status == ListingStatus.Published ? "ghost" : "")">@(p.Status == ListingStatus.Published ? "لغو انتشار" : "انتشار")</button></form>
                                 <a class="btn sm quiet" asp-page="Edit" asp-route-id="@p.Id">ویرایش</a>
                                 @if (p.Status == ListingStatus.Published) { <a class="btn sm quiet" href="/ملک/@p.Slug" target="_blank" rel="noopener">مشاهده</a> }
-                                <form method="post" asp-page-handler="Delete" asp-route-id="@p.Id" onsubmit="return confirm('این آگهی برای همیشه حذف شود؟')"><button class="btn sm danger">حذف</button></form>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@p.Id" asp-route-p="@Model.P" onsubmit="return confirm('این آگهی برای همیشه حذف شود؟')"><button class="btn sm danger">حذف</button></form>
                             </div>
                         </td>
                     </tr>
@@ -51,5 +51,18 @@
                 </tbody>
             </table>
         </div>
+        @if (Model.Pages > 1)
+        {
+            <nav class="pager" aria-label="صفحه‌بندی">
+                @if (Model.P > 1) { <a href="?p=@(Model.P - 1)" rel="prev">قبلی</a> }
+                @for (var i = 1; i <= Model.Pages; i++)
+                {
+                    if (i == Model.P) { <span aria-current="page">@Fa.Digits(i.ToString())</span> }
+                    else if (i == 1 || i == Model.Pages || Math.Abs(i - Model.P) <= 2) { <a href="?p=@i">@Fa.Digits(i.ToString())</a> }
+                    else if (Math.Abs(i - Model.P) == 3) { <span aria-hidden="true">…</span> }
+                }
+                @if (Model.P < Model.Pages) { <a href="?p=@(Model.P + 1)" rel="next">بعدی</a> }
+            </nav>
+        }
     }
 </div>

@@ -18,6 +18,7 @@
 | [design-system/amlak/MASTER.md](design-system/amlak/MASTER.md) | سیستم طراحی تولیدشده (منبع حقیقت رنگ و فونت) |
 | [design-options.html](design-options.html) | پیش‌نمایش سه طرح پیشنهادی (طرح ۱ انتخاب شد) |
 | [design/canvas/](design/canvas/) | بوم طراحی نسخهٔ ۲: صفحه‌های وب و اپ موبایل |
+| [loadtest/README.md](loadtest/README.md) | تست بار با k6: اجرا، نتیجه‌ها و گلوگاه‌ها |
 
 ## استک
 
