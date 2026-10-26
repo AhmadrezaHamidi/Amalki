@@ -1,0 +1,50 @@
+@page "/پشتیبانی"
+@model Amlak.Web.Pages.Support.IndexModel
+@{
+    ViewData["Title"] = "پشتیبانی";
+    ViewData["Description"] = "سؤال، مشکل یا پیشنهادتان را برای پشتیبانی آشیانه بفرستید و پاسخ را با کد پیگیری ببینید.";
+}
+<div class="wrap page-pad">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / پشتیبانی</nav>
+    <div class="list-head">
+        <div>
+            <h1>پشتیبانی آشیانه</h1>
+            <p>سؤال، مشکل یا پیشنهادت را بفرست. یک کد پیگیری می‌گیری و جواب را همین‌جا می‌بینی.</p>
+        </div>
+    </div>
+    <div class="list-layout">
+        <form method="post" asp-page-handler="New" class="form-card support-form list-main" aria-labelledby="new-title">
+            <h2 id="new-title">تیکت جدید</h2>
+            <div asp-validation-summary="ModelOnly" class="err" role="alert"></div>
+            <div class="field-pair">
+                <label class="field">نام<input asp-for="New.Name" autocomplete="name" /><span asp-validation-for="New.Name" class="err"></span></label>
+                <label class="field">شمارهٔ موبایل<input asp-for="New.Phone" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /><span asp-validation-for="New.Phone" class="err"></span></label>
+            </div>
+            <div class="field-pair">
+                <label class="field">موضوع<input asp-for="New.Subject" placeholder="مثلاً مشکل در دیدن عکس‌های آگهی" /><span asp-validation-for="New.Subject" class="err"></span></label>
+                <label class="field">دسته
+                    <select asp-for="New.Category">
+                        @foreach (var c in Enum.GetValues<TicketCategory>()) { <option value="@c">@Labels.Category(c)</option> }
+                    </select>
+                </label>
+            </div>
+            <label class="field">پیام<textarea asp-for="New.Message" rows="6"></textarea><span asp-validation-for="New.Message" class="err"></span></label>
+            <label class="hp" aria-hidden="true">وب‌سایت<input asp-for="New.Website" tabindex="-1" autocomplete="off" /></label>
+            <div class="row-actions" style="justify-content:space-between">
+                <span class="hint">معمولاً در ساعات کاری همان روز پاسخ می‌دهیم.</span>
+                <button class="btn lg">ثبت تیکت</button>
+            </div>
+        </form>
+
+        <aside class="panel" style="position:static" aria-labelledby="track-title">
+            <h2 id="track-title" style="font-size:1.15rem">پیگیری تیکت</h2>
+            <p class="hint">کد پیگیری و شماره‌ای که با آن تیکت را ثبت کردی را وارد کن.</p>
+            <form method="post" asp-page-handler="Track">
+                @if (Model.TrackError is not null) { <div class="alert bad" role="alert">@Model.TrackError</div> }
+                <label class="field">کد پیگیری<input asp-for="Track.Code" dir="ltr" placeholder="K7Q2-M9XA" autocomplete="off" style="text-align:right" /></label>
+                <label class="field">شمارهٔ موبایل<input asp-for="Track.Phone" inputmode="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
+                <button class="btn ghost block">پیگیری</button>
+            </form>
+        </aside>
+    </div>
+</div>

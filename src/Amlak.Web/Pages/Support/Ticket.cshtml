@@ -1,0 +1,47 @@
+@page "/پشتیبانی/{code}"
+@model Amlak.Web.Pages.Support.TicketModel
+@{
+    var t = Model.Item;
+    ViewData["Title"] = "تیکت " + TicketCodes.Pretty(t.Code);
+    ViewData["Robots"] = "noindex,nofollow";
+}
+<div class="wrap page-pad" style="max-width:900px">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / <a href="/پشتیبانی">پشتیبانی</a> / تیکت</nav>
+    @if (Model.Created)
+    {
+        <div class="alert ok" role="status" style="margin:12px 0">
+            تیکت ثبت شد. کد پیگیری: <strong dir="ltr">@TicketCodes.Pretty(t.Code)</strong> — این صفحه را نشان کنید یا کد را یادداشت کنید تا پاسخ را ببینید.
+        </div>
+    }
+    <section class="thread" aria-labelledby="ticket-title">
+        <header class="thread-head">
+            <div>
+                <h1 id="ticket-title">@t.Subject</h1>
+                <span class="hint">کد پیگیری <bdi dir="ltr">@TicketCodes.Pretty(t.Code)</bdi> · @Labels.Category(t.Category)</span>
+            </div>
+            <span class="pill @(t.Status switch { TicketStatus.Answered => "pub", TicketStatus.Closed => "draft", _ => "wait" })">@Labels.Status(t.Status)</span>
+        </header>
+        <ol class="messages">
+            @for (var i = 0; i < t.Messages.Count; i++)
+            {
+                var m = t.Messages[i];
+                <li class="msg @(m.FromStaff ? "staff" : "")" id="@(i == t.Messages.Count - 1 ? "last" : null)">
+                    <div class="bubble">@m.Body</div>
+                    <span class="hint">@(m.FromStaff ? "پشتیبانی آشیانه" : "شما") · @Fa.Digits(m.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</span>
+                </li>
+            }
+        </ol>
+        @if (t.Status == TicketStatus.Closed)
+        {
+            <p class="thread-foot hint">این تیکت بسته شده است. برای موضوع تازه <a href="/پشتیبانی">تیکت جدید</a> ثبت کنید.</p>
+        }
+        else
+        {
+            <form method="post" class="thread-foot reply">
+                <div asp-validation-summary="All" class="err" role="alert"></div>
+                <label class="field" style="flex:1 1 300px">پاسخ شما<textarea asp-for="Reply" rows="3"></textarea></label>
+                <button class="btn lg">ارسال</button>
+            </form>
+        }
+    </section>
+</div>

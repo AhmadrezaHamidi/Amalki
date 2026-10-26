@@ -15,6 +15,7 @@
   };
   toggle($('[data-nav-toggle]'), $('#main-nav'), 'open', $('[data-head]'));
   toggle($('[data-filter-toggle]'), $('#filters'), 'open');
+  toggle($('[data-admin-toggle]'), $('#admin-nav'), 'open', $('.admin-side'));
 
   // ---- sort select submits itself ----
   $$('form[data-autosubmit] select').forEach((s) => s.addEventListener('change', () => s.form.submit()));

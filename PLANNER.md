@@ -16,6 +16,8 @@
 
 - UI/UX v2 redesign: design canvas (`design/canvas/`, 4 web pages + 3 mobile-app screens), then backend + frontend to match. Lead entity + `Leads` migration, `/تماس` contact form (mobile validation, honeypot, 5 posts/10 min/IP rate limit), `/Admin/Leads`, listing sort + beds/area filters + active-filter chips, similar listings, OSM map embed, favorites `/نشان‌شده` (localStorage), FAQPage JSON-LD, Persian 404, admin dashboard stats. Bots: inline "view listing" button on posts (toggle `{Section}:InlineButton`), lead alert to `{Section}:AdminChatId`. 24 tests pass. Visually checked at 390px and 1440px against SQLite locally (SQL Server migration not applied in this environment).
 
+- Admin panel v2 + support desk + storage (2026-10-26): canvas boards AdminDashboard/AdminTickets/Support; `/Admin` dashboard, listings at `/Admin/Listings`, sidebar with pending counts; tickets (`Ticket`/`TicketMessage`, migration `Tickets`): public `/پشتیبانی` new + track (code+mobile), `/پشتیبانی/{code}` thread, `/Admin/Tickets` inbox with reply/close; admin bot alerts for tickets (`AdminNotifier`). Storage: `IFileStore` with Local + MinIO (`Storage:Provider`, docs/STORAGE.md), verified against moto S3, not real MinIO. Channels: albums via sendMediaGroup, repost on photo change, delete all album messages (migration `ChannelAlbums`). 29 tests pass.
+
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
 - Apply the `Leads` migration on the real SQL Server (`dotnet ef database update`).

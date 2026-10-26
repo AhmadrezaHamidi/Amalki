@@ -12,6 +12,7 @@
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | معماری، مدل داده، جریان انتشار، امنیت |
 | [docs/ADMIN-GUIDE.md](docs/ADMIN-GUIDE.md) | راهنمای استفاده از پنل مدیریت |
 | [docs/CHANNELS.md](docs/CHANNELS.md) | راه‌اندازی ربات تلگرام و بله، تنظیمات، رفع خطا |
+| [docs/STORAGE.md](docs/STORAGE.md) | ذخیرهٔ عکس‌ها روی دیسک یا MinIO |
 | [docs/SEO-GEO.md](docs/SEO-GEO.md) | سئو و GEO: آنچه هست و آنچه برنامه‌ریزی شده |
 | [docs/DESIGN.md](docs/DESIGN.md) | تصمیم‌های طراحی و سیستم طراحی |
 | [design-system/amlak/MASTER.md](design-system/amlak/MASTER.md) | سیستم طراحی تولیدشده (منبع حقیقت رنگ و فونت) |
@@ -54,7 +55,7 @@ dotnet user-secrets set "Site:BaleUrl" "https://ble.ir/<کانال>"
 dotnet test tests/Amlak.Tests
 ```
 
-۲۴ تست (ناشر کانال، دکمهٔ پست، اعلان سرنخ، سئو، نرمال‌سازی موبایل) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
+۲۹ تست (ناشر کانال و آلبوم، دکمهٔ پست، اعلان سرنخ، کد تیکت، ذخیره‌ساز محلی، سئو، نرمال‌سازی موبایل) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
 
 ## ساختار پوشه‌ها
 

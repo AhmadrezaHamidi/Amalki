@@ -5,7 +5,7 @@
     ViewData["Robots"] = "noindex,nofollow";
 }
 <div class="wrap page-pad" style="max-width:960px">
-    <nav class="crumbs" aria-label="مسیر"><a asp-page="Index">آگهی‌ها</a> / @ViewData["Title"]</nav>
+    <nav class="crumbs" aria-label="مسیر"><a asp-page="Listings">آگهی‌ها</a> / @ViewData["Title"]</nav>
     <div class="admin-head" style="margin-top:8px">
         <h1>@ViewData["Title"]</h1>
         @if (Model.Id is not null && Model.Input.Status == ListingStatus.Published)
@@ -79,7 +79,7 @@
             <p class="hint">عکس اول، عکس اصلی آگهی و پست کانال‌هاست.</p>
         </section>
 
-        <div class="row-actions"><button class="btn lg">ذخیره</button><a class="btn quiet lg" asp-page="Index">انصراف</a></div>
+        <div class="row-actions"><button class="btn lg">ذخیره</button><a class="btn quiet lg" asp-page="Listings">انصراف</a></div>
     </form>
 
     @if (Model.Photos.Count > 0)

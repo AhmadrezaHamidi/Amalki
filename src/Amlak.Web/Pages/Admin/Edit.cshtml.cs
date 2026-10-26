@@ -97,9 +97,11 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
     {
         var photo = await db.PropertyPhotos.FirstOrDefaultAsync(x => x.Id == photoId && x.PropertyId == id);
         if (photo is null) return NotFound();
-        storage.Delete(photo.Url);
+        await storage.DeleteAsync(photo.Url);
         db.PropertyPhotos.Remove(photo);
         await db.SaveChangesAsync();
+        // A published listing's channel album must lose the photo too.
+        await publisher.SyncAsync(id);
         return RedirectToPage("Edit", new { id });
     }
 

@@ -1,26 +1,30 @@
+using System.Security.Cryptography;
+using System.Text;
 using Amlak.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Services.Publishing;
 
 /// <summary>
-/// Keeps Telegram and Bale channels in sync with a listing: publish when it goes live,
-/// edit when it changes, delete the channel message when it is unpublished or removed.
+/// Keeps Telegram and Bale channels in sync with a listing: publish when it goes live (one photo with
+/// caption and button, an album when it has several photos, or plain text), edit the caption when the
+/// text changes, replace the post when the photos change, delete it when unpublished or removed.
 /// Failures are recorded on <see cref="ChannelPost.Error"/> and never block the admin action.
 /// </summary>
 public class ChannelPublisher
 {
     private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _env;
+    private readonly PhotoStorage _photos;
     private readonly ILogger<ChannelPublisher> _log;
     private readonly string _baseUrl;
     private readonly Dictionary<Channel, BotApiClient> _clients = [];
     private readonly HashSet<Channel> _buttons = [];
+    private readonly HashSet<Channel> _albums = [];
 
     public ChannelPublisher(AppDbContext db, IHttpClientFactory httpFactory, IConfiguration cfg,
-        IWebHostEnvironment env, ILogger<ChannelPublisher> log)
+        PhotoStorage photos, ILogger<ChannelPublisher> log)
     {
-        _db = db; _env = env; _log = log;
+        _db = db; _photos = photos; _log = log;
         _baseUrl = cfg["Site:BaseUrl"] ?? "http://localhost";
 
         var http = httpFactory.CreateClient("bots");
@@ -33,9 +37,12 @@ public class ChannelPublisher
             var chat = cfg[$"{section}:ChatId"];
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chat)) return;
             _clients[channel] = new BotApiClient(http, cfg[$"{section}:ApiBase"] ?? defaultBase, token, chat);
-            // The "view listing" button is on unless explicitly turned off for a messenger that rejects it.
-            if (!string.Equals(cfg[$"{section}:InlineButton"], "false", StringComparison.OrdinalIgnoreCase)) _buttons.Add(channel);
+            // Both are on unless explicitly turned off for a messenger that rejects them.
+            if (!IsOff(cfg[$"{section}:InlineButton"])) _buttons.Add(channel);
+            if (!IsOff(cfg[$"{section}:Albums"])) _albums.Add(channel);
         }
+
+        static bool IsOff(string? v) => string.Equals(v, "false", StringComparison.OrdinalIgnoreCase);
     }
 
     public IReadOnlyCollection<Channel> ConfiguredChannels => _clients.Keys;
@@ -62,45 +69,79 @@ public class ChannelPublisher
     public async Task RemoveAllAsync(int propertyId, CancellationToken ct = default)
     {
         var posts = await _db.ChannelPosts.Where(c => c.PropertyId == propertyId).ToListAsync(ct);
-        foreach (var post in posts.Where(x => x.ExternalMessageId is not null))
+        foreach (var post in posts)
             if (_clients.TryGetValue(post.Channel, out var client))
-                await client.DeleteAsync(post.ExternalMessageId!, ct);
+                foreach (var id in MessageIds(post))
+                    await client.DeleteAsync(id, ct);
     }
 
     private async Task PublishOrEditAsync(Property p, ChannelPost? post, Channel channel, BotApiClient client, CancellationToken ct)
     {
         var caption = CaptionBuilder.Build(p, _baseUrl);
         var markup = _buttons.Contains(channel) ? BotApiClient.LinkButton("مشاهده و درخواست تماس", CaptionBuilder.Url(p, _baseUrl)) : null;
+        var photos = p.Photos.OrderBy(x => x.SortOrder).ThenBy(x => x.Id).Take(BotApiClient.MaxAlbum).ToList();
+        var key = PhotoKey(photos);
 
         if (post?.ExternalMessageId is { } messageId)
         {
-            var edit = await client.EditAsync(messageId, caption, post.HasPhoto, markup, ct);
-            // Telegram answers "message is not modified" when nothing changed; that is success for us.
-            var unchanged = edit.Error?.Contains("not modified", StringComparison.OrdinalIgnoreCase) == true;
-            post.Error = edit.Ok || unchanged ? null : edit.Error;
-            return;
+            // Posts made before photo tracking have no key: adopt the current photos as posted rather than
+            // reposting every listing on upgrade; later photo changes are then detected as usual.
+            if (post.PhotoKey is null || post.PhotoKey == key)
+            {
+                post.PhotoKey ??= key;
+                // An album cannot carry a keyboard, so its caption is edited without one.
+                var isAlbum = post.ExtraMessageIds is not null;
+                var edit = await client.EditAsync(messageId, caption, post.HasPhoto, isAlbum ? null : markup, ct);
+                // Telegram answers "message is not modified" when nothing changed; that is success for us.
+                var unchanged = edit.Error?.Contains("not modified", StringComparison.OrdinalIgnoreCase) == true;
+                post.Error = edit.Ok || unchanged ? null : edit.Error;
+                return;
+            }
+
+            // Photos were added or removed: messengers cannot change an album in place, so replace the post.
+            foreach (var id in MessageIds(post)) await client.DeleteAsync(id, ct);
+            post.ExternalMessageId = null;
+            post.ExtraMessageIds = null;
         }
 
-        var photoPath = p.Photos.OrderBy(x => x.SortOrder).Select(x => LocalPath(x.Url)).FirstOrDefault(File.Exists);
-        var send = photoPath is not null
-            ? await client.SendPhotoAsync(photoPath, caption, markup, ct)
-            : await client.SendMessageAsync(caption, markup, ct);
-
-        if (post is null)
+        var files = new List<BotPhoto>();
+        try
         {
-            post = new ChannelPost { PropertyId = p.Id, Channel = channel };
-            _db.ChannelPosts.Add(post);
-            p.ChannelPosts.Add(post);
+            foreach (var photo in photos)
+                if (await _photos.OpenAsync(photo.Url, ct) is { } stream)
+                    files.Add(new BotPhoto(stream, Path.GetFileName(photo.Url.Split('?')[0])));
+
+            var send = files.Count switch
+            {
+                0 => await client.SendMessageAsync(caption, markup, ct),
+                1 => await client.SendPhotoAsync(files[0], caption, markup, ct),
+                _ when _albums.Contains(channel) => await client.SendMediaGroupAsync(files, caption, ct),
+                _ => await client.SendPhotoAsync(files[0], caption, markup, ct),
+            };
+
+            if (post is null)
+            {
+                post = new ChannelPost { PropertyId = p.Id, Channel = channel };
+                _db.ChannelPosts.Add(post);
+                p.ChannelPosts.Add(post);
+            }
+            var ids = send.Ok ? send.MessageIds : [];
+            post.ExternalMessageId = ids.FirstOrDefault();
+            post.ExtraMessageIds = ids.Count > 1 ? string.Join(",", ids.Skip(1)) : null;
+            post.HasPhoto = send.Ok && files.Count > 0;
+            post.PhotoKey = send.Ok ? key : null;
+            post.Error = send.Ok ? null : send.Error;
+            if (!send.Ok) _log.LogWarning("Publish to {Channel} failed for property {Id}: {Error}", channel, p.Id, send.Error);
         }
-        post.ExternalMessageId = send.Ok ? send.MessageId : null;
-        post.HasPhoto = send.Ok && photoPath is not null;
-        post.Error = send.Ok ? null : send.Error;
-        if (!send.Ok) _log.LogWarning("Publish to {Channel} failed for property {Id}: {Error}", channel, p.Id, send.Error);
+        finally
+        {
+            foreach (var f in files) await f.Content.DisposeAsync();
+        }
     }
 
     private async Task RemoveAsync(Property p, ChannelPost post, BotApiClient client, CancellationToken ct)
     {
-        if (post.ExternalMessageId is { } id)
+        foreach (var id in MessageIds(post))
         {
             var del = await client.DeleteAsync(id, ct);
             var gone = del.Error?.Contains("not found", StringComparison.OrdinalIgnoreCase) == true;
@@ -114,5 +155,12 @@ public class ChannelPublisher
         p.ChannelPosts.Remove(post);
     }
 
-    private string LocalPath(string url) => Path.Combine(_env.WebRootPath, "uploads", Path.GetFileName(url));
+    private static IEnumerable<string> MessageIds(ChannelPost post)
+    {
+        if (post.ExternalMessageId is { } first) yield return first;
+        foreach (var id in (post.ExtraMessageIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)) yield return id;
+    }
+
+    private static string PhotoKey(IEnumerable<PropertyPhoto> photos) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", photos.Select(x => x.Url)))))[..32];
 }

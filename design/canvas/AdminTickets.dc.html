@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>پنل آشیانه — تیکت‌های پشتیبانی</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1E3A5F;text-decoration:none}a:hover{color:#142C4A}
+</style>
+</helmet>
+<div dir="rtl" style="font-family: Vazirmatn, system-ui, sans-serif; background: #FAF7F2; color: #1C1917; line-height: 1.7; min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside aria-label="منوی پنل" style="flex: 1 1 240px; max-width: 260px; background: #14213A; color: #CBD3DF; padding: 24px 14px; display: flex; flex-direction: column; gap: 4px">
+    <strong style="color: #FFFFFF; font-size: 20px; padding: 0 12px 18px">آشیانه · پنل</strong>
+    <a href="AdminDashboard.dc.html" style="min-height: 44px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; color: #CBD3DF">داشبورد</a>
+    <a href="Admin.dc.html" style="min-height: 44px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; color: #CBD3DF">آگهی‌ها</a>
+    <a href="#" style="min-height: 44px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; color: #CBD3DF">درخواست‌های تماس</a>
+    <a href="#" aria-current="page" style="min-height: 44px; padding: 0 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; background: #24406A; color: #FFFFFF; font-weight: 700">تیکت‌های پشتیبانی <span style="background: #C2410C; border-radius: 999px; font-size: 12px; padding: 0 8px">۲</span></a>
+  </aside>
+  <main style="flex: 999 1 640px; min-width: 0; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 800">تیکت‌های پشتیبانی</h1>
+      <div role="tablist" aria-label="وضعیت" style="display: flex; gap: 4px; padding: 4px; background: #F2EDE5; border-radius: 12px">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+          <button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+      <div style="flex: 1 1 320px; max-width: 380px; background: #FFFFFF; border: 1px solid #E7DFD3; border-radius: 20px; overflow: hidden">
+        <sc-for list="{{list}}" as="t" hint-placeholder-count="4">
+          <button type="button" onClick="{{t.open}}" style="{{t.style}}">
+            <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%"><strong style="font-size: 15px; text-align: start">{{t.subject}}</strong><span style="{{t.pill}}">{{t.status}}</span></span>
+            <span style="font-size: 13px; color: #5F5750">{{t.name}} · {{t.category}} · {{t.when}}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <section aria-label="گفتگو" style="flex: 999 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #E7DFD3; border-radius: 20px; display: flex; flex-direction: column">
+        <div style="padding: 18px 20px; border-bottom: 1px solid #F2EDE5; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center">
+          <div><strong style="font-size: 18px">{{cur.subject}}</strong><span style="display: block; font-size: 13px; color: #5F5750">کد پیگیری <span dir="ltr">{{cur.code}}</span> · {{cur.name}} · <span dir="ltr">{{cur.phone}}</span></span></div>
+          <div style="display: flex; gap: 8px">
+            <a href="#" style="min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #E7DFD3; color: #1C1917; display: inline-flex; align-items: center">تماس تلفنی</a>
+            <button type="button" style="min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #1E3A5F; background: #FFFFFF; color: #1E3A5F; font: inherit; font-weight: 700; cursor: pointer">بستن تیکت</button>
+          </div>
+        </div>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px; min-height: 340px">
+          <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3">
+            <div style="{{m.wrap}}">
+              <div style="{{m.bubble}}">{{m.body}}</div>
+              <span style="font-size: 12px; color: #5F5750">{{m.who}} · {{m.when}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <form style="padding: 16px 20px; border-top: 1px solid #F2EDE5; display: flex; flex-direction: column; gap: 10px">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 500">پاسخ شما
+            <textarea rows="3" placeholder="پاسخ برای مشتری…" style="font: inherit; border-radius: 12px; border: 1px solid #E7DFD3; padding: 10px 12px; background: #FAF7F2; resize: vertical"></textarea></label>
+          <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap">
+            <span style="font-size: 13px; color: #5F5750">مشتری پاسخ را با کد پیگیری در سایت می‌بیند.</span>
+            <button type="button" style="min-height: 46px; padding: 0 22px; border: 0; border-radius: 12px; background: #C2410C; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer">ارسال پاسخ</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 0, sel: 0 }; }
+  renderVals() {
+    const pill = (bg, fg) => 'background: ' + bg + '; color: ' + fg + '; border-radius: 999px; padding: 0 10px; font-size: 12px; font-weight: 700; white-space: nowrap; height: fit-content';
+    const all = [
+      { subject: 'عکس‌های آگهی‌ام نمایش داده نمی‌شود', name: 'مریم', phone: '0912 555 1020', category: 'فنی', when: '۱۰ دقیقه پیش', status: 'جدید', s: 1, code: 'K7Q2-M9XA',
+        msgs: [{ staff: false, body: 'سلام، دیروز آگهی آپارتمانم را ثبت کردم ولی عکس‌ها در سایت دیده نمی‌شود.', when: '۱۰:۱۵' }] },
+      { subject: 'زمان بازدید ویلای مشکین‌دشت', name: 'علی', phone: '0935 120 4455', category: 'آگهی', when: '۲ ساعت پیش', status: 'جدید', s: 1, code: 'P3T8-WE2L',
+        msgs: [{ staff: false, body: 'برای بازدید ویلای ۵۰۰ متری، پنجشنبه صبح امکانش هست؟', when: '۰۸:۴۰' }] },
+      { subject: 'تمدید آگهی اجاره', name: 'سارا', phone: '0901 222 7788', category: 'آگهی', when: 'دیروز', status: 'پاسخ داده شد', s: 2, code: 'R5N1-ZK4D',
+        msgs: [{ staff: false, body: 'آگهی سوئیتم هنوز اجاره نرفته، می‌شود دوباره منتشرش کنید؟', when: 'دیروز ۱۸:۰۲' }, { staff: true, body: 'سلام سارا، آگهی دوباره منتشر شد و در کانال‌ها هم قرار گرفت.', when: 'دیروز ۱۸:۳۰' }] },
+      { subject: 'اشتباه در قیمت', name: 'حمید', phone: '0919 870 1122', category: 'شکایت', when: '۳ روز پیش', status: 'بسته', s: 3, code: 'B8C6-QY7H',
+        msgs: [{ staff: false, body: 'قیمت آگهی من اشتباه وارد شده.', when: 'شنبه' }, { staff: true, body: 'اصلاح شد، ممنون از اطلاع‌رسانی.', when: 'شنبه' }] }
+    ];
+    const labels = ['همه', 'جدید', 'پاسخ داده شد', 'بسته'];
+    const tab = this.state.tab;
+    const shown = all.filter(t => tab === 0 || t.s === tab);
+    const cur = shown[Math.min(this.state.sel, shown.length - 1)] || all[0];
+    const pills = { 1: pill('#FDEFE6', '#9A3412'), 2: pill('#E9EEF5', '#142C4A'), 3: pill('#F1F0EE', '#57534E') };
+    return {
+      tabs: labels.map((label, i) => ({ label, on: tab === i, pick: () => this.setState({ tab: i, sel: 0 }),
+        style: 'min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; font: inherit; font-size: 14px; cursor: pointer; ' + (tab === i ? 'background: #FFFFFF; color: #1E3A5F; font-weight: 700; box-shadow: 0 1px 3px rgba(28,25,23,.12)' : 'background: transparent; color: #5F5750') })),
+      list: shown.map((t, i) => ({ ...t, pill: pills[t.s], open: () => this.setState({ sel: i }),
+        style: 'width: 100%; text-align: start; border: 0; border-bottom: 1px solid #F2EDE5; padding: 14px 16px; font: inherit; color: #1C1917; cursor: pointer; display: flex; flex-direction: column; gap: 2px; ' + (t === cur ? 'background: #E9EEF5' : 'background: #FFFFFF') })),
+      cur,
+      msgs: cur.msgs.map(m => ({ body: m.body, when: m.when, who: m.staff ? 'پشتیبانی آشیانه' : cur.name,
+        wrap: 'display: flex; flex-direction: column; gap: 4px; max-width: 75%; ' + (m.staff ? 'align-self: flex-end; align-items: flex-end' : 'align-self: flex-start'),
+        bubble: 'padding: 12px 16px; border-radius: 16px; font-size: 15px; ' + (m.staff ? 'background: #1E3A5F; color: #FFFFFF' : 'background: #F2EDE5; color: #1C1917') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

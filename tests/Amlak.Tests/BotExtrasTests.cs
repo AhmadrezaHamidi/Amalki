@@ -56,7 +56,7 @@ public sealed class BotExtrasTests : IDisposable
     {
         var (db, p) = Seed();
         using var _ = db;
-        var pub = new ChannelPublisher(db, new Factory(_bot), Cfg(), new Env(_root), NullLogger<ChannelPublisher>.Instance);
+        var pub = new ChannelPublisher(db, new Factory(_bot), Cfg(), TestStores.Photos(_root), NullLogger<ChannelPublisher>.Instance);
 
         await pub.SyncAsync(p.Id);
         await pub.SyncAsync(p.Id);
@@ -70,7 +70,7 @@ public sealed class BotExtrasTests : IDisposable
     {
         var (db, p) = Seed();
         using var _ = db;
-        var pub = new ChannelPublisher(db, new Factory(_bot), Cfg(("Telegram:InlineButton", "false")), new Env(_root), NullLogger<ChannelPublisher>.Instance);
+        var pub = new ChannelPublisher(db, new Factory(_bot), Cfg(("Telegram:InlineButton", "false")), TestStores.Photos(_root), NullLogger<ChannelPublisher>.Instance);
         await pub.SyncAsync(p.Id);
         Assert.DoesNotContain("reply_markup", _bot.Calls.Single().Body);
     }
@@ -80,7 +80,7 @@ public sealed class BotExtrasTests : IDisposable
     {
         var (db, p) = Seed();
         using var _ = db;
-        var notifier = new LeadNotifier(new Factory(_bot), Cfg(("Telegram:AdminChatId", "777")), NullLogger<LeadNotifier>.Instance);
+        var notifier = new AdminNotifier(new Factory(_bot), Cfg(("Telegram:AdminChatId", "777")), NullLogger<AdminNotifier>.Instance);
 
         await notifier.NotifyAsync(new Lead { Name = "سارا", Phone = "09121112233", Message = "عصر" }, p);
 
@@ -95,7 +95,7 @@ public sealed class BotExtrasTests : IDisposable
     [Fact]
     public async Task Without_admin_chat_no_lead_message_is_sent()
     {
-        var notifier = new LeadNotifier(new Factory(_bot), Cfg(), NullLogger<LeadNotifier>.Instance);
+        var notifier = new AdminNotifier(new Factory(_bot), Cfg(), NullLogger<AdminNotifier>.Instance);
         Assert.False(notifier.Configured);
         await notifier.NotifyAsync(new Lead { Name = "x", Phone = "09120000000" }, null);
         Assert.Empty(_bot.Calls);
@@ -109,4 +109,36 @@ public sealed class BotExtrasTests : IDisposable
     [InlineData("021-12345678", null)]
     [InlineData("123", null)]
     public void Mobile_numbers_are_normalized(string input, string? expected) => Assert.Equal(expected, Fa.Mobile(input));
+}
+
+public class SupportAndStorageTests
+{
+    [Fact]
+    public void Ticket_codes_are_8_unambiguous_characters_and_typing_variants_normalize()
+    {
+        var code = TicketCodes.New();
+        Assert.Equal(8, code.Length);
+        Assert.DoesNotContain(code, c => "01OIL".Contains(c));
+        Assert.Equal(code, TicketCodes.Normalize(TicketCodes.Pretty(code).ToLowerInvariant()));
+        Assert.Equal("K7Q2M9XA", TicketCodes.Normalize(" k7q2-m9xa "));
+    }
+
+    [Fact]
+    public async Task Local_store_cannot_be_walked_out_of_the_uploads_folder()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "amlak-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "uploads"));
+        File.WriteAllText(Path.Combine(root, "secret.txt"), "x");
+        try
+        {
+            var store = new Amlak.Web.Services.Storage.LocalFileStore(new Env(root));
+            Assert.Null(await store.OpenAsync("/uploads/../secret.txt"));
+            Assert.Null(await store.OpenAsync("/other/secret.txt"));
+            var url = await store.PutAsync("a.png", new MemoryStream([1, 2, 3]), 3, "image/png");
+            Assert.Equal("/uploads/a.png", url);
+            await using var s = await store.OpenAsync(url);
+            Assert.NotNull(s);
+        }
+        finally { Directory.Delete(root, true); }
+    }
 }

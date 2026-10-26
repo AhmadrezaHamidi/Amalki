@@ -1,4 +1,5 @@
 ﻿@inject IConfiguration Cfg
+@using Microsoft.EntityFrameworkCore
 @{
     var title = ViewData["Title"] as string;
     var desc = ViewData["Description"] as string ?? "خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا و ملک تجاری با آگهی‌های بررسی‌شده.";
@@ -42,15 +43,27 @@
 <a class="skip" href="#main">رفتن به محتوا</a>
 @if (isAdmin && User.IsInRole("Admin"))
 {
-    <header class="admin-bar">
-        <nav class="wrap" aria-label="منوی پنل">
-            <strong>@siteName · پنل</strong>
-            <a href="/Admin" aria-current="@(path.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/Admin/Edit", StringComparison.OrdinalIgnoreCase) ? "page" : null)">آگهی‌ها</a>
-            <a href="/Admin/Leads" aria-current="@(path.StartsWith("/Admin/Leads", StringComparison.OrdinalIgnoreCase) ? "page" : null)">درخواست‌های تماس</a>
-            <a href="/" target="_blank" rel="noopener">مشاهدهٔ سایت</a>
-            <form method="post" action="/Account/Logout">@Html.AntiForgeryToken()<button>خروج</button></form>
+    // Badge counts for the sidebar; only admin pages pay for these two queries.
+    var db = Context.RequestServices.GetRequiredService<Amlak.Web.Data.AppDbContext>();
+    var newLeads = await db.Leads.CountAsync(l => !l.Handled);
+    var openTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Open);
+    bool On(string p) => p == "/Admin" ? path.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || path.Equals("/Admin/Index", StringComparison.OrdinalIgnoreCase)
+        : path.StartsWith(p, StringComparison.OrdinalIgnoreCase);
+    @Html.Raw("<div class=\"admin-shell\">")
+    <aside class="admin-side" aria-label="منوی پنل">
+        <strong class="admin-brand">@siteName · پنل</strong>
+        <button class="btn quiet icon admin-toggle" type="button" aria-expanded="false" aria-controls="admin-nav" data-admin-toggle>@Icons.Get("menu")<span class="sr-only">منو</span></button>
+        <nav id="admin-nav" class="admin-nav">
+            <a href="/Admin" aria-current="@(On("/Admin") ? "page" : null)">@Icons.Get("home", 18) داشبورد</a>
+            <a href="/Admin/Listings" aria-current="@(On("/Admin/Listings") || On("/Admin/Edit") ? "page" : null)">@Icons.Get("apartment", 18) آگهی‌ها</a>
+            <a href="/Admin/Leads" aria-current="@(On("/Admin/Leads") ? "page" : null)">@Icons.Get("phone", 18) درخواست‌های تماس @if (newLeads > 0) { <span class="count">@Fa.Digits(newLeads.ToString())</span> }</a>
+            <a href="/Admin/Tickets" aria-current="@(On("/Admin/Tickets") ? "page" : null)">@Icons.Get("send", 18) تیکت‌های پشتیبانی @if (openTickets > 0) { <span class="count">@Fa.Digits(openTickets.ToString())</span> }</a>
+            <a href="/" target="_blank" rel="noopener">@Icons.Get("share", 18) مشاهدهٔ سایت</a>
+            <form method="post" action="/Account/Logout">@Html.AntiForgeryToken()<button>@Icons.Get("close", 18) خروج</button></form>
+            <span class="admin-user">@User.Identity?.Name</span>
         </nav>
-    </header>
+    </aside>
+    @Html.Raw("<div class=\"admin-main\">")
 }
 else
 {
@@ -65,6 +78,7 @@ else
                 <a href="/املاک?deal=Rent" aria-current="@(onList && deal == "Rent" ? "page" : null)">اجاره و رهن</a>
                 <a href="/املاک" aria-current="@(onList && deal == "" ? "page" : null)">همهٔ آگهی‌ها</a>
                 <a href="/تماس" aria-current="@(path == "/تماس" ? "page" : null)">ثبت ملک و مشاوره</a>
+                <a href="/پشتیبانی" aria-current="@(path.StartsWith("/پشتیبانی") ? "page" : null)">پشتیبانی</a>
             </nav>
             <div class="head-actions">
                 <a class="btn quiet icon fav-link" href="/نشان‌شده" aria-label="نشان‌شده‌ها">@Icons.Get("heart")<span class="fav-count" data-fav-count hidden></span></a>
@@ -81,6 +95,7 @@ else
     </header>
 }
 <main id="main">@RenderBody()</main>
+@if (isAdmin && User.IsInRole("Admin")) { @Html.Raw("</div></div>") }
 @if (!isAdmin)
 {
     <footer class="site-foot">
@@ -101,6 +116,7 @@ else
                 @if (!string.IsNullOrWhiteSpace(phone)) { <a href="tel:@Fa.Latin(phone).Replace(" ", "")"><bdi dir="ltr">@phone</bdi></a> }
                 @if (!string.IsNullOrWhiteSpace(address)) { <span>@address</span> }
                 <a href="/تماس">فرم درخواست مشاوره</a>
+                <a href="/پشتیبانی">پشتیبانی و پیگیری تیکت</a>
                 @if (!string.IsNullOrWhiteSpace(telegram)) { <a href="@telegram" rel="noopener" target="_blank">کانال تلگرام</a> }
                 @if (!string.IsNullOrWhiteSpace(bale)) { <a href="@bale" rel="noopener" target="_blank">کانال بله</a> }
             </div>

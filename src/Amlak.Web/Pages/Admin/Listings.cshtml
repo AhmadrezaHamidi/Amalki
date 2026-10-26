@@ -1,0 +1,55 @@
+@page
+@model Amlak.Web.Pages.Admin.ListingsModel
+@{ ViewData["Title"] = "مدیریت آگهی‌ها"; ViewData["Robots"] = "noindex,nofollow"; }
+<div class="wrap page-pad">
+    <div class="admin-head">
+        <h1>آگهی‌ها</h1>
+        <a class="btn" asp-page="Edit">+ آگهی جدید</a>
+    </div>
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">@Icons.Get("home", 48)<h2>هنوز آگهی‌ای ثبت نشده</h2><a class="btn" asp-page="Edit">ثبت اولین آگهی</a></div>
+    }
+    else
+    {
+        <div class="tablewrap">
+            <table class="table">
+                <thead><tr><th>آگهی</th><th>معامله</th><th>قیمت</th><th>وضعیت</th><th>کانال‌ها</th><th>عملیات</th></tr></thead>
+                <tbody>
+                @foreach (var p in Model.Items)
+                {
+                    var rent = p.Deal == DealType.Rent;
+                    <tr>
+                        <td class="wrap-cell">
+                            <div class="cell-title">
+                                @if (p.Photos.FirstOrDefault() is { } ph) { <img class="thumb" src="@ph.Url" alt="" loading="lazy" /> } else { <span class="thumb"></span> }
+                                <span><a asp-page="Edit" asp-route-id="@p.Id"><strong>@p.Title</strong></a><small>@p.District، @p.City</small></span>
+                            </div>
+                        </td>
+                        <td>@Labels.Deal(p.Deal)</td>
+                        <td>@(rent ? Fa.Money(p.Deposit) + " + " + Fa.Money(p.MonthlyRent) : Fa.Money(p.Price))</td>
+                        <td><span class="pill @(p.Status switch { ListingStatus.Published => "pub", ListingStatus.Closed => "closed", _ => "draft" })">@Labels.Status(p.Status)</span></td>
+                        <td>
+                            @if (p.ChannelPosts.Count == 0) { <span class="hint">—</span> }
+                            @foreach (var c in p.ChannelPosts)
+                            {
+                                var name = c.Channel == Channel.Telegram ? "تلگرام" : "بله";
+                                if (c.Error is null) { <span class="ch-ok" style="margin-inline-end:8px">@name ✓</span> }
+                                else { <span class="ch-bad" style="margin-inline-end:8px" title="@c.Error">@name ✗</span> }
+                            }
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <form method="post" asp-page-handler="TogglePublish" asp-route-id="@p.Id"><button class="btn sm @(p.Status == ListingStatus.Published ? "ghost" : "")">@(p.Status == ListingStatus.Published ? "لغو انتشار" : "انتشار")</button></form>
+                                <a class="btn sm quiet" asp-page="Edit" asp-route-id="@p.Id">ویرایش</a>
+                                @if (p.Status == ListingStatus.Published) { <a class="btn sm quiet" href="/ملک/@p.Slug" target="_blank" rel="noopener">مشاهده</a> }
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@p.Id" onsubmit="return confirm('این آگهی برای همیشه حذف شود؟')"><button class="btn sm danger">حذف</button></form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

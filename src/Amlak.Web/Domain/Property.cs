@@ -58,6 +58,10 @@ public class ChannelPost
     public string? ExternalMessageId { get; set; }
     /// <summary>True when the message is a photo with caption (edit uses editMessageCaption instead of editMessageText).</summary>
     public bool HasPhoto { get; set; }
+    /// <summary>Ids of the other messages of an album (comma-separated); null for a single message.</summary>
+    public string? ExtraMessageIds { get; set; }
+    /// <summary>Fingerprint of the photos that were posted; when the listing's photos change, the post is replaced.</summary>
+    public string? PhotoKey { get; set; }
     public string? Error { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
@@ -72,5 +76,33 @@ public class Lead
     public string Phone { get; set; } = "";
     public string? Message { get; set; }
     public bool Handled { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public enum TicketCategory { General = 1, Listing = 2, Technical = 3, Complaint = 4 }
+public enum TicketStatus { Open = 0, Answered = 1, Closed = 2 }
+
+/// <summary>A support conversation. Visitors reach it by its tracking code; staff reply from the panel.</summary>
+public class Ticket
+{
+    public int Id { get; set; }
+    /// <summary>Unguessable tracking code shown to the visitor (e.g. K7Q2M9XA).</summary>
+    public string Code { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Phone { get; set; } = "";
+    public string Subject { get; set; } = "";
+    public TicketCategory Category { get; set; } = TicketCategory.General;
+    public TicketStatus Status { get; set; } = TicketStatus.Open;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public List<TicketMessage> Messages { get; set; } = [];
+}
+
+public class TicketMessage
+{
+    public int Id { get; set; }
+    public int TicketId { get; set; }
+    public bool FromStaff { get; set; }
+    public string Body { get; set; } = "";
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

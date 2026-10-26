@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages;
 
 /// <summary>Contact / visit request (PUB-06). Posted from a listing page or used on its own for a general consultation.</summary>
-public class ContactModel(AppDbContext db, LeadNotifier notifier) : PageModel
+public class ContactModel(AppDbContext db, AdminNotifier notifier) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/تماس";

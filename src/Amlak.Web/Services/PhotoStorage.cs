@@ -1,10 +1,14 @@
+using Amlak.Web.Services.Storage;
+
 namespace Amlak.Web.Services;
 
-/// <summary>Stores uploaded listing photos under wwwroot/uploads after validating type and size.</summary>
-public class PhotoStorage(IWebHostEnvironment env)
+/// <summary>
+/// Validates uploaded listing photos and keeps them in the configured store (local disk or MinIO).
+/// Photos uploaded before a switch to MinIO stay readable from local disk.
+/// </summary>
+public class PhotoStorage(IFileStore primary, LocalFileStore local)
 {
     public const long MaxBytes = 5 * 1024 * 1024;
-    private const string Folder = "uploads";
 
     // Extension -> magic-number check, so a renamed file is rejected.
     private static readonly Dictionary<string, Func<byte[], bool>> Signatures = new()
@@ -15,7 +19,7 @@ public class PhotoStorage(IWebHostEnvironment env)
         [".webp"] = b => b.Length > 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P',
     };
 
-    /// <returns>Public URL of the stored file, or null with <paramref name="error"/> set.</returns>
+    /// <returns>Public URL of the stored file, or null when the file is not an accepted image.</returns>
     public async Task<string?> SaveAsync(IFormFile file, CancellationToken ct = default)
     {
         if (file.Length is 0 or > MaxBytes) return null;
@@ -28,18 +32,22 @@ public class PhotoStorage(IWebHostEnvironment env)
         if (!isValid(head.AsSpan(0, read).ToArray())) return null;
         input.Position = 0;
 
-        var dir = Path.Combine(env.WebRootPath, Folder);
-        Directory.CreateDirectory(dir);
-        var name = $"{Guid.NewGuid():N}{ext}";
-        await using (var output = File.Create(Path.Combine(dir, name)))
-            await input.CopyToAsync(output, ct);
-        return $"/{Folder}/{name}";
+        return await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, file.Length, MimeFor(ext), ct);
     }
 
-    public void Delete(string url)
+    /// <returns>The photo's bytes, or null when it is gone from its store.</returns>
+    public Task<Stream?> OpenAsync(string url, CancellationToken ct = default) =>
+        StoreOf(url)?.OpenAsync(url, ct) ?? Task.FromResult<Stream?>(null);
+
+    public Task DeleteAsync(string url, CancellationToken ct = default) =>
+        StoreOf(url)?.DeleteAsync(url, ct) ?? Task.CompletedTask;
+
+    private IFileStore? StoreOf(string url) => primary.Owns(url) ? primary : local.Owns(url) ? local : null;
+
+    private static string MimeFor(string ext) => ext switch
     {
-        if (!url.StartsWith($"/{Folder}/", StringComparison.Ordinal)) return;
-        var path = Path.Combine(env.WebRootPath, Folder, Path.GetFileName(url));
-        if (File.Exists(path)) File.Delete(path);
-    }
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        _ => "image/jpeg",
+    };
 }

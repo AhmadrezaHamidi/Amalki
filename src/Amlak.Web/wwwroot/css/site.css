@@ -268,14 +268,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ---- auth & admin ---- */
 .auth{max-width:420px;margin:56px auto;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
 .auth h1{font-size:1.5rem}
-.admin-bar{background:var(--deep);color:var(--deep-ink)}
-.admin-bar .wrap{display:flex;gap:6px;align-items:center;min-height:60px;flex-wrap:wrap}
-.admin-bar strong{color:#fff;margin-inline-end:16px}
-.admin-bar a,.admin-bar button{color:var(--deep-ink);padding:6px 12px;border-radius:10px;min-height:40px;display:inline-flex;align-items:center;gap:8px;background:none;border:0;cursor:pointer}
-.admin-bar a:hover,.admin-bar button:hover{color:#fff;background:rgba(255,255,255,.08)}
-.admin-bar a[aria-current=page]{background:var(--primary);color:#fff}
-.admin-bar form{margin-inline-start:auto}
-.admin-bar .badge{font-size:.72rem;background:var(--warn)}
 .admin-head{display:flex;justify-content:space-between;align-items:center;margin:28px 0 20px;gap:12px;flex-wrap:wrap}
 .admin-head h1{font-size:1.75rem;font-weight:800}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:20px}
@@ -302,3 +294,70 @@ button,input,select,textarea{font:inherit;color:inherit}
 .photo-grid form{padding:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .trust li{display:inline-flex;gap:8px;align-items:center}
 @media(max-width:700px){.hero-float{inset-inline-start:12px}}
+
+/* ---- support tickets ---- */
+.support-form{display:flex;flex-direction:column;gap:12px;margin:0}
+.pill.wait{background:var(--cta-soft);color:var(--cta-dark)}
+.thread{background:var(--surface);border:1px solid var(--line);border-radius:24px;overflow:hidden;margin-top:12px}
+.thread-head{padding:20px 24px;border-bottom:1px solid var(--line-soft);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+.thread-head h1{font-size:1.35rem}
+.messages{list-style:none;margin:0;padding:24px;display:flex;flex-direction:column;gap:14px;min-height:160px}
+.msg{align-self:flex-start;max-width:78%;display:flex;flex-direction:column;gap:4px}
+.msg.staff{align-self:flex-end;align-items:flex-end}
+.bubble{padding:12px 16px;border-radius:16px;background:var(--line-soft);white-space:pre-line;overflow-wrap:anywhere}
+.msg.staff .bubble{background:var(--primary);color:#fff}
+.thread-foot{padding:16px 24px 24px;border-top:1px solid var(--line-soft)}
+.thread-foot.reply{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.thread-foot.reply .err{flex-basis:100%}
+@media(max-width:600px){.msg{max-width:92%}.messages{padding:16px}.thread-head,.thread-foot{padding-inline:16px}}
+
+/* ---- admin shell ---- */
+.admin-shell{display:flex;min-height:100vh;align-items:stretch}
+.admin-side{flex:0 0 250px;background:var(--deep);color:var(--deep-ink);padding:22px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.admin-brand{color:#fff;font-size:1.2rem;padding:0 12px 14px}
+.admin-nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.admin-nav a,.admin-nav button{color:var(--deep-ink);min-height:44px;padding:0 12px;border-radius:10px;display:flex;align-items:center;gap:10px;background:none;border:0;cursor:pointer;font:inherit;text-align:start;width:100%}
+.admin-nav a:hover,.admin-nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.admin-nav a[aria-current=page]{background:#24406A;color:#fff;font-weight:700}
+.admin-nav .count{margin-inline-start:auto;background:var(--cta);color:#fff;border-radius:999px;font-size:.75rem;padding:0 8px;line-height:1.8}
+.admin-nav form{margin-top:auto}
+.admin-user{font-size:.8rem;color:#A9B6CB;padding:8px 12px;overflow-wrap:anywhere}
+.admin-toggle{display:none}
+.admin-main{flex:1;min-width:0}
+.admin-main .wrap{max-width:none;padding-inline:32px}
+.admin-page{padding:28px 32px 64px}
+.admin-head p{margin:0}
+.stat small{color:var(--muted);font-size:.8rem}
+.stat.hot strong{color:var(--cta)}
+a.stat:hover{border-color:var(--primary);color:var(--ink)}
+.dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.dash-grid .form-card{margin-bottom:20px}
+.dash-grid h2{font-size:1.1rem}
+.dash-list{list-style:none;margin:0;padding:0}
+.dash-list li>a,.dash-list li>div{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-soft);color:var(--ink)}
+.dash-list .grow{flex:1;min-width:0}.dash-list strong{display:block;font-size:.95rem}.dash-list small{color:var(--muted)}
+.avatar{width:40px;height:40px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-weight:700;display:grid;place-items:center;flex:none}
+.seg-link{flex:1;display:flex;justify-content:center;align-items:center;gap:6px;min-height:40px;border-radius:9px;color:var(--muted);font-size:.92rem;padding:0 10px;white-space:nowrap}
+.seg-link[aria-current=page]{background:var(--surface);color:var(--primary);font-weight:700;box-shadow:0 1px 3px rgba(28,25,23,.12)}
+.seg-link small{color:inherit;opacity:.75}
+.inbox{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.inbox-list{flex:1 1 300px;max-width:380px;list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;max-height:calc(100vh - 160px);overflow-y:auto}
+.inbox-list a{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-bottom:1px solid var(--line-soft);color:var(--ink)}
+.inbox-list a:hover{background:var(--bg);color:var(--ink)}
+.inbox-list a[aria-current=true]{background:var(--primary-soft)}
+.inbox-list .row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.inbox-list small{color:var(--muted)}
+.inbox .thread{flex:999 1 420px;min-width:0}
+@media(max-width:900px){
+  .admin-shell{flex-direction:column}
+  .admin-side{position:static;height:auto;flex-basis:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 16px}
+  .admin-brand{padding:0;flex:1}
+  .admin-toggle{display:inline-flex}
+  .admin-nav{flex-basis:100%;display:none}
+  .admin-side.open .admin-nav{display:flex}
+  .admin-page{padding:20px 16px 48px}
+  .admin-main .wrap{padding-inline:16px}
+  .dash-grid{grid-template-columns:1fr}
+  .inbox-list{max-width:none;max-height:none}
+}
+.no-js .admin-nav{display:flex}

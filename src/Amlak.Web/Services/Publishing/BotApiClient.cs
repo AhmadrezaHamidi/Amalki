@@ -4,8 +4,14 @@ namespace Amlak.Web.Services.Publishing;
 
 public sealed record BotResult(bool Ok, string? MessageId, string? Error)
 {
+    /// <summary>Every message id of a media group (album); for a single message, just <see cref="MessageId"/>.</summary>
+    public IReadOnlyList<string> MessageIds { get; init; } = MessageId is null ? [] : [MessageId];
+
     public static BotResult Fail(string error) => new(false, null, error);
 }
+
+/// <summary>One photo to upload: its bytes and the file name the messenger sees.</summary>
+public sealed record BotPhoto(Stream Content, string FileName);
 
 /// <summary>
 /// Minimal client for the Telegram-style Bot API. Bale (tapi.bale.ai) exposes the same
@@ -14,6 +20,7 @@ public sealed record BotResult(bool Ok, string? MessageId, string? Error)
 public class BotApiClient(HttpClient http, string apiBase, string token, string chatId)
 {
     private const int MaxCaption = 1000; // Telegram caps captions at 1024 characters.
+    public const int MaxAlbum = 10;      // and media groups at 10 items.
 
     private Uri Url(string method) => new($"{apiBase.TrimEnd('/')}/bot{token}/{method}");
 
@@ -24,14 +31,32 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
     public Task<BotResult> SendMessageAsync(string text, string? replyMarkup = null, CancellationToken ct = default) =>
         Post("sendMessage", Form(replyMarkup, ("chat_id", chatId), ("text", Clip(text, 4000))), ct);
 
-    public async Task<BotResult> SendPhotoAsync(string filePath, string caption, string? replyMarkup = null, CancellationToken ct = default)
+    public Task<BotResult> SendPhotoAsync(BotPhoto photo, string caption, string? replyMarkup = null, CancellationToken ct = default)
     {
-        using var form = Form(replyMarkup, ("chat_id", chatId), ("caption", Clip(caption, MaxCaption)));
-        await using var file = File.OpenRead(filePath);
-        var content = new StreamContent(file);
-        content.Headers.ContentType = new(MimeFor(filePath));
-        form.Add(content, "photo", Path.GetFileName(filePath));
-        return await Post("sendPhoto", form, ct);
+        var form = Form(replyMarkup, ("chat_id", chatId), ("caption", Clip(caption, MaxCaption)));
+        form.Add(PhotoContent(photo), "photo", photo.FileName);
+        return Post("sendPhoto", form, ct);
+    }
+
+    /// <summary>
+    /// Album of 2–10 photos, caption on the first. The Bot API does not allow an inline keyboard on a
+    /// media group, so the listing link travels in the caption only.
+    /// </summary>
+    public Task<BotResult> SendMediaGroupAsync(IReadOnlyList<BotPhoto> photos, string caption, CancellationToken ct = default)
+    {
+        var media = photos.Take(MaxAlbum).Select((_, i) => i == 0
+            ? (object)new { type = "photo", media = $"attach://p{i}", caption = Clip(caption, MaxCaption) }
+            : new { type = "photo", media = $"attach://p{i}" }).ToArray();
+        var form = Form(null, ("chat_id", chatId), ("media", JsonSerializer.Serialize(media)));
+        for (var i = 0; i < media.Length; i++) form.Add(PhotoContent(photos[i]), $"p{i}", photos[i].FileName);
+        return Post("sendMediaGroup", form, ct);
+    }
+
+    private static StreamContent PhotoContent(BotPhoto photo)
+    {
+        var content = new StreamContent(photo.Content);
+        content.Headers.ContentType = new(MimeFor(photo.FileName));
+        return content;
     }
 
     // Edits resend reply_markup: Telegram drops the keyboard from an edited message that omits it.
@@ -77,11 +102,15 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
             var root = doc.RootElement;
             if (root.TryGetProperty("ok", out var ok) && ok.GetBoolean())
             {
-                string? id = null;
-                if (root.TryGetProperty("result", out var r) && r.ValueKind == JsonValueKind.Object
-                    && r.TryGetProperty("message_id", out var m))
-                    id = m.ToString();
-                return new BotResult(true, id, null);
+                var ids = new List<string>();
+                if (root.TryGetProperty("result", out var r))
+                {
+                    // sendMediaGroup answers with an array of messages, the other methods with one.
+                    var messages = r.ValueKind == JsonValueKind.Array ? r.EnumerateArray().ToList() : [r];
+                    foreach (var msg in messages)
+                        if (msg.ValueKind == JsonValueKind.Object && msg.TryGetProperty("message_id", out var m)) ids.Add(m.ToString());
+                }
+                return new BotResult(true, ids.FirstOrDefault(), null) { MessageIds = ids };
             }
             var desc = root.TryGetProperty("description", out var d) ? d.GetString() : null;
             return BotResult.Fail(Scrub(desc ?? $"HTTP {status}"));

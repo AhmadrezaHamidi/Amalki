@@ -20,4 +20,19 @@ public static class Labels
         ListingStatus.Closed => "بسته‌شده",
         _ => "پیش‌نویس",
     };
+
+    public static string Category(TicketCategory c) => c switch
+    {
+        TicketCategory.Listing => "دربارهٔ یک آگهی",
+        TicketCategory.Technical => "مشکل فنی سایت",
+        TicketCategory.Complaint => "شکایت یا پیشنهاد",
+        _ => "سؤال عمومی",
+    };
+
+    public static string Status(TicketStatus s) => s switch
+    {
+        TicketStatus.Answered => "پاسخ داده شد",
+        TicketStatus.Closed => "بسته",
+        _ => "در انتظار پاسخ",
+    };
 }

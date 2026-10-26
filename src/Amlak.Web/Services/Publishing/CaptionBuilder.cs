@@ -36,6 +36,19 @@ public static class CaptionBuilder
         return string.Join("\n", lines);
     }
 
+    public static string Ticket(Ticket t, string message, bool isNew, string baseUrl)
+    {
+        var lines = new List<string>
+        {
+            isNew ? "🎫 تیکت پشتیبانی جدید" : "💬 پیام تازه در تیکت",
+            $"📌 {t.Subject} ({Labels.Category(t.Category)})",
+            $"👤 {t.Name} — 📞 {t.Phone}",
+            $"💬 {(message.Length > 500 ? message[..499] + "…" : message)}",
+            $"🔗 {baseUrl.TrimEnd('/')}/Admin/Tickets?id={t.Id}",
+        };
+        return string.Join("\n", lines);
+    }
+
     // Hashtags cannot contain spaces or punctuation.
     private static string Tag(string s) => new string(s.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
 }
