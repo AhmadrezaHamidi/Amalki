@@ -1,0 +1,49 @@
+@page "/تماس"
+@model ContactModel
+@{
+    ViewData["Title"] = Model.Property is { } pp ? "درخواست تماس برای " + pp.Title : "ثبت ملک و درخواست مشاوره";
+    ViewData["Description"] = "فرم درخواست مشاوره برای خرید، فروش، رهن و اجارهٔ ملک. کارشناس ما با شما تماس می‌گیرد.";
+}
+<div class="wrap page-pad">
+    <div class="list-layout" style="align-items:flex-start">
+        <div class="list-main" style="gap:14px">
+            <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / درخواست مشاوره</nav>
+            <h1 style="font-size:2rem;font-weight:800">@(Model.Property is null ? "ملک داری یا دنبال ملکی؟" : "درخواست تماس")</h1>
+            @if (Model.Property is { } p)
+            {
+                <p class="hint">برای آگهی: <a asp-page="/Properties/Details" asp-route-slug="@p.Slug">@p.Title</a></p>
+            }
+            else
+            {
+                <p style="color:var(--muted);max-width:560px">برای ثبت ملک (فروش یا اجاره)، سفارش ملک با مشخصات دلخواه، یا مشاورهٔ قیمت، فرم را پر کنید. کارشناس ما تماس می‌گیرد.</p>
+                <ul class="trust" style="flex-direction:column;gap:10px;padding:0;list-style:none">
+                    <li>@Icons.Get("shield") قیمت‌گذاری کارشناسی و بررسی مدارک</li>
+                    <li>@Icons.Get("photo") عکاسی از ملک و ساخت آگهی</li>
+                    <li>@Icons.Get("send") انتشار هم‌زمان در سایت، تلگرام و بله</li>
+                </ul>
+            }
+        </div>
+        <div class="panel" style="position:static">
+            @if (Model.Sent)
+            {
+                <div class="alert ok" role="status">درخواست شما ثبت شد. کارشناس ما به‌زودی تماس می‌گیرد.</div>
+                <a class="btn ghost block" href="/املاک">دیدن آگهی‌ها</a>
+            }
+            else
+            {
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="err" role="alert"></div>
+                    <input type="hidden" asp-for="Input.PropertyId" />
+                    <label class="field">نام<input asp-for="Input.Name" autocomplete="name" /></label>
+                    <span asp-validation-for="Input.Name" class="err"></span>
+                    <label class="field">شمارهٔ موبایل<input asp-for="Input.Phone" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
+                    <span asp-validation-for="Input.Phone" class="err"></span>
+                    <label class="field">@(Model.Property is null ? "چه کمکی از ما برمی‌آید؟" : "پیام (اختیاری)")<textarea asp-for="Input.Message" rows="4" placeholder="@(Model.Property is null ? "مثلاً: آپارتمان ۱۰۰ متری در سعادت‌آباد برای فروش دارم" : "مثلاً زمان مناسب برای بازدید")"></textarea></label>
+                    <span asp-validation-for="Input.Message" class="err"></span>
+                    <label class="hp" aria-hidden="true">وب‌سایت<input asp-for="Input.Website" tabindex="-1" autocomplete="off" /></label>
+                    <button class="btn lg block">ارسال درخواست</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

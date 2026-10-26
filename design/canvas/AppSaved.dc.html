@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>اپ آشیانه — نشان‌شده‌ها</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1E3A5F;text-decoration:none}a:hover{color:#142C4A}
+</style>
+</helmet>
+<div dir="rtl" style="width: 390px; height: 844px; box-sizing: border-box; font-family: Vazirmatn, system-ui, sans-serif; background: #FAF7F2; color: #1C1917; line-height: 1.7; display: flex; flex-direction: column; overflow: hidden">
+  <div style="flex: 1; overflow: hidden; padding: 20px 16px 0; display: flex; flex-direction: column; gap: 14px">
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800">نشان‌شده‌ها</h1>
+    <p style="margin: 0; color: #5F5750; font-size: 14px">آگهی‌هایی که پسندیدی اینجا می‌ماند. اگر قیمتشان تغییر کند خبرت می‌کنیم.</p>
+    <sc-for list="{{items}}" as="p" hint-placeholder-count="3">
+      <div style="display: flex; gap: 12px; align-items: center; background: #FFFFFF; border: 1px solid #E7DFD3; border-radius: 18px; padding: 10px">
+        <span style="width: 96px; height: 80px; border-radius: 12px; background: #ECE4D8; flex: none"></span>
+        <div style="flex: 1; min-width: 0">
+          <span style="font-size: 12px; color: #5F5750">{{p.loc}}</span>
+          <strong style="display: block; font-size: 15px">{{p.t}}</strong>
+          <span style="color: #1E3A5F; font-weight: 800; font-size: 14px">{{p.price}}</span>
+        </div>
+        <button type="button" aria-label="برداشتن نشان" style="width: 44px; height: 44px; border-radius: 12px; border: 0; background: #FDECEC; display: grid; place-items: center; flex: none; cursor: pointer">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#B42318" stroke="#B42318" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 12 5.5 5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"></path></svg></button>
+      </div>
+    </sc-for>
+    <div style="margin-top: 8px; background: #142C4A; color: #FFFFFF; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <strong style="font-size: 16px">هشدار آگهی جدید</strong>
+      <span style="color: #C9D4E5; font-size: 14px">آپارتمان ۳ خوابه در سعادت‌آباد تا ۱۵ میلیارد — هر آگهی تازه را در اپ و بله بفرستیم؟</span>
+      <button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 18px; border-radius: 12px; border: 0; background: #FFFFFF; color: #142C4A; font: inherit; font-weight: 700; cursor: pointer">فعال کن</button>
+    </div>
+  </div>
+  <nav aria-label="منوی اپ" style="height: 72px; background: #FFFFFF; border-top: 1px solid #E7DFD3; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="AppHome.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #5F5750"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>خانه</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #5F5750"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>جست‌وجو</a>
+    <a href="#" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1E3A5F"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 12 5.5 5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"></path></svg>نشان‌شده</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #5F5750"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>پروفایل</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      items: [
+        { t: 'آپارتمان ۱۲۰ متری نوساز', loc: 'سعادت‌آباد، تهران', price: '۱۲٫۵ میلیارد تومان' },
+        { t: 'ویلای باغ ۵۰۰ متری', loc: 'مشکین‌دشت، کرج', price: '۲۸ میلیارد تومان' },
+        { t: 'سوئیت مبله نزدیک مترو', loc: 'ونک، تهران', price: 'رهن ۴۰۰م + اجاره ۸م' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,43 +1,130 @@
-﻿@{
+﻿@inject IConfiguration Cfg
+@using Microsoft.EntityFrameworkCore
+@{
     var title = ViewData["Title"] as string;
     var desc = ViewData["Description"] as string ?? "خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا و ملک تجاری با آگهی‌های بررسی‌شده.";
     var canonical = ViewData["Canonical"] as string ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
     var ogImage = ViewData["OgImage"] as string;
+    var siteName = Cfg["Site:Name"] ?? "آشیانه";
+    var phone = Cfg["Site:Phone"];
+    var telegram = Cfg["Site:TelegramUrl"];
+    var bale = Cfg["Site:BaleUrl"];
+    var address = Cfg["Site:Address"];
+    var path = Context.Request.Path.Value ?? "";
+    var isAdmin = path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase);
+    var onList = path == "/املاک";
+    var deal = Context.Request.Query["deal"].ToString();
 }
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" class="no-js">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@(string.IsNullOrEmpty(title) ? "آشیانه | خرید و اجارهٔ ملک" : title + " | آشیانه")</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1E3A5F" />
+    <title>@(string.IsNullOrEmpty(title) ? $"{siteName} | خرید و اجارهٔ ملک" : $"{title} | {siteName}")</title>
     <meta name="description" content="@desc" />
     <link rel="canonical" href="@canonical" />
     @if (ViewData["Robots"] is string robots) { <meta name="robots" content="@robots" /> }
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fa_IR" />
-    <meta property="og:title" content="@title" />
+    <meta property="og:site_name" content="@siteName" />
+    <meta property="og:title" content="@(title ?? siteName)" />
     <meta property="og:description" content="@desc" />
     <meta property="og:url" content="@canonical" />
     @if (ogImage is not null) { <meta property="og:image" content="@ogImage" /> <meta name="twitter:card" content="summary_large_image" /> }
+    <script>document.documentElement.classList.remove('no-js')</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
-<body>
+<body class="@ViewData["BodyClass"]">
 <a class="skip" href="#main">رفتن به محتوا</a>
-<div class="wrap">
-    <nav class="nav" aria-label="منوی اصلی">
-        <a class="logo" href="/">آشیانه</a>
-        <ul>
-            <li><a asp-page="/Properties/Index" asp-route-deal="Sale">خرید</a></li>
-            <li><a asp-page="/Properties/Index" asp-route-deal="Rent">اجاره و رهن</a></li>
-        </ul>
-        <a class="btn" asp-page="/Properties/Index">همهٔ آگهی‌ها</a>
-    </nav>
-</div>
+@if (isAdmin && User.IsInRole("Admin"))
+{
+    // Badge counts for the sidebar; only admin pages pay for these two queries.
+    var db = Context.RequestServices.GetRequiredService<Amlak.Web.Data.AppDbContext>();
+    var newLeads = await db.Leads.CountAsync(l => !l.Handled);
+    var openTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Open);
+    bool On(string p) => p == "/Admin" ? path.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || path.Equals("/Admin/Index", StringComparison.OrdinalIgnoreCase)
+        : path.StartsWith(p, StringComparison.OrdinalIgnoreCase);
+    @Html.Raw("<div class=\"admin-shell\">")
+    <aside class="admin-side" aria-label="منوی پنل">
+        <strong class="admin-brand">@siteName · پنل</strong>
+        <button class="btn quiet icon admin-toggle" type="button" aria-expanded="false" aria-controls="admin-nav" data-admin-toggle>@Icons.Get("menu")<span class="sr-only">منو</span></button>
+        <nav id="admin-nav" class="admin-nav">
+            <a href="/Admin" aria-current="@(On("/Admin") ? "page" : null)">@Icons.Get("home", 18) داشبورد</a>
+            <a href="/Admin/Listings" aria-current="@(On("/Admin/Listings") || On("/Admin/Edit") ? "page" : null)">@Icons.Get("apartment", 18) آگهی‌ها</a>
+            <a href="/Admin/Leads" aria-current="@(On("/Admin/Leads") ? "page" : null)">@Icons.Get("phone", 18) درخواست‌های تماس @if (newLeads > 0) { <span class="count">@Fa.Digits(newLeads.ToString())</span> }</a>
+            <a href="/Admin/Tickets" aria-current="@(On("/Admin/Tickets") ? "page" : null)">@Icons.Get("send", 18) تیکت‌های پشتیبانی @if (openTickets > 0) { <span class="count">@Fa.Digits(openTickets.ToString())</span> }</a>
+            <a href="/" target="_blank" rel="noopener">@Icons.Get("share", 18) مشاهدهٔ سایت</a>
+            <form method="post" action="/Account/Logout">@Html.AntiForgeryToken()<button>@Icons.Get("close", 18) خروج</button></form>
+            <span class="admin-user">@User.Identity?.Name</span>
+        </nav>
+    </aside>
+    @Html.Raw("<div class=\"admin-main\">")
+}
+else
+{
+    <header class="site-head" data-head>
+        <div class="wrap">
+            <a class="brand" href="/" aria-label="@siteName — صفحهٔ اصلی"><span class="brand-mark">@Icons.Get("home", 22)</span>@siteName</a>
+            <button class="btn quiet icon nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav" data-nav-toggle>
+                @Icons.Get("menu")<span class="sr-only">منو</span>
+            </button>
+            <nav class="nav" id="main-nav" aria-label="منوی اصلی">
+                <a href="/املاک?deal=Sale" aria-current="@(onList && deal == "Sale" ? "page" : null)">خرید</a>
+                <a href="/املاک?deal=Rent" aria-current="@(onList && deal == "Rent" ? "page" : null)">اجاره و رهن</a>
+                <a href="/املاک" aria-current="@(onList && deal == "" ? "page" : null)">همهٔ آگهی‌ها</a>
+                <a href="/تماس" aria-current="@(path == "/تماس" ? "page" : null)">ثبت ملک و مشاوره</a>
+                <a href="/پشتیبانی" aria-current="@(path.StartsWith("/پشتیبانی") ? "page" : null)">پشتیبانی</a>
+            </nav>
+            <div class="head-actions">
+                <a class="btn quiet icon fav-link" href="/نشان‌شده" aria-label="نشان‌شده‌ها">@Icons.Get("heart")<span class="fav-count" data-fav-count hidden></span></a>
+                @if (!string.IsNullOrWhiteSpace(phone))
+                {
+                    <a class="btn call" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس: @phone">@Icons.Get("phone", 18)<bdi class="call-label" dir="ltr">@phone</bdi></a>
+                }
+                else
+                {
+                    <a class="btn call" href="/تماس">@Icons.Get("phone", 18)<span class="call-label">تماس با مشاور</span></a>
+                }
+            </div>
+        </div>
+    </header>
+}
 <main id="main">@RenderBody()</main>
-<footer class="wrap foot">© آشیانه · خرید، فروش و اجارهٔ ملک</footer>
+@if (isAdmin && User.IsInRole("Admin")) { @Html.Raw("</div></div>") }
+@if (!isAdmin)
+{
+    <footer class="site-foot">
+        <div class="wrap">
+            <div class="col about">
+                <strong style="font-size:1.25rem">@siteName</strong>
+                <span>خرید، فروش، رهن و اجارهٔ ملک با آگهی‌های بررسی‌شده و مشاور اختصاصی.</span>
+            </div>
+            <nav class="col" aria-label="دسترسی سریع">
+                <strong>دسترسی سریع</strong>
+                <a href="/املاک?deal=Sale">خرید ملک</a>
+                <a href="/املاک?deal=Rent">اجاره و رهن</a>
+                <a href="/نشان‌شده">نشان‌شده‌ها</a>
+                <a href="/#faq">پرسش‌های متداول</a>
+            </nav>
+            <div class="col">
+                <strong>ارتباط با ما</strong>
+                @if (!string.IsNullOrWhiteSpace(phone)) { <a href="tel:@Fa.Latin(phone).Replace(" ", "")"><bdi dir="ltr">@phone</bdi></a> }
+                @if (!string.IsNullOrWhiteSpace(address)) { <span>@address</span> }
+                <a href="/تماس">فرم درخواست مشاوره</a>
+                <a href="/پشتیبانی">پشتیبانی و پیگیری تیکت</a>
+                @if (!string.IsNullOrWhiteSpace(telegram)) { <a href="@telegram" rel="noopener" target="_blank">کانال تلگرام</a> }
+                @if (!string.IsNullOrWhiteSpace(bale)) { <a href="@bale" rel="noopener" target="_blank">کانال بله</a> }
+            </div>
+        </div>
+        <div class="wrap legal">© @siteName · همهٔ حقوق محفوظ است</div>
+    </footer>
+}
+<script src="~/js/site.js" asp-append-version="true" defer></script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

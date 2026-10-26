@@ -1,71 +1,162 @@
 @page "/ملک/{slug}"
 @model Amlak.Web.Pages.Properties.DetailsModel
+@using System.Globalization
 @using Amlak.Web.Services.Seo
 @inject IConfiguration Cfg
 @{
     var p = Model.Item;
+    var rent = p.Deal == DealType.Rent;
     var site = SeoEndpoints.BaseUrl(Cfg, Model.Request);
-    var sale = p.Deal == DealType.Sale;
-    var dealLabel = sale ? "فروش" : "اجاره";
-    var listLabel = sale ? "خرید" : "اجاره";
+    var url = SeoFiles.PropertyUrl(site, p);
     var summary = SeoText.Summary(p);
-    ViewData["Title"] = $"{p.Title} | {dealLabel} در {SeoText.Location(p)}";
+    ViewData["Title"] = $"{p.Title} | {Labels.Deal(p.Deal)} در {SeoText.Location(p)}";
     ViewData["Description"] = summary;
-    ViewData["Canonical"] = SeoFiles.PropertyUrl(site, p);
+    ViewData["Canonical"] = url;
+    ViewData["BodyClass"] = "has-mobile-cta";
     if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = SeoFiles.Absolute(site, first.Url);
-    var crumbs = new List<(string Name, string Url)> { ("خانه", site + "/"), (listLabel, SeoFiles.ListUrl(site, p.Deal)) };
+    var crumbs = new List<(string Name, string Url)> { ("خانه", site + "/"), (rent ? "اجاره" : "خرید", SeoFiles.ListUrl(site, p.Deal)) };
     if (!string.IsNullOrWhiteSpace(p.City)) crumbs.Add((p.City, SeoFiles.ListUrl(site, p.Deal, p.City)));
-    crumbs.Add((p.Title, SeoFiles.PropertyUrl(site, p)));
+    crumbs.Add((p.Title, url));
+    var phone = Cfg["Site:Phone"];
+    var photos = p.Photos;
+    var shown = photos.Take(5).ToList();
+    var perMeter = !rent && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
+    string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 }
 @section Head {
     @Html.Raw(JsonLd.Script(JsonLd.Listing(p, site)))
     @Html.Raw(JsonLd.Script(JsonLd.Breadcrumbs(crumbs.ToArray())))
 }
-<div class="wrap">
-    <nav class="crumbs" aria-label="مسیر">
-        <a href="/">خانه</a> / <a href="@SeoFiles.ListUrl("", p.Deal)">@listLabel</a>
-        @if (!string.IsNullOrWhiteSpace(p.City)) { <text>/</text> <a href="@SeoFiles.ListUrl("", p.Deal, p.City)">@p.City</a> }
-    </nav>
-    <h1 style="margin-top:8px">@p.Title</h1>
-    <p class="loc">@SeoText.Location(p)
-        @if (p.PublishedAtUtc is { } at) { <text>· منتشرشده در </text><time datetime="@at.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)">@Fa.Date(at)</time> }
-    </p>
-    <p class="lead">@summary</p>
-    <div class="detail">
+<div class="wrap page-pad">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / <a href="@SeoFiles.ListUrl("", p.Deal)">@(rent ? "اجاره" : "خرید")</a> / <a href="@SeoFiles.ListUrl("", p.Deal, p.City)">@p.City</a></nav>
+
+    <div class="detail-head">
         <div>
-            <div class="gallery">
-                @for (var i = 0; i < p.Photos.Count; i++)
-                {
-                    var f = p.Photos[i];
-                    if (i == 0) { <img src="@f.Url" alt="@f.Alt" loading="eager" fetchpriority="high" /> }
-                    else { <img src="@f.Url" alt="@f.Alt" loading="lazy" /> }
-                }
-            </div>
-            <h2>توضیحات</h2>
-            <p style="white-space:pre-line">@p.Description</p>
+            <div class="tags"><span class="badge @(rent ? "rent" : "")">@Labels.Deal(p.Deal)</span><span class="badge soft">@Labels.Kind(p.Kind)</span></div>
+            <h1>@p.Title</h1>
+            <span class="loc">@Icons.Get("pin", 18) @SeoText.Location(p) · کد آگهی @Fa.Digits(p.Id.ToString())
+                @if (p.PublishedAtUtc is { } at) { <text>· منتشرشده در </text><time datetime="@at.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@Fa.Date(at)</time> }
+            </span>
+            <p class="lead">@summary</p>
         </div>
-        <aside class="panel">
-            <div class="price" style="font-size:1.3rem">
-                @if (sale) { <text>@Fa.Money(p.Price) <small>تومان</small></text> }
-                else { <text>رهن @Fa.Money(p.Deposit)<br />اجاره @Fa.Money(p.MonthlyRent) <small>در ماه</small></text> }
+        <div class="row-actions">
+            <button class="btn quiet" type="button" data-fav="@p.Id" aria-pressed="false" data-fav-label>@Icons.Get("heart", 18)<span>نشان کردن</span></button>
+            <button class="btn quiet" type="button" data-share data-title="@p.Title" data-url="@url">@Icons.Get("share", 18)<span>اشتراک‌گذاری</span></button>
+        </div>
+    </div>
+
+    @if (shown.Count == 0)
+    {
+        <div class="gallery-empty">@Icons.Get("photo", 56)</div>
+    }
+    else
+    {
+        <div class="gallery n@(Math.Min(shown.Count, 5))" data-gallery>
+            @for (var i = 0; i < shown.Count; i++)
+            {
+                var f = shown[i];
+                <button type="button" class="@(i == 0 ? "main" : "")" data-index="@i" aria-label="بزرگ‌نمایی عکس @Fa.Digits((i + 1).ToString())">
+                    <img src="@f.Url" alt="@f.Alt" loading="@(i == 0 ? "eager" : "lazy")" fetchpriority="@(i == 0 ? "high" : null)" width="1200" height="900" />
+                    @if (i == shown.Count - 1 && photos.Count > 1) { <span class="all">نمایش همهٔ @Fa.Digits(photos.Count.ToString()) عکس</span> }
+                </button>
+            }
+        </div>
+        <dialog class="lightbox" data-lightbox aria-label="عکس‌های آگهی">
+            <div class="lb-bar">
+                <span data-lb-count aria-live="polite"></span>
+                <button class="lb-btn" type="button" data-lb-close aria-label="بستن">@Icons.Get("close")</button>
             </div>
-            <h2 class="sr-only">مشخصات</h2>
-            <dl class="specs">
-                <div><dt>نوع معامله</dt><dd>@(sale ? "فروش" : "رهن و اجاره")</dd></div>
-                <div><dt>نوع ملک</dt><dd>@Fa.Kind(p.Kind)</dd></div>
-                <div><dt>متراژ</dt><dd>@Fa.Digits(p.AreaM2.ToString()) متر</dd></div>
-                @if (p.Bedrooms is { } b) {<div><dt>خواب</dt><dd>@Fa.Digits(b.ToString())</dd></div>}
-                @if (p.Floor is { } fl) {<div><dt>طبقه</dt><dd>@Fa.Digits(fl.ToString())</dd></div>}
-                @if (p.Parking is { } pk) {<div><dt>پارکینگ</dt><dd>@Fa.Digits(pk.ToString())</dd></div>}
-                @if (p.YearBuilt is { } y) {<div><dt>سال ساخت</dt><dd>@Fa.Digits(y.ToString())</dd></div>}
-                <div><dt>محله</dt><dd>@SeoText.Location(p)</dd></div>
-            </dl>
-            <a class="btn" href="#contact" style="width:100%">درخواست تماس</a>
+            <div class="lb-stage">
+                <button class="lb-btn prev" type="button" data-lb-prev aria-label="عکس قبلی">@Icons.Get("chev-right")</button>
+                <img data-lb-img alt="" />
+                <button class="lb-btn next" type="button" data-lb-next aria-label="عکس بعدی">@Icons.Get("chev-left")</button>
+            </div>
+            <script type="application/json" data-lb-photos>@Html.Raw(JsonLd.Serialize(photos.Select(x => new { src = x.Url, alt = x.Alt })))</script>
+        </dialog>
+    }
+
+    <div class="detail-layout">
+        <div class="detail-main">
+            <section aria-labelledby="facts-title">
+                <h2 id="facts-title" class="sr-only">مشخصات</h2>
+                <ul class="facts">
+                    <li><span>متراژ</span><strong>@Fa.Digits(p.AreaM2.ToString()) متر</strong></li>
+                    @if (p.Bedrooms is { } b) { <li><span>خواب</span><strong>@Fa.Digits(b.ToString())</strong></li> }
+                    @if (p.Floor is { } fl) { <li><span>طبقه</span><strong>@(fl == 0 ? "همکف" : Fa.Digits(fl.ToString()))</strong></li> }
+                    @if (p.Parking is { } pk) { <li><span>پارکینگ</span><strong>@(pk == 0 ? "ندارد" : Fa.Digits(pk.ToString()))</strong></li> }
+                    @if (p.YearBuilt is { } y) { <li><span>سال ساخت</span><strong>@Fa.Digits(y.ToString())</strong></li> }
+                    <li><span>نوع ملک</span><strong>@Labels.Kind(p.Kind)</strong></li>
+                </ul>
+            </section>
+
+            <section aria-labelledby="desc-title">
+                <h2 id="desc-title">توضیحات</h2>
+                <p class="desc">@p.Description</p>
+            </section>
+
+            @if (p.Latitude is { } lat && p.Longitude is { } lng)
+            {
+                var d = 0.006;
+                <section aria-labelledby="map-title">
+                    <h2 id="map-title">موقعیت روی نقشه</h2>
+                    <div class="map">
+                        <iframe title="نقشهٔ موقعیت @p.Title" loading="lazy" referrerpolicy="no-referrer"
+                                src="https://www.openstreetmap.org/export/embed.html?bbox=@Inv(lng - d)%2C@Inv(lat - d)%2C@Inv(lng + d)%2C@Inv(lat + d)&layer=mapnik&marker=@Inv(lat)%2C@Inv(lng)"></iframe>
+                    </div>
+                    <p class="hint" style="margin-top:6px">موقعیت تقریبی است؛ نشانی دقیق هنگام هماهنگی بازدید اعلام می‌شود.</p>
+                </section>
+            }
+
+            @if (Model.Similar.Count > 0)
+            {
+                <section aria-labelledby="similar-title">
+                    <h2 id="similar-title">آگهی‌های مشابه در @p.City</h2>
+                    <div class="grid cols-3">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
+                </section>
+            }
+        </div>
+
+        <aside class="panel" id="contact" aria-labelledby="price-title">
+            <span class="hint" id="price-title">@(rent ? "رهن" : "قیمت کل")</span>
+            @if (!rent)
+            {
+                <strong class="big">@Fa.Money(p.Price) <small>تومان</small></strong>
+                @if (perMeter is { } pm) { <span class="hint">هر متر حدود @Fa.Money(pm) تومان</span> }
+            }
+            else
+            {
+                <strong class="big rent">@Fa.Money(p.Deposit) <small>تومان</small></strong>
+                <span>اجارهٔ ماهانه: <strong>@Fa.Money(p.MonthlyRent)</strong> تومان</span>
+            }
+            <hr />
+            <strong style="font-size:1.05rem">درخواست تماس و بازدید</strong>
+            @if (Model.Sent)
+            {
+                <div class="alert ok" role="status">درخواست شما ثبت شد. مشاور به‌زودی با شما تماس می‌گیرد.</div>
+            }
+            else
+            {
+                <form method="post" action="/تماس">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Input.PropertyId" value="@p.Id" />
+                    <label class="field">نام<input name="Input.Name" required maxlength="80" autocomplete="name" /></label>
+                    <label class="field">شمارهٔ موبایل<input name="Input.Phone" required inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
+                    <label class="field">پیام (اختیاری)<textarea name="Input.Message" rows="2" maxlength="1000" placeholder="مثلاً زمان مناسب برای بازدید"></textarea></label>
+                    <label class="hp" aria-hidden="true">وب‌سایت<input name="Input.Website" tabindex="-1" autocomplete="off" /></label>
+                    <button class="btn lg block">ثبت درخواست تماس</button>
+                    <span class="hint">شماره‌تان فقط برای هماهنگی همین ملک استفاده می‌شود.</span>
+                </form>
+            }
+            @if (!string.IsNullOrWhiteSpace(phone))
+            {
+                <a class="btn ghost lg block" href="tel:@Fa.Latin(phone).Replace(" ", "")">@Icons.Get("phone", 18) تماس مستقیم: <bdi dir="ltr">@phone</bdi></a>
+            }
         </aside>
     </div>
-    @if (Model.Similar.Count > 0)
-    {
-        <h2>آگهی‌های مشابه در @p.City <a href="@SeoFiles.ListUrl("", p.Deal, p.City)">همهٔ آگهی‌های @listLabel در @p.City ←</a></h2>
-        <div class="grid">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
-    }
+</div>
+
+<div class="mobile-cta">
+    <div class="p"><small>@(rent ? "رهن" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
+    @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس تلفنی">@Icons.Get("phone")</a> }
+    <a class="btn" href="#contact">درخواست بازدید</a>
 </div>

@@ -9,14 +9,14 @@ public static class SeoText
     /// <summary>Standalone summary of a listing: what, where, how big, how much, then key specs.</summary>
     public static string Summary(Property p)
     {
-        var text = $"{Fa.Kind(p.Kind)} {Fa.Digits(p.AreaM2.ToString())} متری در {Location(p)}"
+        var text = $"{KindPhrase(p.Kind)} {Fa.Digits(p.AreaM2.ToString())} متری در {Location(p)}"
             + (p.Deal == DealType.Sale
                 ? $" برای فروش به قیمت {Money(p.Price)}"
                 : $" برای رهن و اجاره با رهن {Money(p.Deposit)} و اجارهٔ ماهانهٔ {Money(p.MonthlyRent)}");
 
         var specs = new List<string>();
         if (p.Bedrooms is { } b) specs.Add($"{Fa.Digits(b.ToString())} خواب");
-        if (p.Floor is { } f) specs.Add($"طبقهٔ {Fa.Digits(f.ToString())}");
+        if (p.Floor is { } f) specs.Add(f == 0 ? "همکف" : $"طبقهٔ {Fa.Digits(f.ToString())}");
         if (p.Parking is { } pk && pk > 0) specs.Add($"{Fa.Digits(pk.ToString())} پارکینگ");
         if (p.YearBuilt is { } y) specs.Add($"ساخت {Fa.Digits(y.ToString())}");
         return text + (specs.Count > 0 ? "؛ " + string.Join("، ", specs) : "") + ".";
@@ -36,6 +36,10 @@ public static class SeoText
         }
         return text + ".";
     }
+
+    // "تجاری"/"اداری" are adjectives; in a sentence they need a noun.
+    private static string KindPhrase(PropertyKind k) =>
+        k is PropertyKind.Commercial or PropertyKind.Office ? "ملک " + Labels.Kind(k) : Labels.Kind(k);
 
     private static string In(string? city) => string.IsNullOrWhiteSpace(city) ? "" : " در " + city.Trim();
 

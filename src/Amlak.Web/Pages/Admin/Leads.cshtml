@@ -1,0 +1,43 @@
+@page
+@model Amlak.Web.Pages.Admin.LeadsModel
+@{ ViewData["Title"] = "درخواست‌های تماس"; ViewData["Robots"] = "noindex,nofollow"; }
+<div class="wrap page-pad">
+    <div class="admin-head">
+        <h1>درخواست‌های تماس</h1>
+        <div class="seg" style="min-width:260px">
+            <a class="btn sm @(Model.All ? "quiet" : "")" href="?All=false">پیگیری‌نشده</a>
+            <a class="btn sm @(Model.All ? "" : "quiet")" href="?All=true">همه</a>
+        </div>
+    </div>
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">@Icons.Get("phone", 48)<h2>@(Model.All ? "هنوز درخواستی ثبت نشده" : "درخواست پیگیری‌نشده‌ای نیست")</h2></div>
+    }
+    else
+    {
+        <div class="tablewrap">
+            <table class="table">
+                <thead><tr><th>زمان</th><th>نام</th><th>موبایل</th><th>آگهی</th><th>پیام</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+                <tbody>
+                @foreach (var l in Model.Items)
+                {
+                    <tr>
+                        <td dir="ltr" style="text-align:end">@Fa.Digits(l.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</td>
+                        <td>@l.Name</td>
+                        <td><a href="tel:@l.Phone" dir="ltr">@Fa.Digits(l.Phone)</a></td>
+                        <td class="wrap-cell">@if (l.Property is { } p) { <a href="/Admin/Edit/@p.Id">@p.Title</a> } else { <span class="hint">مشاورهٔ عمومی</span> }</td>
+                        <td class="wrap-cell" style="max-width:320px">@l.Message</td>
+                        <td><span class="pill @(l.Handled ? "draft" : "pub")">@(l.Handled ? "پیگیری‌شده" : "جدید")</span></td>
+                        <td>
+                            <div class="actions">
+                                <form method="post" asp-page-handler="Toggle" asp-route-id="@l.Id" asp-route-all="@Model.All"><button class="btn sm @(l.Handled ? "quiet" : "")">@(l.Handled ? "بازگشت به جدید" : "پیگیری شد")</button></form>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@l.Id" asp-route-all="@Model.All" onsubmit="return confirm('این درخواست حذف شود؟')"><button class="btn sm danger">حذف</button></form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

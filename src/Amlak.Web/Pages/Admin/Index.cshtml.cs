@@ -1,45 +1,34 @@
 using Amlak.Web.Data;
-using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class IndexModel(AppDbContext db, PhotoStorage photos, ChannelPublisher publisher) : PageModel
+/// <summary>Dashboard: what is waiting for the admin today.</summary>
+public class IndexModel(AppDbContext db, ChannelPublisher publisher) : PageModel
 {
-    public List<Property> Items { get; private set; } = [];
+    public int Published { get; private set; }
+    public int Drafts { get; private set; }
+    public int NewLeads { get; private set; }
+    public int OpenTickets { get; private set; }
+    public int AnsweredTickets { get; private set; }
+    public int ChannelErrors { get; private set; }
+    public List<Ticket> Tickets { get; private set; } = [];
+    public List<Lead> Leads { get; private set; } = [];
+    public IReadOnlyCollection<Channel> Channels => publisher.ConfiguredChannels;
 
-    public async Task OnGetAsync() =>
-        Items = await db.Properties.AsNoTracking().OrderByDescending(p => p.CreatedAtUtc).ToListAsync();
-
-    public async Task<IActionResult> OnPostTogglePublishAsync(int id)
+    public async Task OnGetAsync()
     {
-        var p = await db.Properties.FindAsync(id);
-        if (p is null) return NotFound();
-        if (p.Status == ListingStatus.Published)
-        {
-            p.Status = ListingStatus.Draft;
-        }
-        else
-        {
-            p.Status = ListingStatus.Published;
-            p.PublishedAtUtc ??= DateTime.UtcNow;
-        }
-        await db.SaveChangesAsync();
-        await publisher.SyncAsync(id);
-        return RedirectToPage();
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
-        if (p is null) return NotFound();
-        await publisher.RemoveAllAsync(id);
-        foreach (var f in p.Photos) photos.Delete(f.Url);
-        db.Properties.Remove(p);
-        await db.SaveChangesAsync();
-        return RedirectToPage();
+        Published = await db.Properties.CountAsync(p => p.Status == ListingStatus.Published);
+        Drafts = await db.Properties.CountAsync(p => p.Status == ListingStatus.Draft);
+        NewLeads = await db.Leads.CountAsync(l => !l.Handled);
+        OpenTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Open);
+        AnsweredTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Answered);
+        ChannelErrors = await db.ChannelPosts.CountAsync(c => c.Error != null);
+        Tickets = await db.Tickets.AsNoTracking().Where(t => t.Status != TicketStatus.Closed)
+            .OrderBy(t => t.Status).ThenByDescending(t => t.UpdatedAtUtc).Take(6).ToListAsync();
+        Leads = await db.Leads.AsNoTracking().Include(l => l.Property).Where(l => !l.Handled)
+            .OrderByDescending(l => l.CreatedAtUtc).Take(6).ToListAsync();
     }
 }
