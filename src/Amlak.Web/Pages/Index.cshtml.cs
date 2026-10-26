@@ -1,9 +1,12 @@
 using Amlak.Web.Data;
+using Amlak.Web.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages;
 
+[OutputCache(PolicyName = SiteCache.Listings)]
 public class IndexModel(AppDbContext db) : PageModel
 {
     public List<Property> Latest { get; private set; } = [];
