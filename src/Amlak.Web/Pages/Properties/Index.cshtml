@@ -39,7 +39,7 @@
     <div class="list-head">
         <div>
             <h1>@Model.Heading <small>· @(Model.Total == 0 ? "بدون آگهی" : Fa.Digits(Model.Total.ToString()) + " آگهی")</small></h1>
-            @if (Model.AvgPricePerM2 is { } ppm) { <p class="hint">میانگین قیمت هر متر @Fa.Money(ppm) تومان</p> }
+            @if (Model.AvgPricePerM2 is { } ppm) { <p class="hint"><a href="@Amlak.Web.Pages.Prices.IndexModel.Path(Model.City)">میانگین قیمت هر متر @Fa.Money(ppm) تومان</a></p> }
         </div>
         <form method="get" class="sort" data-autosubmit>
             @foreach (var (k, v) in Model.QueryFilters())
