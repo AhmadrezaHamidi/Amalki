@@ -48,6 +48,9 @@ builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
 builder.Services.AddScoped<AdminNotifier>();
+// Domain events saved with each change are handled here, outside the request (channel posts, admin alerts, file cleanup).
+builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
+builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
 
 // Public forms, per IP per 10 minutes (NFR-09): contact form 5 posts, support tickets 10 (new ticket,
 // tracking lookup and replies share one allowance). Every other request is unlimited.

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
-using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>Public support desk: open a ticket, or look one up by tracking code + mobile.</summary>
-public class IndexModel(AppDbContext db, AdminNotifier notifier, TimeProvider clock) : PageModel
+public class IndexModel(AppDbContext db, TimeProvider clock) : PageModel
 {
     /// <summary>Route prefix of the support pages; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/پشتیبانی";
@@ -60,7 +59,6 @@ public class IndexModel(AppDbContext db, AdminNotifier notifier, TimeProvider cl
         }
         db.Tickets.Add(ticket);
         await db.SaveChangesAsync();
-        await notifier.NotifyTicketAsync(ticket, ticket.Messages[0].Body, isNew: true);
         return Redirect(TicketModel.Url(ticket.Code, created: true));
     }
 
