@@ -20,7 +20,12 @@ public static class Labels
         _ => "اوقافی",
     };
 
-    public static string Deal(DealType d) => d == DealType.Sale ? "فروش" : "اجاره";
+    public static string Deal(DealType d) => d switch
+    {
+        DealType.Sale => "فروش",
+        DealType.ShortTerm => "اجارهٔ کوتاه‌مدت",
+        _ => "اجاره",
+    };
 
     public static string Status(ListingStatus s) => s switch
     {

@@ -8,9 +8,10 @@
     var rent = p.Deal == DealType.Rent;
     var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var url = SeoFiles.PropertyUrl(site, p);
-    var dealLabel = rent ? "اجارهٔ" : "فروش";
+    var shortTerm = p.Deal == DealType.ShortTerm;
+    var dealLabel = rent ? "اجارهٔ" : shortTerm ? "اجارهٔ کوتاه‌مدت" : "فروش";
     ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
-    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (!rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (shortTerm ? "هر شب " + Fa.Money(p.Price) + " تومان" : !rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
     ViewData["Canonical"] = url;
     ViewData["BodyClass"] = "has-mobile-cta";
     // Crawlers and link previews need absolute image URLs; MinIO URLs already are.
@@ -43,7 +44,7 @@
     var phone = Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
-    var perMeter = !rent && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
+    var perMeter = p.Deal == DealType.Sale && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
     string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 }
 @section Head {
@@ -152,7 +153,7 @@
         </div>
 
         <aside class="panel" id="contact" aria-labelledby="price-title">
-            <span class="hint" id="price-title">@(rent ? "رهن" : "قیمت کل")</span>
+            <span class="hint" id="price-title">@(rent ? "رهن" : shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</span>
             @if (!rent)
             {
                 <strong class="big">@Fa.Money(p.Price) <small>تومان</small></strong>
@@ -192,7 +193,7 @@
 </div>
 
 <div class="mobile-cta">
-    <div class="p"><small>@(rent ? "رهن" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
+    <div class="p"><small>@(rent ? "رهن" : shortTerm ? "هر شب" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
     @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس تلفنی">@Icons.Get("phone")</a> }
     <a class="btn" href="#contact">درخواست بازدید</a>
 </div>

@@ -86,7 +86,7 @@
                 <a class="hero-float" asp-page="/Properties/Details" asp-route-slug="@featured.Slug">
                     <small>تازه منتشر شد · @featured.District، @featured.City</small>
                     <strong>@featured.Title</strong>
-                    <span class="price @(featured.Deal == DealType.Rent ? "rent" : "")">@(featured.Deal == DealType.Sale ? Fa.Money(featured.Price) : "رهن " + Fa.Money(featured.Deposit)) <small>تومان</small></span>
+                    <span class="price @(featured.Deal == DealType.Rent ? "rent" : "")">@(featured.Deal != DealType.Rent ? Fa.Money(featured.Price) : "رهن " + Fa.Money(featured.Deposit)) <small>تومان</small></span>
                 </a>
             }
         </div>

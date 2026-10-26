@@ -28,14 +28,21 @@ public static class Taxonomy
         new("اجاره-زمین", "اجارهٔ زمین", DealType.Rent, PropertyKind.Land),
         new("اجاره-مغازه", "رهن و اجارهٔ مغازه و ملک تجاری", DealType.Rent, PropertyKind.Commercial),
         new("اجاره-دفتر-اداری", "رهن و اجارهٔ دفتر اداری", DealType.Rent, PropertyKind.Office),
+        new("اجاره-کوتاه-مدت", "اجارهٔ کوتاه‌مدت و روزانه", DealType.ShortTerm, null),
+        new("اجاره-روزانه-آپارتمان", "اجارهٔ روزانهٔ آپارتمان و سوئیت", DealType.ShortTerm, PropertyKind.Apartment),
+        new("اجاره-روزانه-ویلا", "اجارهٔ روزانهٔ ویلا و باغ", DealType.ShortTerm, PropertyKind.Villa),
+        new("اجاره-موقت-دفتر", "اجارهٔ موقت دفتر کار", DealType.ShortTerm, PropertyKind.Office),
     ];
 
     public static Category? Find(string? slug) =>
         string.IsNullOrEmpty(slug) ? null : All.FirstOrDefault(c => c.Slug == Slugger.Make(slug));
 
-    /// <summary>The category for a deal and kind; a kind without a deal has no category.</summary>
+    /// <summary>
+    /// The category for a deal and kind; a kind without a deal has none. Kinds with no category of their own
+    /// under a deal (short-term land, say) fall back to the deal's category.
+    /// </summary>
     public static Category? For(DealType? deal, PropertyKind? kind) =>
-        deal is null ? null : All.First(c => c.Deal == deal && c.Kind == kind);
+        deal is null ? null : All.FirstOrDefault(c => c.Deal == deal && c.Kind == kind) ?? All.First(c => c.Deal == deal && c.Kind is null);
 
     public static string Slug(string name) => Slugger.Make(name);
 
