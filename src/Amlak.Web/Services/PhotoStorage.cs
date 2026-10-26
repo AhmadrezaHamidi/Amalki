@@ -32,24 +32,43 @@ public class PhotoStorage(IFileStore primary, LocalFileStore local)
         if (!isValid(head.AsSpan(0, read).ToArray())) return null;
         input.Position = 0;
 
-        var name = Guid.NewGuid().ToString("N");
-        var url = await primary.PutAsync(name + ext, input, file.Length, MimeFor(ext), ct);
+        var url = await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, file.Length, MimeFor(ext), ct);
         var photo = new PropertyPhoto { Url = url };
 
-        // WebP copies for srcset. A photo the decoder cannot read is still kept, just without copies.
         input.Position = 0;
-        if (PhotoVariants.Make(input) is { } made)
-        {
-            photo.Width = made.Width;
-            photo.Height = made.Height;
-            foreach (var v in made.Variants)
-            {
-                using var webp = new MemoryStream(v.Webp);
-                await primary.PutAsync($"{name}-{v.Width}.webp", webp, v.Webp.Length, "image/webp", ct);
-            }
-            photo.Variants = made.Variants.Count > 0 ? string.Join(",", made.Variants.Select(v => v.Width)) : null;
-        }
+        await AddVariantsAsync(photo, input, primary, ct);
         return photo;
+    }
+
+    /// <summary>
+    /// Makes the WebP copies of a photo uploaded before copies existed (Variants is null) and records them.
+    /// Afterwards Variants is never null, so a photo the decoder cannot read is not retried.
+    /// </summary>
+    /// <returns>False when the original is gone from its store.</returns>
+    public async Task<bool> BackfillAsync(PropertyPhoto photo, CancellationToken ct = default)
+    {
+        if (StoreOf(photo.Url) is not { } store) return false;
+        await using var original = await store.OpenAsync(photo.Url, ct);
+        if (original is null) return false;
+        await AddVariantsAsync(photo, original, store, ct);
+        return true;
+    }
+
+    // WebP copies for srcset, stored next to the original. A photo the decoder cannot read is kept without copies.
+    private static async Task AddVariantsAsync(PropertyPhoto photo, Stream original, IFileStore store, CancellationToken ct)
+    {
+        var made = PhotoVariants.Make(original);
+        photo.Variants = "";
+        if (made is null) return;
+        photo.Width = made.Width;
+        photo.Height = made.Height;
+        var stem = Path.GetFileNameWithoutExtension(photo.Url);
+        foreach (var v in made.Variants)
+        {
+            using var webp = new MemoryStream(v.Webp);
+            await store.PutAsync($"{stem}-{v.Width}.webp", webp, v.Webp.Length, "image/webp", ct);
+        }
+        photo.Variants = string.Join(",", made.Variants.Select(v => v.Width));
     }
 
     /// <returns>The photo's bytes, or null when it is gone from its store.</returns>

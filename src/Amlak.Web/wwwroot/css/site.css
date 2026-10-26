@@ -343,6 +343,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .photo-grid figure{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .photo-grid img{aspect-ratio:4/3;object-fit:cover;width:100%}
 .photo-grid form{padding:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.photo-grid .photo-order{border-bottom:1px solid var(--line)}.photo-grid .photo-order .row-actions{gap:4px;flex-wrap:nowrap}.photo-grid .btn.sm.icon{width:36px}.photo-grid .btn.sm{padding:0 10px}.photo-grid .btn:disabled{opacity:.35;cursor:default}
 .trust li{display:inline-flex;gap:8px;align-items:center}
 @media(max-width:700px){.hero-float{inset-inline-start:12px}}
 
