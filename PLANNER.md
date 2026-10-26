@@ -21,6 +21,8 @@
 - SEO speed pass (2026-10-26, SEO-07): OutputCache for home/list/detail/sitemap/robots/llms (10 min, evicted on any Property/PropertyPhoto save via `ListingCacheInterceptor`; admins never cached); detail contact form fetches its antiforgery token from `/antiforgery-token` so the page can be cached. Photos: WebP copies at 480/960/1600 on upload (SkiaSharp, EXIF rotation baked in), `<picture>` srcset everywhere, real width/height; migration `PhotoVariants`. Self-hosted variable Vazirmatn with preload (no Google Fonts). `/uploads` immutable cache headers. Absolute og:image/JSON-LD images, canonical from `Site:BaseUrl`. 35 tests pass. Checked end to end against SQLite: second request served from cache, upload creates 3 WebP files and evicts the page, token flow 302 / no token 400.
 - UI/UX v3 (2026-10-26): installable PWA (manifest, icons, service worker with offline page, install button), mobile bottom tab bar, phone home page without hero photo and with swipe rails, admin stat grid fills the row. Offline navigation verified in headless Chromium. 31 tests pass. Docs: docs/DESIGN.md section 3.
 
+- Dark mode (2026-10-26): automatic via prefers-color-scheme for site, admin and offline page; dark tokens in site.css, `--on-primary` for text on primary, theme-color per scheme. Checked at 390px and 1440px.
+
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
 - Apply the `Leads` migration on the real SQL Server (`dotnet ef database update`).
