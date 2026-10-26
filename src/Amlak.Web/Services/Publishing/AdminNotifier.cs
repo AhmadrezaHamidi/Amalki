@@ -37,6 +37,10 @@ public class AdminNotifier
     public Task NotifyTicketAsync(Ticket ticket, string message, bool isNew, CancellationToken ct = default) =>
         SendAsync(CaptionBuilder.Ticket(ticket, message, isNew, _baseUrl), ct);
 
+    /// <summary>A visitor submitted a listing that waits for review.</summary>
+    public Task NotifyListingAsync(Property p, CancellationToken ct = default) =>
+        SendAsync(CaptionBuilder.Submitted(p, _baseUrl), ct);
+
     private async Task SendAsync(string text, CancellationToken ct)
     {
         foreach (var (channel, client) in _clients)

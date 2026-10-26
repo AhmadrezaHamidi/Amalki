@@ -36,6 +36,12 @@ public static class CaptionBuilder
         return string.Join("\n", lines);
     }
 
+    public static string Submitted(Property p, string baseUrl) => string.Join("\n",
+        "📝 آگهی جدید در انتظار بررسی",
+        $"🏠 {p.Title} ({Labels.Deal(p.Deal)} {Labels.Kind(p.Kind)}، {p.District} {p.City})",
+        $"👤 {p.OwnerName} — 📞 {p.OwnerPhone}",
+        $"🔗 {baseUrl.TrimEnd('/')}/Admin/Edit/{p.Id}");
+
     public static string Ticket(Ticket t, string message, bool isNew, string baseUrl)
     {
         var lines = new List<string>

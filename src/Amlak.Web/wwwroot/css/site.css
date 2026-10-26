@@ -380,3 +380,5 @@ a.stat:hover{border-color:var(--primary);color:var(--ink)}
 .amenities li{list-style:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.92rem}
 .amenities li.no{color:var(--muted);text-decoration:line-through}
 .posted{display:block;margin-top:4px;font-size:.88rem;color:var(--muted)}
+.mine{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.mine li{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line-soft);padding-bottom:8px}

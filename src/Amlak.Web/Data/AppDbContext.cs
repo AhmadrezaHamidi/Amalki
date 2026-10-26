@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
+    public DbSet<PhoneCode> PhoneCodes => Set<PhoneCode>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -27,6 +28,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Title).HasMaxLength(200);
             e.Property(x => x.City).HasMaxLength(80);
             e.Property(x => x.District).HasMaxLength(80);
+            e.Property(x => x.OwnerName).HasMaxLength(80);
+            e.Property(x => x.OwnerPhone).HasMaxLength(20);
+            e.HasIndex(x => x.OwnerPhone);
             e.HasMany(x => x.Photos).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.ChannelPosts).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -57,5 +61,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasMany(x => x.Messages).WithOne().HasForeignKey(m => m.TicketId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<TicketMessage>().Property(x => x.Body).HasMaxLength(4000);
+        b.Entity<PhoneCode>(e =>
+        {
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.CodeHash).HasMaxLength(64);
+            e.HasIndex(x => new { x.Phone, x.CreatedAtUtc });
+        });
     }
 }

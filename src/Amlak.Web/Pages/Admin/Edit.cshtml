@@ -29,9 +29,13 @@
                         @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k">@Labels.Kind(k)</option> }
                     </select></div>
                 <div><label for="Input_Status">وضعیت</label>
-                    <select asp-for="Input.Status"><option value="Draft">پیش‌نویس</option><option value="Published">منتشرشده</option><option value="Closed">بسته‌شده</option></select></div>
+                    <select asp-for="Input.Status"><option value="Pending">در انتظار بررسی</option><option value="Draft">پیش‌نویس</option><option value="Published">منتشرشده</option><option value="Closed">بسته‌شده</option></select></div>
             </div>
             <p class="hint">با «منتشرشده»، آگهی در سایت و کانال‌های تلگرام و بله قرار می‌گیرد.</p>
+            @if (Model.OwnerPhone is not null)
+            {
+                <p class="alert ok" style="margin-top:12px">ثبت‌شده توسط کاربر: @Model.OwnerName — <bdi dir="ltr"><a href="tel:@Model.OwnerPhone">@Model.OwnerPhone</a></bdi> (موبایل تأییدشده)</p>
+            }
         </section>
 
         <section class="form-card">

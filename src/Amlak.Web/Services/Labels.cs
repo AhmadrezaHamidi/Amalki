@@ -26,6 +26,7 @@ public static class Labels
     {
         ListingStatus.Published => "منتشرشده",
         ListingStatus.Closed => "بسته‌شده",
+        ListingStatus.Pending => "در انتظار بررسی",
         _ => "پیش‌نویس",
     };
 

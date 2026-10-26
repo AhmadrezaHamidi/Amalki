@@ -2,7 +2,8 @@ namespace Amlak.Web.Domain;
 
 public enum DealType { Sale = 1, Rent = 2 }
 public enum PropertyKind { Apartment = 1, Villa = 2, Land = 3, Commercial = 4, Office = 5 }
-public enum ListingStatus { Draft = 0, Published = 1, Closed = 2 }
+/// <summary>Pending: sent in by a visitor from /ثبت-آگهی, waiting for an admin to review it.</summary>
+public enum ListingStatus { Draft = 0, Published = 1, Closed = 2, Pending = 3 }
 /// <summary>Ownership document, as Iranian listings label it (single-sheet, old "mangoleh" deed, ...).</summary>
 public enum DeedType { Single = 1, Manguleh = 2, Promissory = 3, Endowment = 4 }
 
@@ -40,6 +41,10 @@ public class Property
     public string? Address { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+
+    /// <summary>Set when a visitor submitted the listing; the phone was verified by SMS code.</summary>
+    public string? OwnerName { get; set; }
+    public string? OwnerPhone { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? PublishedAtUtc { get; set; }
@@ -120,4 +125,17 @@ public class TicketMessage
     public bool FromStaff { get; set; }
     public string Body { get; set; } = "";
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A one-time SMS code for proving a mobile number before submitting a listing.</summary>
+public class PhoneCode
+{
+    public int Id { get; set; }
+    public string Phone { get; set; } = "";
+    /// <summary>SHA-256 of phone + code; the code itself is never stored.</summary>
+    public string CodeHash { get; set; } = "";
+    public int Attempts { get; set; }
+    public bool Used { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAtUtc { get; set; }
 }
