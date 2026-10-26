@@ -23,6 +23,7 @@ public static class Icons
         ["area"] = "<path d='M3 3h18v18H3z'/><path d='M3 9h6V3'/>",
         ["bed"] = "<path d='M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8M2 16h20M6 10V6h12v4'/>",
         ["filter"] = "<path d='M3 5h18M6 12h12M10 19h4'/>",
+        ["download"] = "<path d='M12 3v12M7 10l5 5 5-5M5 21h14'/>",
         ["send"] = "<path d='M22 2 11 13M22 2l-7 20-4-9-9-4Z'/>",
         ["apartment"] = "<path d='M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4'/>",
         ["villa"] = "<path d='M3 10.5 12 3l9 7.5M5 9.5V21h14V9.5M10 21v-6h4v6'/>",
