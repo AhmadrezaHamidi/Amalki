@@ -111,6 +111,48 @@ public sealed class PhotoAndCacheTests : IDisposable
         Assert.Equal([SiteCache.Listings], store.Tags.Distinct());
     }
 
+    [Fact]
+    public async Task Backfill_makes_copies_for_an_old_photo_and_marks_unreadable_ones_done()
+    {
+        var bytes = Jpeg(1000, 750);
+        File.WriteAllBytes(Path.Combine(_root, "uploads", "old.jpg"), bytes);
+        File.WriteAllBytes(Path.Combine(_root, "uploads", "bad.jpg"), [0xFF, 0xD8, 0xFF, 0, 1, 2]);
+        var storage = TestStores.Photos(_root);
+
+        var old = new PropertyPhoto { Url = "/uploads/old.jpg" };
+        Assert.True(await storage.BackfillAsync(old));
+        Assert.Equal("480,960,1000", old.Variants);
+        Assert.Equal((1000, 750), (old.Width, old.Height));
+        Assert.True(File.Exists(Path.Combine(_root, "uploads", "old-960.webp")));
+
+        var bad = new PropertyPhoto { Url = "/uploads/bad.jpg" };
+        Assert.True(await storage.BackfillAsync(bad));
+        Assert.Equal("", bad.Variants);
+        Assert.StartsWith("<img ", PhotoVariants.Img(bad, "100vw", 640, 480).ToString());
+
+        Assert.False(await storage.BackfillAsync(new PropertyPhoto { Url = "/uploads/gone.jpg" }));
+    }
+
+    [Theory]
+    [InlineData(3, PhotoOrder.Move.First, "3,1,2,4")]
+    [InlineData(3, PhotoOrder.Move.Earlier, "1,3,2,4")]
+    [InlineData(3, PhotoOrder.Move.Later, "1,2,4,3")]
+    [InlineData(1, PhotoOrder.Move.Earlier, "1,2,3,4")]
+    [InlineData(4, PhotoOrder.Move.Later, "1,2,3,4")]
+    public void Moving_a_photo_renumbers_the_whole_listing(int id, PhotoOrder.Move move, string expected)
+    {
+        // Gaps and a tie in SortOrder, as left behind by deletes and older uploads.
+        var photos = new List<PropertyPhoto>
+        {
+            new() { Id = 2, SortOrder = 5 }, new() { Id = 1, SortOrder = 0 },
+            new() { Id = 4, SortOrder = 9 }, new() { Id = 3, SortOrder = 5 },
+        };
+        Assert.True(PhotoOrder.Apply(photos, id, move));
+        Assert.Equal(expected, string.Join(",", photos.OrderBy(x => x.SortOrder).Select(x => x.Id)));
+        Assert.Equal([0, 1, 2, 3], photos.Select(x => x.SortOrder).Order());
+        Assert.False(PhotoOrder.Apply(photos, 99, move));
+    }
+
     public void Dispose() { try { Directory.Delete(_root, true); } catch { } }
 
     private sealed class CountingStore : IOutputCacheStore

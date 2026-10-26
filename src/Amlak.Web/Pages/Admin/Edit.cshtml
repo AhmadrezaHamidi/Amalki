@@ -86,13 +86,23 @@
     {
         <section class="form-card" style="margin-top:24px">
             <h2>عکس‌های فعلی</h2>
+            <p class="hint">عکس اول، عکس اصلی آگهی است: در کارت‌ها، پیش‌نمایش لینک و پست کانال‌ها همین عکس دیده می‌شود.</p>
             <div class="photo-grid" style="margin-top:12px">
                 @foreach (var (f, i) in Model.Photos.Select((f, i) => (f, i)))
                 {
+                    var last = i == Model.Photos.Count - 1;
                     <figure>
                         <img src="@f.Url" alt="@f.Alt" loading="lazy" />
+                        <form method="post" asp-page-handler="MovePhoto" asp-route-id="@Model.Id" asp-route-photoId="@f.Id" class="photo-order" aria-label="ترتیب عکس @Fa.Digits((i + 1).ToString())">
+                            @if (i == 0) { <span class="badge soft">عکس اصلی</span> }
+                            else { <button class="btn sm quiet" name="move" value="First">عکس اصلی شود</button> }
+                            <span class="row-actions">
+                                <button class="btn sm quiet icon" name="move" value="Earlier" disabled="@(i == 0)" aria-label="جلوتر">@Icons.Get("chev-right", 16)</button>
+                                <button class="btn sm quiet icon" name="move" value="Later" disabled="@last" aria-label="عقب‌تر">@Icons.Get("chev-left", 16)</button>
+                            </span>
+                        </form>
                         <form method="post" asp-page-handler="DeletePhoto" asp-route-id="@Model.Id" asp-route-photoId="@f.Id" onsubmit="return confirm('این عکس حذف شود؟')">
-                            @if (i == 0) { <span class="badge soft">عکس اصلی</span> } else { <span></span> }
+                            <span class="hint">@Fa.Digits((i + 1).ToString())</span>
                             <button class="btn sm danger">حذف</button>
                         </form>
                     </figure>
