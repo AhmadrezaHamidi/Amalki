@@ -22,6 +22,7 @@
 - UI/UX v3 (2026-10-26): installable PWA (manifest, icons, service worker with offline page, install button), mobile bottom tab bar, phone home page without hero photo and with swipe rails, admin stat grid fills the row. Offline navigation verified in headless Chromium. 31 tests pass. Docs: docs/DESIGN.md section 3.
 
 - Photo order + WebP backfill (2026-10-26, ADM-09): admin Edit page lets you move a photo earlier/later or make it the cover (`PhotoOrder`, renumbers SortOrder, re-syncs channel album); dashboard button makes WebP copies for photos uploaded before copies existed (`PhotoStorage.BackfillAsync`, 40 per click, unreadable/missing originals marked done). 41 tests pass; checked in the browser against SQLite.
+- Dark mode (2026-10-26): automatic via prefers-color-scheme for site, admin and offline page; dark tokens in site.css, `--on-primary` for text on primary, theme-color per scheme. Checked at 390px and 1440px.
 
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
