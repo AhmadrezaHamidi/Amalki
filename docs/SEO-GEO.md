@@ -6,21 +6,21 @@
 
 | مورد | وضعیت | محل |
 |---|---|---|
-| رندر سمت سرور (محتوا بدون جاوااسکریپت در HTML است) | هست | Razor Pages |
-| `<title>` و `meta description` یکتا برای هر صفحه (جزئیات: عنوان + نوع معامله + محله/شهر + قیمت) | هست | `_Layout`, `Details`, `Properties/Index` |
-| `canonical`؛ لیست فیلترشده/صفحه‌بندی‌شده به لیست پایه اشاره می‌کند | هست | `ViewData["Canonical"]` |
-| Open Graph (`og:title/description/url/image/locale`) | هست | `_Layout` |
-| JSON-LD `RealEstateListing` (نام، توضیح، آدرس، متراژ، `Offer` با قیمت، تصاویر) | هست | `Details.cshtml` |
-| نشانی تمیز و فارسی (`/ملک/{slug}`) | هست | `Slugger` |
-| `lang="fa" dir="rtl"` | هست | `_Layout` |
-| `alt` برای عکس‌ها (عنوان + محله + شهر) | هست | `PhotoStorage` / ثبت عکس |
-| `noindex` برای پنل مدیریت و ورود | هست | `ViewData["Robots"]` |
-| `/sitemap.xml` پویا (صفحه‌های اصلی، لیست‌ها، آگهی‌های منتشرشده با `lastmod` و عکس) | هست | `Services/Seo/SeoEndpoints.cs` |
-| `/robots.txt` با `Disallow` برای Admin/Account، خط Sitemap و گروه صریح خزنده‌های هوش مصنوعی | هست | `SeoFiles.Robots` |
+| رندر سمت سرور (محتوا بدون جاوااسکریپت در HTML است) | **نیست** — فرانت React (SPA) است؛ گوگل JS را اجرا می‌کند، ولی خزنده‌های بدون JS (بیشتر خزنده‌های هوش مصنوعی و پیش‌نمایش تلگرام) فقط پوستهٔ خالی می‌بینند. راه‌حل: پیش‌رندر (SEO-01 در REQUIREMENTS) | — |
+| `<title>` و `meta description` یکتا برای هر صفحه (جزئیات: عنوان + نوع معامله + محله/شهر + قیمت) | هست (پس از اجرای JS) | `Front/src/lib/seo.ts` (`useSeo`) |
+| `canonical`؛ لیست فیلترشده/صفحه‌بندی‌شده به لیست پایه اشاره می‌کند | هست | `PropertiesPage.tsx` |
+| Open Graph (`og:title/description/url/image/locale`) | هست (پس از اجرای JS) | `useSeo` |
+| JSON-LD `RealEstateListing` (نام، توضیح، آدرس، متراژ، `Offer` با قیمت، تصاویر) | هست | `PropertyDetailPage.tsx` |
+| نشانی تمیز و فارسی (`/ملک/{slug}`) | هست | `Slug` (دامین) و `features/listing/paths.ts` |
+| `lang="fa" dir="rtl"` | هست | `Front/index.html` |
+| `alt` برای عکس‌ها (پیش‌فرض عنوان آگهی، قابل ویرایش) | هست | `Property.AddPhoto`، پنل عکس‌ها |
+| `noindex` برای پنل مدیریت، ورود و آگهی ناموجود | هست | `AdminLayout`، `LoginPage`، `NotFoundPage` |
+| `/sitemap.xml` پویا (صفحه‌های اصلی، لیست‌ها، آگهی‌های منتشرشده با `lastmod` و عکس اصلی) | هست | API: `Amlak.Rest/EndPoints/Seo` (nginx به API می‌فرستد) |
+| `/robots.txt` با `Disallow` برای `/admin`، `/login` و API مدیر، خط Sitemap و گروه صریح خزنده‌های هوش مصنوعی | هست | `SeoFiles.Robots` |
 | `/llms.txt` (معرفی، صفحه‌های اصلی، ۲۰ آگهی آخر) | هست | `SeoFiles.Llms` |
-| JSON-LD `RealEstateAgent` + `WebSite` (صفحهٔ اصلی) و `BreadcrumbList` (لیست و جزئیات) | هست | `Services/Seo/JsonLd.cs` |
+| JSON-LD `RealEstateAgent` + `WebSite` (صفحهٔ اصلی) و `BreadcrumbList` (لیست و جزئیات) | هست | `HomePage.tsx`، `seo.ts` |
 | آدرس پایه از `Site:BaseUrl` (نه هدر Host) تا جعل Host فایل‌ها را مسموم نکند | هست | `SeoEndpoints.BaseUrl` |
-| `loading="lazy"` و ابعاد عکس کارت‌ها | هست | `_PropertyCard` |
+| `loading="lazy"` و ابعاد عکس کارت‌ها | هست | `PropertyCardView.tsx` |
 
 ## برنامه (به ترتیب اولویت)
 

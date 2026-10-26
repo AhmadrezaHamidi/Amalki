@@ -18,7 +18,7 @@
 
 ## تنظیم (فقط user-secrets یا متغیر محیطی)
 
-در پوشهٔ `Src/Web/Amlak.Web`:
+در پوشهٔ `Src/Host/Amlak.ServiceHost`:
 
 ```bash
 dotnet user-secrets set "Telegram:BotToken" "<توکن>"

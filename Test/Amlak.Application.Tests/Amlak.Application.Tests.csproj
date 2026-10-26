@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\Src\Application\Amlak.Application.Validators\Amlak.Application.Validators.csproj" />
     <ProjectReference Include="..\..\Src\Application\Amlak.Event.Handler\Amlak.Event.Handler.csproj" />
     <ProjectReference Include="..\..\Src\Infrastructure\Amlak.Config\Amlak.Config.csproj" />
+    <ProjectReference Include="..\..\Src\Rest\Amlak.Rest\Amlak.Rest.csproj" />
   </ItemGroup>
 
 </Project>

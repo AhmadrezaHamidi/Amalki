@@ -1,6 +1,6 @@
 # بک‌اند (DDD + CQRS)
 
-بک‌اند املاک روی .NET 8 با همان ساختار همیشگی (`DentV2` و `Salmandan`) و پکیج‌های `AhmadBase.*` ساخته شده است. سایت Razor فعلی (`Src/Web/Amlak.Web`) هنوز مستقل کار می‌کند؛ قدم بعدی این است که صفحه‌ها به‌جای `AppDbContext` از این API بخوانند.
+بک‌اند املاک روی .NET 8 با همان ساختار همیشگی (`DentV2` و `Salmandan`) و پکیج‌های `AhmadBase.*` ساخته شده است. تنها مصرف‌کنندهٔ آن فرانت React در `Front/` است ([FRONTEND.md](FRONTEND.md)).
 
 > نام اسمبلی‌ها باید از الگوی `{CompanyName}.{ContextName}.{Layer}` پیروی کند (`Amlak.Estate.Application` و…) چون `AhmadBase.Config` اسمبلی‌ها را با همین قرارداد reflection می‌کند. تغییر `CompanyName` یا `ContextName` در `appsettings.json` بدون تغییر `AssemblyName` باعث خطای زمان اجرا می‌شود.
 
@@ -85,9 +85,10 @@ Endpoint → ICommandBus → ValidationBehavior → DomainEventDispatchBehavior 
 |---|---|---|
 | ورود | `POST /Auth/{SendOtp, VerifyOtp, Refresh, Logout}` · `PUT /Auth/Profile` | عمومی / کاربر |
 | آگهی‌ها | `GET /Properties` (فیلتر: `deal, kind, city, district, minPrice, maxPrice, maxRent, minArea, maxArea, minBedrooms, sort, page, pageSize`) | عمومی |
-| | `GET /Properties/Slug/{slug}` (۴۰۴ برای پیش‌نویس/بسته/ناموجود) · `GET /Properties/{id}/Similar` · `GET /Properties/Locations` · `GET /Properties/Sitemap` | عمومی |
+| | `GET /Properties/Slug/{slug}` (۴۰۴ برای پیش‌نویس/بسته/ناموجود؛ آدرس دقیق در نسخهٔ عمومی null است) · `GET /Properties/{id}/Similar` · `GET /Properties/Locations` · `GET /Properties/Sitemap` | عمومی |
 | عکس | `GET /Photos/{fileName}` (کش یک‌ساله، نام فایل تصادفی و تغییرناپذیر) | عمومی |
 | درخواست تماس | `POST /Leads` | عمومی |
+| سئو (بدون `/api/v1`، در ریشهٔ دامنه) | `GET /sitemap.xml` · `GET /robots.txt` · `GET /llms.txt` | عمومی |
 | مدیریت آگهی | `GET/POST /Admin/Properties` · `GET/PUT/DELETE /Admin/Properties/{id}` · `PUT .../{id}/{Publish, Unpublish, Close}` | Admin |
 | مدیریت عکس | `POST .../{id}/Photos` (multipart: `file`, `alt`) · `DELETE .../Photos/{photoId}` · `PUT .../Photos/Order` · `PUT .../Photos/{photoId}/{Cover, Alt}` | Admin |
 | کانال‌ها | `GET /Admin/Channels/Properties/{id}` · `POST /Admin/Channels/Properties/{id}/Sync` · `GET /Admin/Channels/Failed` | Admin |
@@ -102,7 +103,8 @@ Endpoint → ICommandBus → ValidationBehavior → DomainEventDispatchBehavior 
 | `ConnectionStrings:CommandConnection` / `QueryConnection` | SQL Server برای EF و Dapper |
 | `JWTOptions:Secret` | کلید امضای JWT — فقط user-secrets/متغیر محیطی |
 | `Platform:AdminPhones` | شماره‌های مدیر (نقش Admin + پیامک درخواست تماس) |
-| `Site:BaseUrl` | آدرس عمومی سایت برای لینک داخل پست کانال |
+| `Site:BaseUrl` | آدرس عمومی سایت برای لینک پست کانال و نشانی‌های sitemap/llms (هدر Host استفاده نمی‌شود) |
+| `Site:Name` | نام سایت در llms.txt |
 | `Storage:PhotoPath` | پوشهٔ عکس‌ها روی سرور (پیش‌فرض `storage/photos`) |
 | `Storage:PhotoUrlPrefix` | پیشوند آدرس عمومی عکس (پیش‌فرض `/api/v1/Photos/`؛ برای CDN عوض شود) |
 | `Telegram:BotToken/ChatId/ApiBase`، `Bale:BotToken/ChatId/ApiBase` | کانال‌ها؛ بدون توکن یا ChatId غیرفعال |
@@ -115,13 +117,6 @@ Endpoint → ICommandBus → ValidationBehavior → DomainEventDispatchBehavior 
 | پروژه | پوشش |
 |---|---|
 | `Test/Amlak.Domain.Tests` (۳۱) | قیمت‌گذاری فروش/اجاره، چرخهٔ وضعیت، رویدادها، عکس‌ها و ترتیب، slug، امضای فایل، وضعیت درخواست تماس، OTP |
-| `Test/Amlak.Application.Tests` (۳۱) | جریان کامل آگهی روی SQLite با Event Handler های واقعی و Bot API ساختگی (ارسال یک‌باره، ویرایش، حذف، شکست و تلاش دوباره، حذف آگهی)، درخواست تماس و محدودیت نرخ، ورود OTP و چرخش توکن، Validator ها، نشت‌نکردن توکن، `DomainEventDispatchBehavior` |
+| `Test/Amlak.Application.Tests` (۳۵) | جریان کامل آگهی روی SQLite با Event Handler های واقعی و Bot API ساختگی (ارسال یک‌باره، ویرایش، حذف، شکست و تلاش دوباره، حذف آگهی)، درخواست تماس و محدودیت نرخ، ورود OTP و چرخش توکن، Validator ها، نشت‌نکردن توکن، `DomainEventDispatchBehavior`، sitemap/robots/llms |
 
 پوشش‌داده‌نشده: SQL های Dapper (نحو SQL Server دارند و روی SQLite اجرا نمی‌شوند) و Endpoint ها — راه‌اندازی Host، Swagger، ۴۰۱ مسیرهای مدیر، ۴۲۲ اعتبارسنجی و ۴۰۴ مسیر عکس با درخواست HTTP دستی بررسی شده‌اند، ولی نه روی SQL Server واقعی.
-
-## مهاجرت سایت Razor به API (پیشنهاد)
-
-1. صفحه‌های عمومی (`/املاک`، `/ملک/{slug}`، sitemap) به `GET /Properties*` وصل شوند و `AppDbContext` از آن‌ها حذف شود.
-2. فرم «درخواست تماس» صفحهٔ جزئیات به `POST /Leads` وصل شود (PUB-06).
-3. پنل مدیریت به `/Admin/*` با ورود OTP منتقل شود؛ سپس Identity و `ChannelPublisher` سایت Razor حذف شوند.
-4. داده‌های دیتابیس `Amlak` قدیم با یک اسکریپت به `AmlakApi` منتقل شوند (فایل عکس‌ها از `wwwroot/uploads` به `storage/photos`).

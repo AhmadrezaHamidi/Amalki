@@ -52,8 +52,9 @@ public sealed class PropertyReadRepository(IDbConnection conn, PhotoUrls photoUr
         return new PagedResult<PropertyCard>(items, total, page, pageSize);
     }
 
-    public Task<PropertyDetail?> GetPublishedBySlugAsync(string slug, CancellationToken ct = default)
-        => GetDetailAsync("p.Slug = @Key AND p.Status = 'Published'", slug);
+    /// <summary>نسخهٔ عمومی: آدرس دقیق فقط در پنل مدیر است و به بازدیدکننده داده نمی‌شود</summary>
+    public async Task<PropertyDetail?> GetPublishedBySlugAsync(string slug, CancellationToken ct = default)
+        => await GetDetailAsync("p.Slug = @Key AND p.Status = 'Published'", slug) is { } d ? d with { Address = null } : null;
 
     public Task<PropertyDetail?> GetByIdAsync(long id, CancellationToken ct = default)
         => GetDetailAsync("p.Id = @Key", id);

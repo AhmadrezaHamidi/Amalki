@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  font-family: "Vazirmatn", Tahoma, sans-serif;
+}
+
+body {
+  @apply bg-brand-50 leading-relaxed text-brand-900;
+}
+
+:focus-visible {
+  @apply outline outline-[3px] outline-offset-2 outline-accent-700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,4 +1,4 @@
-using Amlak.Application.Common;
+using Amlak.Application.Contract.Common;
 using Amlak.Domain.Listing.Aggregates;
 using Amlak.Domain.Listing.Enums;
 
