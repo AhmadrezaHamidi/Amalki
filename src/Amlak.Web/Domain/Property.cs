@@ -3,6 +3,8 @@ namespace Amlak.Web.Domain;
 public enum DealType { Sale = 1, Rent = 2 }
 public enum PropertyKind { Apartment = 1, Villa = 2, Land = 3, Commercial = 4, Office = 5 }
 public enum ListingStatus { Draft = 0, Published = 1, Closed = 2 }
+/// <summary>Ownership document, as Iranian listings label it (single-sheet, old "mangoleh" deed, ...).</summary>
+public enum DeedType { Single = 1, Manguleh = 2, Promissory = 3, Endowment = 4 }
 
 public class Property
 {
@@ -24,6 +26,14 @@ public class Property
     public int? Floor { get; set; }
     public int? Parking { get; set; }
     public int? YearBuilt { get; set; }
+
+    // Amenities shown as "has / has not" like the big listing sites; null means not stated.
+    public bool? HasElevator { get; set; }
+    public bool? HasStorage { get; set; }
+    public bool? HasBalcony { get; set; }
+    public DeedType? Deed { get; set; }
+    /// <summary>Rent only: deposit and monthly rent can be traded against each other ("qabel-e tabdil").</summary>
+    public bool Convertible { get; set; }
 
     public string City { get; set; } = "";
     public string District { get; set; } = "";

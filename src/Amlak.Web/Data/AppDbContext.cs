@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.HasIndex(x => x.Slug).IsUnique();
             e.HasIndex(x => new { x.Status, x.Deal, x.City });
+            e.HasIndex(x => new { x.Status, x.City, x.District });
             e.Property(x => x.Slug).HasMaxLength(200);
             e.Property(x => x.Title).HasMaxLength(200);
             e.Property(x => x.City).HasMaxLength(80);
