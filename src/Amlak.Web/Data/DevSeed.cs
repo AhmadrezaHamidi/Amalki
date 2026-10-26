@@ -29,6 +29,8 @@ public static class DevSeed
             Make("سوئیت مبله نزدیک مترو", DealType.Rent, PropertyKind.Apartment, "تهران", "ونک", 60, 1, null, 400_000_000, 8_000_000, 2),
             Make("ویلای باغ ۵۰۰ متری", DealType.Sale, PropertyKind.Villa, "کرج", "مشکین‌دشت", 500, 4, 28_000_000_000, null, null, 3),
             Make("مغازهٔ دوبله خیابان اصلی", DealType.Rent, PropertyKind.Commercial, "شیراز", "معالی‌آباد", 80, null, null, 600_000_000, 25_000_000, 4));
+        // Sample data must not be posted to the real channels.
+        foreach (var p in db.ChangeTracker.Entries<Property>()) p.Entity.ClearDomainEvents();
         await db.SaveChangesAsync();
     }
 }

@@ -13,7 +13,7 @@ namespace Amlak.Web.Pages;
 /// Divar-style "post an ad": the visitor proves a mobile number with an SMS code, fills in the listing,
 /// and it waits as Pending until an admin publishes it. The same page lists the visitor's own listings.
 /// </summary>
-public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoStorage storage, AdminNotifier notifier, TimeProvider clock) : PageModel
+public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoStorage storage, TimeProvider clock) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/ثبت-آگهی";
@@ -164,7 +164,6 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
 
         db.Properties.Add(p);
         await db.SaveChangesAsync();
-        await notifier.NotifyListingAsync(p);
         return RedirectToPage(new { sent = true });
     }
 

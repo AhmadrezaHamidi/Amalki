@@ -127,8 +127,8 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
             p.AddPhoto(photo, now);
         }
 
+        // Channel posts follow from the saved events (OutboxDispatcher), outside this request.
         await db.SaveChangesAsync();
-        await publisher.SyncAsync(p.Id);
         return RedirectToPage("Edit", new { id = p.Id });
     }
 
@@ -139,8 +139,6 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         await db.SaveChangesAsync();
         // The file goes only after the database no longer points at it.
         await storage.DeleteAsync(photo);
-        // A published listing's channel album must lose the photo too.
-        await publisher.SyncAsync(id);
         return RedirectToPage("Edit", new { id });
     }
 
@@ -149,8 +147,6 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null || !p.MovePhoto(photoId, move, clock.GetUtcNow().UtcDateTime)) return NotFound();
         await db.SaveChangesAsync();
-        // A new cover or order replaces the channel album too.
-        await publisher.SyncAsync(id);
         return RedirectToPage("Edit", new { id });
     }
 

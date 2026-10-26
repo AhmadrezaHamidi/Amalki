@@ -30,23 +30,27 @@ public class AdminNotifier
 
     public bool Configured => _clients.Count > 0;
 
-    public Task NotifyAsync(Lead lead, Property? property, CancellationToken ct = default) =>
+    /// <returns>False when no admin chat received the message (nothing configured counts as delivered).</returns>
+    public Task<bool> NotifyAsync(Lead lead, Property? property, CancellationToken ct = default) =>
         SendAsync(CaptionBuilder.Lead(lead, property, _baseUrl), ct);
 
     /// <param name="isNew">True for a new ticket, false for a visitor's follow-up message.</param>
-    public Task NotifyTicketAsync(Ticket ticket, string message, bool isNew, CancellationToken ct = default) =>
+    public Task<bool> NotifyTicketAsync(Ticket ticket, string message, bool isNew, CancellationToken ct = default) =>
         SendAsync(CaptionBuilder.Ticket(ticket, message, isNew, _baseUrl), ct);
 
     /// <summary>A visitor submitted a listing that waits for review.</summary>
-    public Task NotifyListingAsync(Property p, CancellationToken ct = default) =>
+    public Task<bool> NotifyListingAsync(Property p, CancellationToken ct = default) =>
         SendAsync(CaptionBuilder.Submitted(p, _baseUrl), ct);
 
-    private async Task SendAsync(string text, CancellationToken ct)
+    private async Task<bool> SendAsync(string text, CancellationToken ct)
     {
+        var delivered = _clients.Count == 0;
         foreach (var (channel, client) in _clients)
         {
             var r = await client.SendMessageAsync(text, ct: ct);
-            if (!r.Ok) _log.LogWarning("Admin notification to {Channel} failed: {Error}", channel, r.Error);
+            if (r.Ok) delivered = true;
+            else _log.LogWarning("Admin notification to {Channel} failed: {Error}", channel, r.Error);
         }
+        return delivered;
     }
 }

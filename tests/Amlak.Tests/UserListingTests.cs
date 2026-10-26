@@ -93,6 +93,8 @@ public class UserListingTests : IDisposable
         db.SaveChanges();
 
         Assert.Equal(ListingStatus.Pending, p.Status);
+        // The admin alert goes through the outbox, so a messenger outage only delays it.
+        Assert.Contains(db.OutboxMessages, m => m.Type == nameof(ListingSubmitted) && m.AggregateId == p.Id);
         Assert.Null(p.PublishedAtUtc);
         Assert.Equal("سارا", p.OwnerName);
         var text = CaptionBuilder.Submitted(p, "https://example.ir/");

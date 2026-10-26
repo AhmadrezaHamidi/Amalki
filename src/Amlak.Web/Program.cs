@@ -43,11 +43,17 @@ else
     builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(sp => sp.GetRequiredService<Amlak.Web.Services.Storage.LocalFileStore>());
 }
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TicketAccess>();
+// /healthz for the load balancer or uptime monitor: 200 when the app can reach SQL Server, 503 otherwise.
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 builder.Services.AddProxySupport(builder.Configuration);
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
 builder.Services.AddScoped<AdminNotifier>();
+// Domain events saved with each change are handled here, outside the request (channel posts, admin alerts, file cleanup).
+builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
+builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
 
 // SMS one-time codes for visitor listings: "Kavenegar" (Sms:ApiKey, Sms:Template) or "Log" (development).
 builder.Services.AddSingleton(TimeProvider.System);
@@ -137,6 +143,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseOutputCache(); // after auth, so the default policy can see signed-in admins and skip them
 
+app.MapHealthChecks("/healthz").DisableHttpMetrics();
 app.MapSeo();
 app.MapStaticAssets();
 app.MapRazorPages()

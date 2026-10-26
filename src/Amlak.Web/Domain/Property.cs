@@ -84,6 +84,7 @@ public class Property : AggregateRoot
         var p = Create(slug, details, pricing, nowUtc);
         p.Status = ListingStatus.Pending;
         p.OwnerName = ownerName.Trim(); p.OwnerPhone = ownerPhone.Trim();
+        p.Raise(new ListingSubmitted(p, nowUtc));
         return p;
     }
 
@@ -157,8 +158,8 @@ public class Property : AggregateRoot
         return photo;
     }
 
-    /// <summary>Call before removing the listing so its channel posts and files are cleaned up.</summary>
-    public void MarkDeleted(DateTime nowUtc) => Raise(new ListingDeleted(this, nowUtc));
+    /// <summary>Call before removing the listing (with its photos and channel posts loaded) so they are cleaned up after.</summary>
+    public void MarkDeleted(DateTime nowUtc) => Raise(new ListingDeleted(this, _photos.ToList(), ChannelPosts.Distinct().ToList(), nowUtc));
 
     private void Leave(ListingStatus to, DateTime nowUtc)
     {
