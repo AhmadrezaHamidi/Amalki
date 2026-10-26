@@ -50,6 +50,15 @@
         </section>
     </div>
 
+    @if (Model.Notice is not null) { <div class="alert ok" role="status">@Model.Notice</div> }
+    @if (Model.PhotosWithoutCopies > 0)
+    {
+        <form method="post" asp-page-handler="BackfillPhotos" class="form-card row-actions" style="justify-content:space-between">
+            <span><strong style="display:block">@Fa.Digits(Model.PhotosWithoutCopies.ToString()) عکس قدیمی بدون نسخهٔ سبک</strong><span class="hint">ساخت نسخه‌های WebP تا صفحه‌ها روی موبایل سریع‌تر باز شوند (هر بار تا ۴۰ عکس).</span></span>
+            <button class="btn">ساخت نسخه‌های WebP</button>
+        </form>
+    }
+
     <section class="form-card row-actions" style="justify-content:space-between">
         <span><strong style="display:block">کانال‌ها</strong><span class="hint">انتشار خودکار آگهی‌ها</span></span>
         <span class="row-actions">
