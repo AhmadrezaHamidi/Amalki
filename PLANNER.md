@@ -1,4 +1,4 @@
-# Amlak — Real estate site (sale + rent)
+﻿# Amlak — Real estate site (sale + rent)
 
 ## Current status
 - Design chosen: Option 1 "Modern & Trustworthy" (teal/blue, light, Vazirmatn, RTL). Mockup: `design-options.html`. Design system: `design-system/amlak/MASTER.md`.
@@ -24,6 +24,8 @@
 
 - Photo order + WebP backfill (2026-10-26, ADM-09): admin Edit page lets you move a photo earlier/later or make it the cover (`PhotoOrder`, renumbers SortOrder, re-syncs channel album); dashboard button makes WebP copies for photos uploaded before copies existed (`PhotoStorage.BackfillAsync`, 40 per click, unreadable/missing originals marked done). 41 tests pass; checked in the browser against SQLite.
 - Dark mode (2026-10-26): automatic via prefers-color-scheme for site, admin and offline page; dark tokens in site.css, `--on-primary` for text on primary, theme-color per scheme. Checked at 390px and 1440px.
+
+- CQRS read side (2026-10-26): public pages and admin counters read from SQL views (`src/Amlak.Web/Read`): `vw_ListingCards` (card + cover photo), `vw_ListingFacets` (indexed view, counts per deal/kind/city/district), `vw_AdminCounters`. Migration `ReadViews` adds stored `SortPrice` and covering indexes. Verified on SQL Server 2022 Express with 20k listings/100k photos (listing pages 2-7x faster). Tests run on SQLite and, with `AMLAK_TEST_SQLSERVER`, on real SQL Server. Not moved yet: sitemap/llms, Admin/Listings (no paging), ticket and lead lists.
 
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)

@@ -1,4 +1,5 @@
 using Amlak.Web.Data;
+using Amlak.Web.Read;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Admin;
 
 /// <summary>Dashboard: what is waiting for the admin today.</summary>
-public class IndexModel(AppDbContext db, ChannelPublisher publisher, PhotoStorage photos) : PageModel
+public class IndexModel(AppDbContext db, AdminQueries admin, ChannelPublisher publisher, PhotoStorage photos) : PageModel
 {
     public int Published { get; private set; }
     public int Drafts { get; private set; }
@@ -27,12 +28,10 @@ public class IndexModel(AppDbContext db, ChannelPublisher publisher, PhotoStorag
 
     public async Task OnGetAsync()
     {
-        Published = await db.Properties.CountAsync(p => p.Status == ListingStatus.Published);
-        Drafts = await db.Properties.CountAsync(p => p.Status == ListingStatus.Draft);
-        NewLeads = await db.Leads.CountAsync(l => !l.Handled);
-        OpenTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Open);
-        AnsweredTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Answered);
-        ChannelErrors = await db.ChannelPosts.CountAsync(c => c.Error != null);
+        // One round trip for all six counters instead of six COUNT queries.
+        var c = await admin.CountersAsync();
+        (Published, Drafts, NewLeads, OpenTickets, AnsweredTickets, ChannelErrors) =
+            (c.Published, c.Drafts, c.NewLeads, c.OpenTickets, c.AnsweredTickets, c.ChannelErrors);
         PhotosWithoutCopies = await db.PropertyPhotos.CountAsync(x => x.Variants == null);
         Tickets = await db.Tickets.AsNoTracking().Where(t => t.Status != TicketStatus.Closed)
             .OrderBy(t => t.Status).ThenByDescending(t => t.UpdatedAtUtc).Take(6).ToListAsync();

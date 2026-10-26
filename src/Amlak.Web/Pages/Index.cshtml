@@ -5,7 +5,7 @@
     ViewData["Title"] = "خرید، فروش و اجارهٔ ملک";
     var cfg = Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
     var site = (cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
-    var featured = Model.Latest.FirstOrDefault(p => p.Photos.Count > 0) ?? Model.Latest.FirstOrDefault();
+    var featured = Model.Latest.FirstOrDefault(p => p.CoverUrl is not null) ?? Model.Latest.FirstOrDefault();
     var faq = new (string Q, string A)[]
     {
         ("آگهی‌ها چطور بررسی می‌شوند؟", "هر آگهی پیش از انتشار توسط تیم ما بررسی می‌شود و عکس‌ها از خود ملک است."),
@@ -78,7 +78,7 @@
 
         <div class="hero-media">
             <div class="hero-photo">
-                @if (featured?.Photos.FirstOrDefault() is { } hp) { @PhotoVariants.Img(hp, "(max-width: 900px) 100vw, 50vw", 900, 660, eager: true) }
+                @if (featured?.Cover is { } hp) { @PhotoVariants.Img(hp, "(max-width: 900px) 100vw, 50vw", 900, 660, eager: true) }
                 else { @Icons.Get("home", 72) }
             </div>
             @if (featured is not null)

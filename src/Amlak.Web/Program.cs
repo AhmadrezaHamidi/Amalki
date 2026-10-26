@@ -45,6 +45,8 @@ else
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
+builder.Services.AddScoped<Amlak.Web.Read.ListingQueries>();
+builder.Services.AddScoped<Amlak.Web.Read.AdminQueries>();
 builder.Services.AddScoped<AdminNotifier>();
 
 // Public forms, per IP per 10 minutes (NFR-09): contact form 5 posts, support tickets 10 (new ticket,
