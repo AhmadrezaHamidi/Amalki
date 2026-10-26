@@ -19,4 +19,4 @@ jobs:
       - name: Migrations match the model
         run: |
           dotnet tool install --global dotnet-ef --version 9.0.10
-          dotnet ef migrations has-pending-model-changes --project src/Amlak.Web --no-build -c Release
+          dotnet ef migrations has-pending-model-changes --project src/Amlak.Web --no-build --configuration Release
