@@ -16,6 +16,9 @@ public class IndexModel(AppDbContext db, ChannelPublisher publisher, PhotoStorag
     public int OpenTickets { get; private set; }
     public int AnsweredTickets { get; private set; }
     public int ChannelErrors { get; private set; }
+    /// <summary>Saved events not yet handled (waiting or retrying), and those that gave up after every retry.</summary>
+    public int EventsPending { get; private set; }
+    public int EventsFailed { get; private set; }
     public List<Ticket> Tickets { get; private set; } = [];
     public List<Lead> Leads { get; private set; } = [];
     public IReadOnlyCollection<Channel> Channels => publisher.ConfiguredChannels;
@@ -33,6 +36,8 @@ public class IndexModel(AppDbContext db, ChannelPublisher publisher, PhotoStorag
         OpenTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Open);
         AnsweredTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Answered);
         ChannelErrors = await db.ChannelPosts.CountAsync(c => c.Error != null);
+        EventsPending = await db.OutboxMessages.CountAsync(m => m.ProcessedAtUtc == null && m.Attempts < Amlak.Web.Services.Events.OutboxDispatcher.MaxAttempts);
+        EventsFailed = await db.OutboxMessages.CountAsync(m => m.ProcessedAtUtc == null && m.Attempts >= Amlak.Web.Services.Events.OutboxDispatcher.MaxAttempts);
         PhotosWithoutCopies = await db.PropertyPhotos.CountAsync(x => x.Variants == null);
         Tickets = await db.Tickets.AsNoTracking().Where(t => t.Status != TicketStatus.Closed)
             .OrderBy(t => t.Status).ThenByDescending(t => t.UpdatedAtUtc).Take(6).ToListAsync();

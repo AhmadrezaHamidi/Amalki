@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublisher publisher, TimeProvider clock) : PageModel
+public class ListingsModel(AppDbContext db, TimeProvider clock) : PageModel
 {
     public List<Property> Items { get; private set; } = [];
 
@@ -32,21 +32,17 @@ public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublishe
             return RedirectToPage("Edit", new { id });
         }
         await db.SaveChangesAsync();
-        await publisher.SyncAsync(id);
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
-        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
+        var p = await db.Properties.Include(x => x.Photos).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return NotFound();
+        // Channel messages and photo files are removed after the save, from the ListingDeleted event.
         p.MarkDeleted(clock.GetUtcNow().UtcDateTime);
-        await publisher.RemoveAllAsync(id);
-        var files = p.Photos.ToList();
         db.Properties.Remove(p);
         await db.SaveChangesAsync();
-        // Files go only after the database no longer points at them.
-        foreach (var f in files) await photos.DeleteAsync(f);
         return RedirectToPage();
     }
 }
