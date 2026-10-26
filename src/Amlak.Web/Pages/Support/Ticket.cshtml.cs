@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
-using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>One ticket's conversation. The unguessable tracking code in the URL is the visitor's key to it.</summary>
-public class TicketModel(AppDbContext db, AdminNotifier notifier, TimeProvider clock) : PageModel
+public class TicketModel(AppDbContext db, TimeProvider clock, TicketAccess access) : PageModel
 {
     // HTTP headers are ASCII-only, so the Persian path segment is percent-encoded.
     public static string Url(string code, bool created = false) =>
@@ -23,6 +22,7 @@ public class TicketModel(AppDbContext db, AdminNotifier notifier, TimeProvider c
 
     public async Task<IActionResult> OnGetAsync(string code, bool created = false)
     {
+        if (!access.Has(HttpContext, TicketCodes.Normalize(code))) return AskToTrack(code);
         if (await LoadAsync(code) is null) return NotFound();
         Created = created;
         return Page();
@@ -30,6 +30,7 @@ public class TicketModel(AppDbContext db, AdminNotifier notifier, TimeProvider c
 
     public async Task<IActionResult> OnPostAsync(string code)
     {
+        if (!access.Has(HttpContext, TicketCodes.Normalize(code))) return AskToTrack(code);
         var t = await LoadAsync(code, tracking: true);
         if (t is null) return NotFound();
         if (!ModelState.IsValid) return Page();
@@ -45,9 +46,12 @@ public class TicketModel(AppDbContext db, AdminNotifier notifier, TimeProvider c
             return Page();
         }
         await db.SaveChangesAsync();
-        await notifier.NotifyTicketAsync(t, body, isNew: false);
         return Redirect(Url(t.Code) + "#last");
     }
+
+    // This browser has not proven the ticket is its own: send it to the tracking form (code + mobile).
+    private IActionResult AskToTrack(string code) =>
+        Redirect($"/{Uri.EscapeDataString("پشتیبانی")}?code={Uri.EscapeDataString(TicketCodes.Normalize(code))}#track-title");
 
     private async Task<Ticket?> LoadAsync(string code, bool tracking = false)
     {

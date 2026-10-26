@@ -15,6 +15,44 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+        SaveWithEventsAsync(acceptAllChangesOnSuccess, sync: true, default).GetAwaiter().GetResult();
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default) =>
+        SaveWithEventsAsync(acceptAllChangesOnSuccess, sync: false, ct);
+
+    /// <summary>
+    /// Saves the changes and, in the same transaction, one outbox row per domain event the aggregates raised.
+    /// The rows are written after the changes so that new aggregates already have their database ids.
+    /// </summary>
+    private async Task<int> SaveWithEventsAsync(bool accept, bool sync, CancellationToken ct)
+    {
+        var sources = ChangeTracker.Entries<AggregateRoot>().Select(e => e.Entity).Where(a => a.DomainEvents.Count > 0).ToList();
+        if (sources.Count == 0) return sync ? base.SaveChanges(accept) : await base.SaveChangesAsync(accept, ct);
+
+        var events = sources.SelectMany(a => a.DomainEvents).ToList();
+        var own = Database.CurrentTransaction is null
+            ? sync ? Database.BeginTransaction() : await Database.BeginTransactionAsync(ct)
+            : null;
+        try
+        {
+            var n = sync ? base.SaveChanges(accept) : await base.SaveChangesAsync(accept, ct);
+            OutboxMessages.AddRange(events.Select(OutboxMessage.From));
+            n += sync ? base.SaveChanges(accept) : await base.SaveChangesAsync(accept, ct);
+            if (own is not null)
+            {
+                if (sync) own.Commit(); else await own.CommitAsync(ct);
+            }
+            foreach (var a in sources) a.ClearDomainEvents();
+            return n;
+        }
+        finally
+        {
+            if (own is not null) await own.DisposeAsync();
+        }
+    }
 
     // Read side (CQRS): keyless, mapped to SQL views, never written through EF.
     public DbSet<ListingCard> ListingCards => Set<ListingCard>();
@@ -81,6 +119,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasMany(x => x.Messages).WithOne().HasForeignKey(m => m.TicketId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<TicketMessage>().Property(x => x.Body).HasMaxLength(4000);
+        b.Entity<OutboxMessage>(e =>
+        {
+            e.Property(x => x.Type).HasMaxLength(100);
+            e.Property(x => x.Error).HasMaxLength(500);
+            // The dispatcher's query: unprocessed rows that are due, oldest first.
+            e.HasIndex(x => new { x.ProcessedAtUtc, x.NextAttemptAtUtc });
+        });
 
         b.Entity<ListingCard>(e => { e.HasNoKey(); e.ToView("vw_ListingCards"); });
         b.Entity<AdminCounters>(e => { e.HasNoKey(); e.ToView("vw_AdminCounters"); });

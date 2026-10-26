@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
-using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages;
 
 /// <summary>Contact / visit request (PUB-06). Posted from a listing page or used on its own for a general consultation.</summary>
-public class ContactModel(AppDbContext db, AdminNotifier notifier, TimeProvider clock) : PageModel
+public class ContactModel(AppDbContext db, TimeProvider clock) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/تماس";
@@ -56,7 +55,6 @@ public class ContactModel(AppDbContext db, AdminNotifier notifier, TimeProvider 
         }
         db.Leads.Add(lead);
         await db.SaveChangesAsync();
-        await notifier.NotifyAsync(lead, Property);
         return Done();
     }
 

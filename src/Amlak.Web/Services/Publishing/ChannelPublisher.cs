@@ -69,11 +69,18 @@ public class ChannelPublisher
     public async Task RemoveAllAsync(int propertyId, CancellationToken ct = default)
     {
         var posts = await _db.ChannelPosts.Where(c => c.PropertyId == propertyId).ToListAsync(ct);
-        foreach (var post in posts)
-            if (_clients.TryGetValue(post.Channel, out var client))
-                foreach (var id in MessageIds(post))
-                    await client.DeleteAsync(id, ct);
+        foreach (var post in posts) await DeleteMessagesAsync(post.Channel, MessageIds(post), ct);
     }
+
+    /// <summary>Deletes messages of a listing that no longer exists; a message already gone counts as deleted.</summary>
+    public async Task DeleteMessagesAsync(Channel channel, IEnumerable<string> messageIds, CancellationToken ct = default)
+    {
+        if (!_clients.TryGetValue(channel, out var client)) return;
+        foreach (var id in messageIds) await client.DeleteAsync(id, ct);
+    }
+
+    /// <summary>Every message id of a post: the first message, then the rest of its album.</summary>
+    public static IEnumerable<string> MessageIdsOf(ChannelPost post) => MessageIds(post);
 
     private async Task PublishOrEditAsync(Property p, ChannelPost? post, Channel channel, BotApiClient client, CancellationToken ct)
     {
@@ -123,7 +130,8 @@ public class ChannelPublisher
             {
                 post = new ChannelPost { PropertyId = p.Id, Channel = channel };
                 _db.ChannelPosts.Add(post);
-                p.ChannelPosts.Add(post);
+                // EF already links a tracked post to its listing; add it only when it did not.
+                if (!p.ChannelPosts.Contains(post)) p.ChannelPosts.Add(post);
             }
             var ids = send.Ok ? send.MessageIds : [];
             post.ExternalMessageId = ids.FirstOrDefault();

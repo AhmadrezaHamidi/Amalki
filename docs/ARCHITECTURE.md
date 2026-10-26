@@ -23,7 +23,20 @@
 
 Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails` (مشخصات آگهی، با نرمال‌سازی ي/ك)، `PhoneNumber` (همیشه 09xxxxxxxxx). خطای قانون با `DomainException` و پیام فارسی برمی‌گردد و صفحه آن را در فرم نشان می‌دهد. زمان از `TimeProvider` تزریق می‌شود.
 
-رویدادها فعلاً فقط جمع می‌شوند؛ انتشار آن‌ها از طریق Outbox مرحلهٔ بعد است.
+### رویدادها و Outbox
+
+`AppDbContext.SaveChanges` رویدادهای Aggregateها را در همان تراکنش به‌صورت ردیف‌های جدول `OutboxMessages` ذخیره می‌کند. سرویس پس‌زمینهٔ `OutboxProcessor` هر ۲ ثانیه `OutboxDispatcher` را اجرا می‌کند:
+
+| رویداد | کار |
+|---|---|
+| `ListingCreated` / `Changed` / `Published` / `Unpublished` / `PhotosChanged` | `ChannelPublisher.SyncAsync` (یک بار برای هر آگهی در هر دسته)؛ اگر پیام‌رسان خطا بدهد، دوباره تلاش می‌شود |
+| `ListingDeleted` | حذف پیام‌های کانال و فایل عکس‌ها (اطلاعاتشان در `Payload` ذخیره شده، چون ردیف آگهی دیگر نیست) |
+| `LeadSubmitted`، `TicketOpened`، `TicketMessageReceived` | اعلان به چت ادمین |
+| `TicketAnswered` | فعلاً فقط ثبت می‌شود |
+
+- تلاش مجدد: ۳۰ ثانیه، ۱ دقیقه، ۲ دقیقه… حداکثر ۱ ساعت؛ بعد از ۱۰ بار رها می‌شود و در داشبورد ادمین «ناموفق» شمرده می‌شود.
+- Handlerها ممکن است دو بار اجرا شوند (crash بعد از تماس و قبل از علامت‌گذاری)، پس تکرارشان بی‌خطر است.
+- فرض: یک نسخه از برنامه اجرا می‌شود. برای چند نسخه، کوئری دسته باید قفل ردیف (`UPDLOCK, READPAST`) بگیرد.
 
 ## مدل داده
 
@@ -90,7 +103,7 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 - «message is not modified» موفق حساب می‌شود.
 - پیام خطا از متن پاسخ سرویس ساخته می‌شود، توکن در آن `***` می‌شود و هرگز `Exception.Message` ذخیره نمی‌شود (می‌تواند URL حاوی توکن را داشته باشد).
 - لاگ URL درخواست‌های HttpClient بسته شده (`System.Net.Http.HttpClient: Warning`) تا توکن در لاگ نیاید.
-- محدودیت: ارسال داخل درخواست ادمین و همزمان (حداکثر ۳۰ ثانیه برای هر تماس). صف پس‌زمینه در برنامه است (CHN-08).
+- ارسال بیرون از درخواست ادمین و از طریق Outbox انجام می‌شود (CHN-08)؛ دکمهٔ «همگام‌سازی دوباره» هنوز مستقیم صدا می‌زند.
 
 ## امنیت
 
@@ -98,6 +111,9 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 - **پشت پراکسی:** `UseForwardedHeaders` اول pipeline است. IP پراکسی (nginx) را در `Proxy:KnownProxies` یا `Proxy:KnownNetworks` بگذارید (loopback پیش‌فرض قبول است)؛ وگرنه همهٔ بازدیدکننده‌ها یک IP دارند و rate limit برای همه با هم بسته می‌شود.
 - **Host:** در Production، scheme و host درخواست از `Site:BaseUrl` گرفته می‌شود تا canonical و sitemap با هدر Host جعلی ساخته نشوند.
 - **هدرها:** `X-Content-Type-Options`، `Referrer-Policy`، `Permissions-Policy`، `X-Frame-Options` و CSP پایه (`frame-ancestors`، `base-uri`، `object-src`، `form-action`).
+- **تیکت:** کد پیگیری به‌تنهایی تیکت را باز نمی‌کند. مرورگری که تیکت را ساخته یا با کد + موبایل پیگیری کرده، کوکی رمزشدهٔ `amlak_tickets` می‌گیرد؛ بقیه به فرم پیگیری فرستاده می‌شوند. کلیدهای Data Protection باید بین ری‌استارت‌ها بمانند (پیش‌فرض لینوکس: `~/.aspnet/DataProtection-Keys`؛ در Docker یک volume بدهید)، وگرنه این کوکی و کوکی ورود ادمین باطل می‌شوند.
+- **عکس:** نسخهٔ اصلی بدون EXIF (مختصات GPS، مدل گوشی) و چرخیده به حالت درست ذخیره می‌شود.
+- **سلامت:** `/healthz` وقتی SQL Server در دسترس است ۲۰۰ و وگرنه ۵۰۳ می‌دهد.
 - **مجوز:** سیاست `Admin` روی کل پوشهٔ `/Admin` (convention در `Program.cs`).
 - **CSRF:** توکن ضدجعل روی همهٔ فرم‌های POST (پیش‌فرض Razor Pages)؛ درخواست بدون توکن ۴۰۰ می‌گیرد.
 - **آپلود:** فقط `.jpg/.jpeg/.png/.webp`، حداکثر ۵ مگابایت، بررسی امضای بایتی فایل (نه فقط پسوند)، نام فایل تصادفی (GUID).

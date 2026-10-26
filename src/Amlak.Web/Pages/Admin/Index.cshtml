@@ -13,7 +13,7 @@
         <a class="stat" asp-page="Listings"><span>آگهی منتشرشده</span><strong>@Fa.Digits(Model.Published.ToString())</strong><small>@Fa.Digits(Model.Drafts.ToString()) پیش‌نویس</small></a>
         <a class="stat @(Model.NewLeads > 0 ? "hot" : "")" asp-page="Leads"><span>درخواست تماس جدید</span><strong>@Fa.Digits(Model.NewLeads.ToString())</strong><small>پیگیری‌نشده</small></a>
         <a class="stat @(Model.OpenTickets > 0 ? "hot" : "")" asp-page="Tickets"><span>تیکت در انتظار پاسخ</span><strong>@Fa.Digits(Model.OpenTickets.ToString())</strong><small>@Fa.Digits(Model.AnsweredTickets.ToString()) پاسخ‌داده و باز</small></a>
-        <a class="stat @(Model.ChannelErrors > 0 ? "alert-stat" : "")" asp-page="Listings"><span>خطای ارسال به کانال</span><strong>@Fa.Digits(Model.ChannelErrors.ToString())</strong><small>@(Model.ChannelErrors == 0 ? "همه سالم" : "در صفحهٔ آگهی ببینید")</small></a>
+        <a class="stat @(Model.ChannelErrors > 0 ? "alert-stat" : "")" asp-page="Listings"><span>خطای ارسال به کانال</span><strong>@Fa.Digits(Model.ChannelErrors.ToString())</strong><small>@(Model.ChannelErrors == 0 ? "همه سالم" : "در صفحهٔ آگهی ببینید")@(Model.EventsPending > 0 ? $" · {Fa.Digits(Model.EventsPending.ToString())} در صف" : "")@(Model.EventsFailed > 0 ? $" · {Fa.Digits(Model.EventsFailed.ToString())} ناموفق" : "")</small></a>
     </div>
 
     <div class="dash-grid">
