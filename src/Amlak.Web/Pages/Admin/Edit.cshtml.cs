@@ -116,6 +116,16 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         return RedirectToPage("Edit", new { id });
     }
 
+    public async Task<IActionResult> OnPostMovePhotoAsync(int id, int photoId, PhotoOrder.Move move)
+    {
+        var photos = await db.PropertyPhotos.Where(x => x.PropertyId == id).ToListAsync();
+        if (!PhotoOrder.Apply(photos, photoId, move)) return NotFound();
+        await db.SaveChangesAsync();
+        // A new cover or order replaces the channel album too.
+        await publisher.SyncAsync(id);
+        return RedirectToPage("Edit", new { id });
+    }
+
     public async Task<IActionResult> OnPostRepublishAsync(int id)
     {
         await publisher.SyncAsync(id);
