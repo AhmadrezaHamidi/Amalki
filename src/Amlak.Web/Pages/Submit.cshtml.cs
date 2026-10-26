@@ -13,7 +13,7 @@ namespace Amlak.Web.Pages;
 /// Divar-style "post an ad": the visitor proves a mobile number with an SMS code, fills in the listing,
 /// and it waits as Pending until an admin publishes it. The same page lists the visitor's own listings.
 /// </summary>
-public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoStorage storage, AdminNotifier notifier) : PageModel
+public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoStorage storage, AdminNotifier notifier, TimeProvider clock) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/ثبت-آگهی";
@@ -128,22 +128,28 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
             ModelState.AddModelError("", "چند آگهی شما هنوز در انتظار بررسی است. پس از بررسی آن‌ها آگهی تازه بفرستید.");
         if (!ModelState.IsValid) return await RedisplayAsync();
 
-        var p = new Property
+        Property p;
+        var now = clock.GetUtcNow().UtcDateTime;
+        try
         {
-            Title = Input.Title.Trim(), Description = Input.Description.Trim(), Deal = Input.Deal, Kind = Input.Kind,
-            Status = ListingStatus.Pending, AreaM2 = (int)area!.Value,
-            Price = Input.Deal == DealType.Sale ? price : null,
-            Deposit = Input.Deal == DealType.Rent ? deposit : null,
-            MonthlyRent = Input.Deal == DealType.Rent ? rent : null,
-            Convertible = Input.Deal == DealType.Rent && Input.Convertible,
-            Bedrooms = Input.Bedrooms, Floor = Input.Floor, Parking = Input.Parking, YearBuilt = Input.YearBuilt,
-            HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed,
-            City = Input.City.Trim(), District = Input.District.Trim(),
-            OwnerName = Input.OwnerName.Trim(), OwnerPhone = Owner,
-        };
-        p.Slug = await Slugger.UniqueAsync(db, p.Title);
+            var details = ListingDetails.Of(Input.Title, Input.Description, Input.Kind, (int)area!.Value, Input.City, Input.District,
+                Input.Bedrooms, Input.Floor, Input.Parking, Input.YearBuilt)
+                with { HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed };
+            var pricing = Pricing.For(Input.Deal, price, deposit, rent, Input.Convertible);
+            p = Property.Submit(await Slugger.UniqueAsync(db, details.Title), details, pricing, Input.OwnerName, Owner, now);
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return await RedisplayAsync();
+        }
 
-        var order = 0;
+        // Check every upload before storing any, so a bad second file leaves no orphaned first file.
+        if (files.FirstOrDefault(f => !PhotoStorage.LooksValid(f)) is { } bad)
+        {
+            ModelState.AddModelError(nameof(Uploads), $"فایل «{System.IO.Path.GetFileName(bad.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
+            return await RedisplayAsync();
+        }
         foreach (var file in files)
         {
             var photo = await storage.SaveAsync(file);
@@ -153,9 +159,7 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
                 ModelState.AddModelError(nameof(Uploads), $"فایل «{System.IO.Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
                 return await RedisplayAsync();
             }
-            photo.Alt = $"{p.Title} - {p.District} {p.City}";
-            photo.SortOrder = order++;
-            p.Photos.Add(photo);
+            p.AddPhoto(photo, now);
         }
 
         db.Properties.Add(p);

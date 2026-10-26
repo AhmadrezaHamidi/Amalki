@@ -1,4 +1,4 @@
-namespace Amlak.Web.Services;
+namespace Amlak.Web.Domain;
 
 /// <summary>Photo order of a listing (ADM-09). The first photo is the cover: cards, og:image, channel posts.</summary>
 public static class PhotoOrder

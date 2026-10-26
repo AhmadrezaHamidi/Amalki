@@ -85,11 +85,26 @@ public class UserListingTests : IDisposable
     [Fact]
     public void Pending_listing_alert_names_owner_and_admin_link()
     {
-        var p = new Property { Id = 7, Title = "آپارتمان", Deal = DealType.Rent, Kind = PropertyKind.Apartment, City = "تهران", District = "ونک", OwnerName = "سارا", OwnerPhone = "09121234567" };
+        using var db = NewDb();
+        var now = _clock.GetUtcNow().UtcDateTime;
+        var p = Property.Submit("a", ListingDetails.Of("آپارتمان", "d", PropertyKind.Apartment, 80, "تهران", "ونک"),
+            Pricing.ForRent(500_000_000, null), " سارا ", "09121234567", now);
+        db.Properties.Add(p);
+        db.SaveChanges();
+
+        Assert.Equal(ListingStatus.Pending, p.Status);
+        Assert.Null(p.PublishedAtUtc);
+        Assert.Equal("سارا", p.OwnerName);
         var text = CaptionBuilder.Submitted(p, "https://example.ir/");
         Assert.Contains("در انتظار بررسی", text);
         Assert.Contains("09121234567", text);
-        Assert.Contains("https://example.ir/Admin/Edit/7", text);
+        Assert.Contains($"https://example.ir/Admin/Edit/{p.Id}", text);
+
+        // A visitor cannot leave the price out, and an admin can publish the listing as is.
+        Assert.Throws<DomainException>(() => Property.Submit("b", ListingDetails.Of("آپارتمان", "d", PropertyKind.Apartment, 80, "تهران", "ونک"),
+            Pricing.ForRent(null, null), "سارا", "09121234567", now));
+        p.ChangeStatus(ListingStatus.Published, now);
+        Assert.Equal(ListingStatus.Published, p.Status);
     }
 
     private sealed class CapturingSms : ISmsSender

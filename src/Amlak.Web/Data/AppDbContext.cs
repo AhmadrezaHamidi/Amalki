@@ -19,6 +19,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
+        b.Entity<Property>().Ignore(x => x.DomainEvents);
+        b.Entity<Lead>().Ignore(x => x.DomainEvents);
+        b.Entity<Ticket>().Ignore(x => x.DomainEvents);
         b.Entity<Property>(e =>
         {
             e.HasIndex(x => x.Slug).IsUnique();

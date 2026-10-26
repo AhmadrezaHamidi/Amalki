@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Admin;
 
 /// <summary>Support inbox: ticket list on one side, the selected conversation and reply box on the other.</summary>
-public class TicketsModel(AppDbContext db) : PageModel
+public class TicketsModel(AppDbContext db, TimeProvider clock) : PageModel
 {
     [BindProperty(SupportsGet = true)] public TicketStatus? Status { get; set; }
     [BindProperty(SupportsGet = true)] public int? Id { get; set; }
@@ -31,9 +31,17 @@ public class TicketsModel(AppDbContext db) : PageModel
             await LoadAsync();
             return Page();
         }
-        db.TicketMessages.Add(new TicketMessage { TicketId = id, FromStaff = true, Body = Reply.Trim() });
-        t.Status = TicketStatus.Answered;
-        t.UpdatedAtUtc = DateTime.UtcNow;
+        try
+        {
+            t.ReplyFromStaff(Reply, clock.GetUtcNow().UtcDateTime);
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError(nameof(Reply), ex.Message);
+            Id = id;
+            await LoadAsync();
+            return Page();
+        }
         await db.SaveChangesAsync();
         return RedirectToPage(new { id, Status });
     }
@@ -42,8 +50,14 @@ public class TicketsModel(AppDbContext db) : PageModel
     {
         var t = await db.Tickets.FindAsync(id);
         if (t is null) return NotFound();
-        t.Status = to;
-        t.UpdatedAtUtc = DateTime.UtcNow;
+        try
+        {
+            t.ChangeStatus(to, clock.GetUtcNow().UtcDateTime);
+        }
+        catch (DomainException)
+        {
+            return BadRequest();
+        }
         await db.SaveChangesAsync();
         return RedirectToPage(new { id, Status });
     }

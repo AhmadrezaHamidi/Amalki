@@ -14,13 +14,15 @@ public static class DevSeed
 
         var now = DateTime.UtcNow;
         Property Make(string title, DealType deal, PropertyKind kind, string city, string district, int area, int? beds,
-            long? price, long? deposit, long? rent, int ageDays) => new()
+            long? price, long? deposit, long? rent, int ageDays)
         {
-            Title = title, Slug = Slugger.Make(title), Deal = deal, Kind = kind, City = city, District = district,
-            AreaM2 = area, Bedrooms = beds, Price = price, Deposit = deposit, MonthlyRent = rent,
-            Description = $"{title} در {district} {city}. نمونهٔ آزمایشی برای نمایش طراحی.",
-            Status = ListingStatus.Published, PublishedAtUtc = now.AddDays(-ageDays), CreatedAtUtc = now.AddDays(-ageDays),
-        };
+            var at = now.AddDays(-ageDays);
+            var p = Property.Create(Slugger.Make(title),
+                ListingDetails.Of(title, $"{title} در {district} {city}. نمونهٔ آزمایشی برای نمایش طراحی.", kind, area, city, district, beds),
+                Pricing.For(deal, price, deposit, rent), at);
+            p.Publish(at);
+            return p;
+        }
 
         db.Properties.AddRange(
             Make("آپارتمان ۱۲۰ متری نوساز", DealType.Sale, PropertyKind.Apartment, "تهران", "سعادت‌آباد", 120, 3, 12_500_000_000, null, null, 1),
