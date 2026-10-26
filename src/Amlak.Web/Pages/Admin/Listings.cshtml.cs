@@ -40,7 +40,7 @@ public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublishe
         var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return NotFound();
         await publisher.RemoveAllAsync(id);
-        foreach (var f in p.Photos) await photos.DeleteAsync(f.Url);
+        foreach (var f in p.Photos) await photos.DeleteAsync(f);
         db.Properties.Remove(p);
         await db.SaveChangesAsync();
         return RedirectToPage();

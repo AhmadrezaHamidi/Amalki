@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasMany(x => x.Photos).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.ChannelPosts).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
         });
+        b.Entity<PropertyPhoto>().Property(x => x.Variants).HasMaxLength(40);
         b.Entity<ChannelPost>(e =>
         {
             e.HasIndex(x => new { x.PropertyId, x.Channel }).IsUnique();
