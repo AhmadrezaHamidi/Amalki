@@ -78,7 +78,7 @@
 
         <div class="hero-media">
             <div class="hero-photo">
-                @if (featured?.Photos.FirstOrDefault() is { } hp) { <img src="@hp.Url" alt="@hp.Alt" width="900" height="660" fetchpriority="high" /> }
+                @if (featured?.Photos.FirstOrDefault() is { } hp) { @PhotoVariants.Img(hp, "(max-width: 900px) 100vw, 50vw", 900, 660, eager: true) }
                 else { @Icons.Get("home", 72) }
             </div>
             @if (featured is not null)

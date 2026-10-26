@@ -79,13 +79,15 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         var order = p.Photos.Count == 0 ? 0 : p.Photos.Max(x => x.SortOrder) + 1;
         foreach (var file in Uploads.Where(f => f.Length > 0))
         {
-            var url = await storage.SaveAsync(file);
-            if (url is null)
+            var photo = await storage.SaveAsync(file);
+            if (photo is null)
             {
                 ModelState.AddModelError("", $"فایل «{Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
                 return await Redisplay(isNew ? null : p);
             }
-            p.Photos.Add(new PropertyPhoto { Url = url, Alt = $"{p.Title} - {p.District} {p.City}", SortOrder = order++ });
+            photo.Alt = $"{p.Title} - {p.District} {p.City}";
+            photo.SortOrder = order++;
+            p.Photos.Add(photo);
         }
 
         await db.SaveChangesAsync();
@@ -97,7 +99,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
     {
         var photo = await db.PropertyPhotos.FirstOrDefaultAsync(x => x.Id == photoId && x.PropertyId == id);
         if (photo is null) return NotFound();
-        await storage.DeleteAsync(photo.Url);
+        await storage.DeleteAsync(photo);
         db.PropertyPhotos.Remove(photo);
         await db.SaveChangesAsync();
         // A published listing's channel album must lose the photo too.

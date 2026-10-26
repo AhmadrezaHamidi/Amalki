@@ -29,7 +29,7 @@ const trim = async (name, max) => {
 
 const isPrivate = (url) => /^\/(admin|account)(\/|$)/i.test(decodeURIComponent(url.pathname));
 const isAsset = (url) =>
-  /^\/(css|js|icons|uploads|lib)\//.test(url.pathname) ||
+  /^\/(css|js|fonts|icons|uploads|lib)\//.test(url.pathname) ||
   url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
 
 self.addEventListener('fetch', (e) => {
