@@ -11,6 +11,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Property> Properties => Set<Property>();
     public DbSet<PropertyPhoto> PropertyPhotos => Set<PropertyPhoto>();
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
+    public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -26,6 +29,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasMany(x => x.Photos).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.ChannelPosts).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
         });
-        b.Entity<ChannelPost>().HasIndex(x => new { x.PropertyId, x.Channel }).IsUnique();
+        b.Entity<ChannelPost>(e =>
+        {
+            e.HasIndex(x => new { x.PropertyId, x.Channel }).IsUnique();
+            e.Property(x => x.ExtraMessageIds).HasMaxLength(200);
+            e.Property(x => x.PhotoKey).HasMaxLength(64);
+        });
+        b.Entity<Lead>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Message).HasMaxLength(1000);
+            e.HasIndex(x => new { x.Handled, x.CreatedAtUtc });
+            // Keep the lead when its listing is deleted.
+            e.HasOne(x => x.Property).WithMany().HasForeignKey(x => x.PropertyId).OnDelete(DeleteBehavior.SetNull);
+        });
+        b.Entity<Ticket>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => new { x.Status, x.UpdatedAtUtc });
+            e.Property(x => x.Code).HasMaxLength(16);
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Subject).HasMaxLength(150);
+            e.HasMany(x => x.Messages).WithOne().HasForeignKey(m => m.TicketId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<TicketMessage>().Property(x => x.Body).HasMaxLength(4000);
     }
 }

@@ -1,34 +1,60 @@
 @page
 @model Amlak.Web.Pages.Admin.IndexModel
-@{ ViewData["Title"] = "مدیریت آگهی‌ها"; ViewData["Robots"] = "noindex,nofollow"; }
-<div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0;gap:12px;flex-wrap:wrap">
-        <h1>مدیریت آگهی‌ها</h1>
-        <div style="display:flex;gap:10px">
+@{ ViewData["Title"] = "داشبورد"; ViewData["Robots"] = "noindex,nofollow"; }
+<div class="admin-page">
+    <div class="admin-head">
+        <div><h1>داشبورد</h1><p class="hint">خلاصهٔ کارهایی که منتظر توست</p></div>
+        <div class="row-actions">
+            <a class="btn quiet" href="/" target="_blank" rel="noopener">مشاهدهٔ سایت</a>
             <a class="btn" asp-page="Edit">+ آگهی جدید</a>
-            <form method="post" asp-page="/Account/Logout"><button class="btn ghost">خروج</button></form>
         </div>
     </div>
-    <div class="tablewrap">
-        <table class="table">
-            <thead><tr><th>عنوان</th><th>معامله</th><th>شهر</th><th>وضعیت</th><th>عملیات</th></tr></thead>
-            <tbody>
-            @foreach (var p in Model.Items)
-            {
-                <tr>
-                    <td><a asp-page="Edit" asp-route-id="@p.Id">@p.Title</a></td>
-                    <td>@(p.Deal == DealType.Sale ? "فروش" : "اجاره")</td>
-                    <td>@p.City</td>
-                    <td>@(p.Status switch { ListingStatus.Published => "منتشرشده", ListingStatus.Closed => "بسته‌شده", _ => "پیش‌نویس" })</td>
-                    <td class="actions">
-                        <form method="post" asp-page-handler="TogglePublish" asp-route-id="@p.Id"><button class="btn sm">@(p.Status == ListingStatus.Published ? "لغو انتشار" : "انتشار")</button></form>
-                        <a class="btn sm ghost" asp-page="Edit" asp-route-id="@p.Id">ویرایش</a>
-                        <form method="post" asp-page-handler="Delete" asp-route-id="@p.Id" onsubmit="return confirm('این آگهی برای همیشه حذف شود؟')"><button class="btn sm danger">حذف</button></form>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
+    <div class="stats">
+        <a class="stat" asp-page="Listings"><span>آگهی منتشرشده</span><strong>@Fa.Digits(Model.Published.ToString())</strong><small>@Fa.Digits(Model.Drafts.ToString()) پیش‌نویس</small></a>
+        <a class="stat @(Model.NewLeads > 0 ? "hot" : "")" asp-page="Leads"><span>درخواست تماس جدید</span><strong>@Fa.Digits(Model.NewLeads.ToString())</strong><small>پیگیری‌نشده</small></a>
+        <a class="stat @(Model.OpenTickets > 0 ? "hot" : "")" asp-page="Tickets"><span>تیکت در انتظار پاسخ</span><strong>@Fa.Digits(Model.OpenTickets.ToString())</strong><small>@Fa.Digits(Model.AnsweredTickets.ToString()) پاسخ‌داده و باز</small></a>
+        <a class="stat @(Model.ChannelErrors > 0 ? "alert-stat" : "")" asp-page="Listings"><span>خطای ارسال به کانال</span><strong>@Fa.Digits(Model.ChannelErrors.ToString())</strong><small>@(Model.ChannelErrors == 0 ? "همه سالم" : "در صفحهٔ آگهی ببینید")</small></a>
     </div>
-    @if (Model.Items.Count == 0) { <p>آگهی‌ای ثبت نشده است.</p> }
+
+    <div class="dash-grid">
+        <section class="form-card" aria-labelledby="dash-tickets">
+            <div class="section-head" style="margin-bottom:8px"><h2 id="dash-tickets">تیکت‌های باز</h2><a class="more" asp-page="Tickets">همهٔ تیکت‌ها</a></div>
+            @if (Model.Tickets.Count == 0) { <p class="hint">تیکت بازی نیست.</p> }
+            <ul class="dash-list">
+                @foreach (var t in Model.Tickets)
+                {
+                    <li>
+                        <a href="/Admin/Tickets?id=@t.Id">
+                            <span class="avatar">@(t.Name.Length > 0 ? t.Name[..1] : "?")</span>
+                            <span class="grow"><strong>@t.Subject</strong><small>@t.Name · @Labels.Category(t.Category)</small></span>
+                            <span class="pill @(t.Status == TicketStatus.Open ? "wait" : "pub")">@Labels.Status(t.Status)</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </section>
+        <section class="form-card" aria-labelledby="dash-leads">
+            <div class="section-head" style="margin-bottom:8px"><h2 id="dash-leads">درخواست‌های تماس تازه</h2><a class="more" asp-page="Leads">همه</a></div>
+            @if (Model.Leads.Count == 0) { <p class="hint">درخواست پیگیری‌نشده‌ای نیست.</p> }
+            <ul class="dash-list">
+                @foreach (var l in Model.Leads)
+                {
+                    <li>
+                        <div>
+                            <span class="grow"><strong>@l.Name <bdi dir="ltr" class="hint">@Fa.Digits(l.Phone)</bdi></strong><small>@(l.Property?.Title ?? "مشاورهٔ عمومی")</small></span>
+                            <a class="btn sm ghost" href="tel:@l.Phone">تماس</a>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </section>
+    </div>
+
+    <section class="form-card row-actions" style="justify-content:space-between">
+        <span><strong style="display:block">کانال‌ها</strong><span class="hint">انتشار خودکار آگهی‌ها</span></span>
+        <span class="row-actions">
+            <span class="pill @(Model.Channels.Contains(Channel.Telegram) ? "pub" : "draft")">تلگرام: @(Model.Channels.Contains(Channel.Telegram) ? "تنظیم‌شده" : "تنظیم نشده")</span>
+            <span class="pill @(Model.Channels.Contains(Channel.Bale) ? "pub" : "draft")">بله: @(Model.Channels.Contains(Channel.Bale) ? "تنظیم‌شده" : "تنظیم نشده")</span>
+        </span>
+    </section>
 </div>

@@ -1,0 +1,79 @@
+@page
+@model Amlak.Web.Pages.Admin.TicketsModel
+@{
+    ViewData["Title"] = "تیکت‌های پشتیبانی"; ViewData["Robots"] = "noindex,nofollow";
+    var total = Model.Counts.Values.Sum();
+    (TicketStatus? S, string Label, int N)[] tabs =
+    [
+        (null, "همه", total),
+        (TicketStatus.Open, "در انتظار پاسخ", Model.Counts.GetValueOrDefault(TicketStatus.Open)),
+        (TicketStatus.Answered, "پاسخ داده شد", Model.Counts.GetValueOrDefault(TicketStatus.Answered)),
+        (TicketStatus.Closed, "بسته", Model.Counts.GetValueOrDefault(TicketStatus.Closed)),
+    ];
+    string Pill(TicketStatus s) => s switch { TicketStatus.Open => "wait", TicketStatus.Answered => "pub", _ => "draft" };
+}
+<div class="admin-page">
+    <div class="admin-head">
+        <h1>تیکت‌های پشتیبانی</h1>
+        <nav class="seg" aria-label="فیلتر وضعیت" style="min-width:min(100%,520px)">
+            @foreach (var tab in tabs)
+            {
+                <a class="seg-link" href="?Status=@tab.S" aria-current="@(Model.Status == tab.S ? "page" : null)">@tab.Label <small>@Fa.Digits(tab.N.ToString())</small></a>
+            }
+        </nav>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state">@Icons.Get("send", 48)<h2>تیکتی نیست</h2><p>تیکت‌هایی که مشتری‌ها از صفحهٔ <a href="/پشتیبانی" target="_blank">پشتیبانی</a> بفرستند اینجا می‌آید.</p></div>
+    }
+    else
+    {
+        <div class="inbox">
+            <ul class="inbox-list" aria-label="فهرست تیکت‌ها">
+                @foreach (var t in Model.Items)
+                {
+                    <li>
+                        <a href="?id=@t.Id&Status=@Model.Status" aria-current="@(Model.Current?.Id == t.Id ? "true" : null)">
+                            <span class="row"><strong>@t.Subject</strong><span class="pill @Pill(t.Status)">@Labels.Status(t.Status)</span></span>
+                            <small>@t.Name · @Labels.Category(t.Category) · @Fa.Digits(t.UpdatedAtUtc.ToLocalTime().ToString("MM/dd HH:mm"))</small>
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            @if (Model.Current is { } c)
+            {
+                <section class="thread" style="margin:0" aria-labelledby="cur-title">
+                    <header class="thread-head">
+                        <div>
+                            <h2 id="cur-title" style="font-size:1.2rem">@c.Subject</h2>
+                            <span class="hint">کد <bdi dir="ltr">@TicketCodes.Pretty(c.Code)</bdi> · @c.Name · <bdi dir="ltr">@Fa.Digits(c.Phone)</bdi> · @Labels.Category(c.Category)</span>
+                        </div>
+                        <div class="row-actions">
+                            <a class="btn sm quiet" href="tel:@c.Phone">@Icons.Get("phone", 16) تماس</a>
+                            <form method="post" asp-page-handler="SetStatus" asp-route-id="@c.Id" asp-route-to="@(c.Status == TicketStatus.Closed ? TicketStatus.Open : TicketStatus.Closed)" asp-route-status="@Model.Status">
+                                <button class="btn sm ghost">@(c.Status == TicketStatus.Closed ? "بازگشایی" : "بستن تیکت")</button>
+                            </form>
+                        </div>
+                    </header>
+                    <ol class="messages">
+                        @foreach (var m in c.Messages)
+                        {
+                            <li class="msg @(m.FromStaff ? "staff" : "")">
+                                <div class="bubble">@m.Body</div>
+                                <span class="hint">@(m.FromStaff ? "پشتیبانی" : c.Name) · @Fa.Digits(m.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</span>
+                            </li>
+                        }
+                    </ol>
+                    <form method="post" asp-page-handler="Reply" asp-route-id="@c.Id" asp-route-status="@Model.Status" class="thread-foot reply">
+                        <div asp-validation-summary="All" class="err" role="alert"></div>
+                        <label class="field" style="flex:1 1 300px">پاسخ شما<textarea asp-for="Reply" rows="3" placeholder="پاسخ برای مشتری…"></textarea></label>
+                        <button class="btn lg">ارسال پاسخ</button>
+                        <span class="hint" style="flex-basis:100%">مشتری پاسخ را با کد پیگیری در سایت می‌بیند.@(c.Status == TicketStatus.Closed ? " ارسال پاسخ تیکت را دوباره باز می‌کند." : "")</span>
+                    </form>
+                </section>
+            }
+        </div>
+    }
+</div>

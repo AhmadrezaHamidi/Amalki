@@ -2,6 +2,7 @@ using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
 using Amlak.Web.Services.Seo;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,9 +27,49 @@ builder.Services.ConfigureApplicationCookie(o =>
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Admin", p => p.RequireRole("Admin"));
 
+// File storage: "Local" (wwwroot/uploads, default) or "Minio" (Storage:Minio:* settings).
+builder.Services.AddSingleton<Amlak.Web.Services.Storage.LocalFileStore>();
+if (string.Equals(builder.Configuration["Storage:Provider"], "Minio", StringComparison.OrdinalIgnoreCase))
+{
+    var minio = builder.Configuration.GetSection("Storage:Minio").Get<Amlak.Web.Services.Storage.MinioOptions>() ?? new();
+    if (string.IsNullOrWhiteSpace(minio.Endpoint) || string.IsNullOrWhiteSpace(minio.AccessKey) || string.IsNullOrWhiteSpace(minio.SecretKey))
+        throw new InvalidOperationException("Storage:Provider is Minio but Storage:Minio:Endpoint/AccessKey/SecretKey are not set.");
+    builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(new Amlak.Web.Services.Storage.MinioFileStore(minio));
+}
+else
+{
+    builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(sp => sp.GetRequiredService<Amlak.Web.Services.Storage.LocalFileStore>());
+}
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
+builder.Services.AddScoped<AdminNotifier>();
+
+// Public forms, per IP per 10 minutes (NFR-09): contact form 5 posts, support tickets 10 (new ticket,
+// tracking lookup and replies share one allowance). Every other request is unlimited.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+    {
+        if (!HttpMethods.IsPost(ctx.Request.Method)) return RateLimitPartition.GetNoLimiter("");
+        var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "?";
+        var path = ctx.Request.Path;
+        var (bucket, limit) =
+            path.Equals(Amlak.Web.Pages.ContactModel.Path) ? ("contact", 5)
+            : path.StartsWithSegments(Amlak.Web.Pages.Support.IndexModel.Path) ? ("support", 10)
+            : ("", 0);
+        return limit == 0
+            ? RateLimitPartition.GetNoLimiter("")
+            : RateLimitPartition.GetFixedWindowLimiter($"{bucket}:{ip}",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(10) });
+    });
+    o.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await ctx.HttpContext.Response.WriteAsync("درخواست‌های زیادی فرستاده‌اید. لطفاً چند دقیقهٔ دیگر دوباره تلاش کنید.", ct);
+    };
+});
 builder.Services.AddRazorPages(o => o.Conventions.AuthorizeFolder("/Admin", "Admin"));
 
 var app = builder.Build();
@@ -52,7 +93,9 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles(); // serves runtime uploads in wwwroot/uploads
+app.UseStatusCodePagesWithReExecute("/Error", "?code={0}");
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

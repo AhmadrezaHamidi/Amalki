@@ -1,17 +1,23 @@
 @model Property
+@{ var rent = Model.Deal == DealType.Rent; }
 <article class="card">
     <div class="ph">
         @if (Model.Photos.FirstOrDefault() is { } p) { <img src="@p.Url" alt="@p.Alt" loading="lazy" width="640" height="480" /> }
-        <span class="badge @(Model.Deal == DealType.Rent ? "rent" : "")">@(Model.Deal == DealType.Sale ? "فروش" : "اجاره")</span>
+        else { @Icons.Get("photo", 36) }
+        <span class="badge @(rent ? "rent" : "")">@Labels.Deal(Model.Deal)</span>
     </div>
+    <button class="fav" type="button" data-fav="@Model.Id" aria-pressed="false" aria-label="نشان کردن @Model.Title">@Icons.Get("heart")</button>
     <div class="b">
+        <span class="loc">@Labels.Kind(Model.Kind) · @Model.District، @Model.City</span>
         <h3>@Model.Title</h3>
-        <div class="loc">@Model.City، @Model.District</div>
-        <div class="meta"><span>@Fa.Digits(Model.AreaM2.ToString()) متر</span>@if (Model.Bedrooms is { } r) {<span>@Fa.Digits(r.ToString()) خواب</span>}</div>
-        <div class="price">
-            @if (Model.Deal == DealType.Sale) { <text>@Fa.Money(Model.Price) <small>تومان</small></text> }
-            else { <text>@Fa.Money(Model.Deposit) رهن <small>+ @Fa.Money(Model.MonthlyRent) اجاره</small></text> }
+        <div class="meta">
+            <span>@Icons.Get("area", 16) @Fa.Digits(Model.AreaM2.ToString()) متر</span>
+            @if (Model.Bedrooms is { } r and > 0) { <span>@Icons.Get("bed", 16) @Fa.Digits(r.ToString()) خواب</span> }
+        </div>
+        <div class="price @(rent ? "rent" : "")">
+            @if (!rent) { <text>@Fa.Money(Model.Price) <small>تومان</small></text> }
+            else { <text>@Fa.Money(Model.Deposit) <small>رهن · اجاره @Fa.Money(Model.MonthlyRent)</small></text> }
         </div>
     </div>
-    <a class="cover" asp-page="/Properties/Details" asp-route-slug="@Model.Slug" aria-label="@Model.Title"></a>
+    <a class="cover" asp-page="/Properties/Details" asp-route-slug="@Model.Slug"><span class="sr-only">@Model.Title</span></a>
 </article>

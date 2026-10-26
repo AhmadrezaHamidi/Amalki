@@ -1,31 +1,155 @@
 ﻿@page
 @model IndexModel
-@{ ViewData["Title"] = "خرید، فروش و اجارهٔ ملک"; }
-@section Head {
-    @{
-        var cfg = Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-        var site = (cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
-    }
-    @foreach (var node in Amlak.Web.Services.Seo.JsonLd.Site(cfg["Site:Name"] ?? "آشیانه", site))
+@using Amlak.Web.Services.Seo
+@{
+    ViewData["Title"] = "خرید، فروش و اجارهٔ ملک";
+    var cfg = Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+    var site = (cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
+    var featured = Model.Latest.FirstOrDefault(p => p.Photos.Count > 0) ?? Model.Latest.FirstOrDefault();
+    var faq = new (string Q, string A)[]
     {
-        <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(node))</script>
-    }
+        ("آگهی‌ها چطور بررسی می‌شوند؟", "هر آگهی پیش از انتشار توسط تیم ما بررسی می‌شود و عکس‌ها از خود ملک است."),
+        ("برای بازدید ملک باید چه کنم؟", "در صفحهٔ هر ملک فرم «درخواست تماس» را پر کنید؛ مشاور برای تعیین زمان بازدید با شما تماس می‌گیرد."),
+        ("قیمت‌های اعلام‌شده قطعی است؟", "قیمت اعلام‌شده نظر مالک است و ممکن است در مذاکره تغییر کند."),
+        ("چطور ملکم را برای فروش یا اجاره ثبت کنم؟", "فرم «ثبت ملک و مشاوره» را پر کنید؛ کارشناس برای بازدید، قیمت‌گذاری و عکاسی هماهنگ می‌کند."),
+        ("آگهی‌های جدید را کجا ببینم؟", "همهٔ آگهی‌ها هم‌زمان با سایت در کانال تلگرام و بلهٔ ما هم منتشر می‌شوند."),
+    };
+    var faqLd = new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org", ["@type"] = "FAQPage",
+        ["mainEntity"] = faq.Select(f => new Dictionary<string, object>
+        {
+            ["@type"] = "Question", ["name"] = f.Q,
+            ["acceptedAnswer"] = new Dictionary<string, object> { ["@type"] = "Answer", ["text"] = f.A },
+        }).ToArray(),
+    };
 }
-<div class="wrap">
-    <section class="hero">
-        <h1>خانهٔ مناسبت را سریع و مطمئن پیدا کن</h1>
-        <p>آگهی‌های خرید، رهن و اجارهٔ بررسی‌شده، با عکس واقعی و مشاور اختصاصی.</p>
-    </section>
-    <form class="search" method="get" action="/املاک" aria-label="جستجوی ملک">
-        <select name="deal" aria-label="نوع معامله"><option value="Sale">خرید</option><option value="Rent">اجاره / رهن</option></select>
-        <input name="city" placeholder="شهر (مثلاً تهران)" aria-label="شهر" />
-        <select name="kind" aria-label="نوع ملک"><option value="">همهٔ انواع</option><option value="Apartment">آپارتمان</option><option value="Villa">ویلا</option><option value="Land">زمین</option><option value="Commercial">تجاری</option><option value="Office">اداری</option></select>
-        <input name="maxPrice" inputmode="numeric" placeholder="سقف قیمت (تومان)" aria-label="سقف قیمت" />
-        <button class="btn">جستجو</button>
-    </form>
-    <h2>جدیدترین آگهی‌ها <a href="/املاک">مشاهدهٔ همه ←</a></h2>
-    <div class="grid">
-        @foreach (var p in Model.Latest) { <partial name="_PropertyCard" model="p" /> }
+@section Head {
+    @foreach (var node in JsonLd.Site(cfg["Site:Name"] ?? "آشیانه", site))
+    {
+        <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(node))</script>
+    }
+    <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(faqLd))</script>
+}
+
+<section class="hero">
+    <div class="wrap">
+        <div class="hero-copy">
+            <span class="badge soft" style="align-self:flex-start">آگهی‌های بررسی‌شده با عکس واقعی</span>
+            <h1>خانهٔ بعدی‌ات را<br />مطمئن و بی‌دردسر پیدا کن</h1>
+            <p class="lead">خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا، زمین و ملک تجاری. هر آگهی پیش از انتشار بررسی می‌شود و یک مشاور تا آخر کار کنارت است.</p>
+
+            <form class="search-card" method="get" action="/املاک" role="search" aria-label="جست‌وجوی ملک">
+                <fieldset class="tabs" style="border:0;margin:0">
+                    <legend class="sr-only">نوع معامله</legend>
+                    <label><input type="radio" name="deal" value="Sale" checked data-deal /><span>خرید</span></label>
+                    <label><input type="radio" name="deal" value="Rent" data-deal /><span>اجاره و رهن</span></label>
+                </fieldset>
+                <div class="search-row">
+                    <label class="sfield">شهر<input name="city" placeholder="مثلاً تهران" autocomplete="address-level2" /></label>
+                    <label class="sfield">نوع ملک
+                        <select name="kind">
+                            <option value="">همهٔ انواع</option>
+                            @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k">@Labels.Kind(k)</option> }
+                        </select>
+                    </label>
+                    <label class="sfield"><span data-budget-label>سقف قیمت</span>
+                        <select name="maxPrice" data-budget>
+                            <option value="">بدون محدودیت</option>
+                            <option value="5000000000" data-sale>تا ۵ میلیارد</option>
+                            <option value="10000000000" data-sale>تا ۱۰ میلیارد</option>
+                            <option value="20000000000" data-sale>تا ۲۰ میلیارد</option>
+                            <option value="50000000000" data-sale>تا ۵۰ میلیارد</option>
+                            <option value="300000000" data-rent hidden disabled>رهن تا ۳۰۰ میلیون</option>
+                            <option value="700000000" data-rent hidden disabled>رهن تا ۷۰۰ میلیون</option>
+                            <option value="1500000000" data-rent hidden disabled>رهن تا ۱٫۵ میلیارد</option>
+                        </select>
+                    </label>
+                    <button class="btn">@Icons.Get("search") جست‌وجو</button>
+                </div>
+            </form>
+
+            <div class="trust">
+                <span>@Icons.Get("shield") بررسی پیش از انتشار</span>
+                <span>@Icons.Get("photo") عکس واقعی از خود ملک</span>
+                <span>@Icons.Get("user") مشاور اختصاصی</span>
+            </div>
+        </div>
+
+        <div class="hero-media">
+            <div class="hero-photo">
+                @if (featured?.Photos.FirstOrDefault() is { } hp) { <img src="@hp.Url" alt="@hp.Alt" width="900" height="660" fetchpriority="high" /> }
+                else { @Icons.Get("home", 72) }
+            </div>
+            @if (featured is not null)
+            {
+                <a class="hero-float" asp-page="/Properties/Details" asp-route-slug="@featured.Slug">
+                    <small>تازه منتشر شد · @featured.District، @featured.City</small>
+                    <strong>@featured.Title</strong>
+                    <span class="price @(featured.Deal == DealType.Rent ? "rent" : "")">@(featured.Deal == DealType.Sale ? Fa.Money(featured.Price) : "رهن " + Fa.Money(featured.Deposit)) <small>تومان</small></span>
+                </a>
+            }
+        </div>
     </div>
-    @if (Model.Latest.Count == 0) { <p>هنوز آگهی‌ای منتشر نشده است.</p> }
+</section>
+
+<div class="wrap">
+    <section class="section" aria-labelledby="kinds-title">
+        <div class="section-head"><h2 id="kinds-title">دنبال چه ملکی هستی؟</h2></div>
+        <div class="kinds">
+            @foreach (var k in Enum.GetValues<PropertyKind>())
+            {
+                var n = Model.CountByKind.GetValueOrDefault(k);
+                <a class="kind" href="/املاک?kind=@k">
+                    <span class="kind-ico">@Icons.Kind(k)</span>
+                    <strong>@Labels.Kind(k)</strong>
+                    <small>@(n > 0 ? Fa.Digits(n.ToString()) + " آگهی فعال" : "به‌زودی")</small>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="section" aria-labelledby="latest-title">
+        <div class="section-head">
+            <div><h2 id="latest-title">جدیدترین آگهی‌ها</h2><p>هر روز آگهی تازه، با قیمت شفاف</p></div>
+            <a class="more" href="/املاک">مشاهدهٔ همه @Icons.Get("chev-left", 18)</a>
+        </div>
+        @if (Model.Latest.Count == 0)
+        {
+            <div class="empty-state">@Icons.Get("home", 48)<h2>هنوز آگهی‌ای منتشر نشده</h2><p>به‌زودی آگهی‌های تازه اینجا قرار می‌گیرد.</p></div>
+        }
+        else
+        {
+            <div class="grid">@foreach (var p in Model.Latest) { <partial name="_PropertyCard" model="p" /> }</div>
+        }
+    </section>
+
+    <section class="section" aria-labelledby="how-title">
+        <h2 id="how-title" class="title sr-only">چطور کار می‌کند</h2>
+        <div class="steps">
+            <div class="step"><span class="step-n">۱</span><h3>جست‌وجو کن</h3><p>با فیلتر شهر، نوع ملک، بودجه و تعداد خواب، فقط آگهی‌های مرتبط را ببین.</p></div>
+            <div class="step"><span class="step-n">۲</span><h3>درخواست تماس بده</h3><p>نام و شماره‌ات را بگذار؛ مشاور برای هماهنگی بازدید با تو تماس می‌گیرد.</p></div>
+            <div class="step"><span class="step-n">۳</span><h3>با خیال راحت معامله کن</h3><p>از بازدید تا قرارداد، مشاور کنارت است و مدارک را بررسی می‌کند.</p></div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="cta-band">
+            <div style="flex:1 1 420px;min-width:0">
+                <h2>ملک داری؟ به ما بسپار</h2>
+                <p>قیمت‌گذاری کارشناسی، عکاسی و انتشار هم‌زمان در سایت، کانال تلگرام و بله.</p>
+            </div>
+            <div class="row-actions">
+                <a class="btn light lg" href="/تماس">درخواست مشاوره</a>
+                <a class="btn outline-light lg" href="/املاک">دیدن آگهی‌ها</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title" class="title" style="text-align:center;margin-bottom:20px">پرسش‌های متداول</h2>
+        <div class="faq">
+            @foreach (var f in faq) { <details><summary>@f.Q</summary><p>@f.A</p></details> }
+        </div>
+    </section>
 </div>

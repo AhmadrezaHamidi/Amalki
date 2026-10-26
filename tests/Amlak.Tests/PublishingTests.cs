@@ -25,10 +25,24 @@ internal sealed class FakeBotHandler : HttpMessageHandler
         Calls.Add((url.Split('/').Last(), url, body));
         var method = url.Split('/').Last();
         if (Override?.Invoke(method) is { } custom) return custom;
-        var json = method is "sendMessage" or "sendPhoto"
-            ? "{\"ok\":true,\"result\":{\"message_id\":" + _nextId++ + "}}"
-            : """{"ok":true,"result":true}""";
+        var json = method switch
+        {
+            "sendMessage" or "sendPhoto" => "{\"ok\":true,\"result\":{\"message_id\":" + _nextId++ + "}}",
+            // One message per attached photo, like Telegram.
+            "sendMediaGroup" => "{\"ok\":true,\"result\":[" + string.Join(",", Enumerable.Range(0, System.Text.RegularExpressions.Regex.Matches(body, "attach://").Count)
+                .Select(_ => "{\"message_id\":" + _nextId++ + "}")) + "]}",
+            _ => """{"ok":true,"result":true}""",
+        };
         return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) };
+    }
+}
+
+internal static class TestStores
+{
+    public static Amlak.Web.Services.PhotoStorage Photos(string root)
+    {
+        var local = new Amlak.Web.Services.Storage.LocalFileStore(new Env(root));
+        return new Amlak.Web.Services.PhotoStorage(local, local);
     }
 }
 
@@ -79,7 +93,7 @@ public sealed class PublishingTests : IDisposable
         if (telegram) { cfg["Telegram:BotToken"] = Token; cfg["Telegram:ChatId"] = "@chan"; }
         if (bale) { cfg["Bale:BotToken"] = "999:BALE"; cfg["Bale:ChatId"] = "42"; }
         return new ChannelPublisher(db, new Factory(_bot), new ConfigurationBuilder().AddInMemoryCollection(cfg).Build(),
-            new Env(_root), NullLogger<ChannelPublisher>.Instance);
+            TestStores.Photos(_root), NullLogger<ChannelPublisher>.Instance);
     }
 
     private static Property Sample(ListingStatus status = ListingStatus.Published) => new()
@@ -198,5 +212,71 @@ public sealed class PublishingTests : IDisposable
         var p = Sample(); db.Properties.Add(p); db.SaveChanges();
         await NewPublisher(db, telegram: false).SyncAsync(p.Id);
         Assert.Empty(_bot.Calls);
+    }
+
+    private Property WithPhotos(int n)
+    {
+        var p = Sample();
+        for (var i = 0; i < n; i++)
+        {
+            File.WriteAllBytes(Path.Combine(_root, "uploads", $"p{i}.png"), [0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0, 0]);
+            p.Photos.Add(new PropertyPhoto { Url = $"/uploads/p{i}.png", Alt = "x", SortOrder = i });
+        }
+        return p;
+    }
+
+    [Fact]
+    public async Task Several_photos_go_out_as_one_album_and_all_its_messages_are_tracked()
+    {
+        using var db = NewDb();
+        var p = WithPhotos(3); db.Properties.Add(p); db.SaveChanges();
+        await NewPublisher(db).SyncAsync(p.Id);
+
+        var call = Assert.Single(_bot.Calls);
+        Assert.Equal("sendMediaGroup", call.Method);
+        Assert.Equal(3, System.Text.RegularExpressions.Regex.Matches(call.Body, "attach://p").Count);
+        var post = db.ChannelPosts.Single();
+        Assert.Equal("100", post.ExternalMessageId);
+        Assert.Equal("101,102", post.ExtraMessageIds);
+        Assert.True(post.HasPhoto);
+    }
+
+    [Fact]
+    public async Task Adding_a_photo_replaces_the_album_and_unpublishing_deletes_every_message()
+    {
+        using var db = NewDb();
+        var p = WithPhotos(2); db.Properties.Add(p); db.SaveChanges();
+        var pub = NewPublisher(db);
+        await pub.SyncAsync(p.Id);
+
+        File.WriteAllBytes(Path.Combine(_root, "uploads", "extra.png"), [0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0, 0]);
+        p.Photos.Add(new PropertyPhoto { Url = "/uploads/extra.png", Alt = "x", SortOrder = 5 }); db.SaveChanges();
+        await pub.SyncAsync(p.Id);
+
+        // Old album (2 messages) deleted, new album of 3 sent.
+        Assert.Equal(2, _bot.Calls.Count(c => c.Method == "deleteMessage"));
+        Assert.Equal(2, _bot.Calls.Count(c => c.Method == "sendMediaGroup"));
+        Assert.Equal("103,104", db.ChannelPosts.Single().ExtraMessageIds);
+
+        _bot.Calls.Clear();
+        p.Status = ListingStatus.Draft; db.SaveChanges();
+        await pub.SyncAsync(p.Id);
+        Assert.Equal(3, _bot.Calls.Count(c => c.Method == "deleteMessage"));
+        Assert.Empty(db.ChannelPosts);
+    }
+
+    [Fact]
+    public async Task Text_change_on_an_album_edits_its_caption_without_a_keyboard()
+    {
+        using var db = NewDb();
+        var p = WithPhotos(2); db.Properties.Add(p); db.SaveChanges();
+        var pub = NewPublisher(db);
+        await pub.SyncAsync(p.Id);
+        p.Title = "عنوان تازه"; db.SaveChanges();
+        await pub.SyncAsync(p.Id);
+
+        var edit = Assert.Single(_bot.Calls, c => c.Method == "editMessageCaption");
+        Assert.DoesNotContain("reply_markup", edit.Body);
+        Assert.Single(_bot.Calls, c => c.Method == "sendMediaGroup");
     }
 }

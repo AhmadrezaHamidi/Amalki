@@ -8,6 +8,29 @@ public static class Fa
             span[i] = src[i] is >= '0' and <= '9' ? (char)('۰' + (src[i] - '0')) : src[i];
     });
 
+    /// <summary>Persian (۰-۹) and Arabic-Indic (٠-٩) digits to ASCII, so typed numbers parse.</summary>
+    public static string Latin(string s) => string.Create(s.Length, s, (span, src) =>
+    {
+        for (var i = 0; i < src.Length; i++)
+            span[i] = src[i] switch
+            {
+                >= '۰' and <= '۹' => (char)('0' + (src[i] - '۰')),
+                >= '٠' and <= '٩' => (char)('0' + (src[i] - '٠')),
+                _ => src[i],
+            };
+    });
+
+    /// <summary>Normalizes an Iranian mobile number to 09xxxxxxxxx, or null when it is not one.</summary>
+    public static string? Mobile(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var d = new string(Latin(input).Where(char.IsAsciiDigit).ToArray());
+        if (d.StartsWith("0098")) d = "0" + d[4..];
+        else if (d.StartsWith("98")) d = "0" + d[2..];
+        else if (d.StartsWith('9')) d = "0" + d;
+        return d.Length == 11 && d.StartsWith("09") ? d : null;
+    }
+
     /// <summary>Formats Toman amounts as "۱۲٫۵ میلیارد" / "۴۰۰ میلیون".</summary>
     public static string Money(long? toman)
     {

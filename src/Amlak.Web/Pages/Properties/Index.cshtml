@@ -1,33 +1,120 @@
 @page "/املاک"
 @model Amlak.Web.Pages.Properties.IndexModel
+@using Amlak.Web.Pages.Properties
 @{
     var label = Model.Deal switch { DealType.Sale => "خرید ملک", DealType.Rent => "اجارهٔ ملک", _ => "آگهی‌های ملک" };
-    ViewData["Title"] = label + (string.IsNullOrWhiteSpace(Model.City) ? "" : " در " + Model.City);
+    if (Model.Kind is { } kk) label = Model.Deal switch { DealType.Sale => "خرید ", DealType.Rent => "اجارهٔ ", _ => "" } + Labels.Kind(kk);
+    ViewData["Title"] = label + (string.IsNullOrWhiteSpace(Model.City) ? "" : " در " + Model.City.Trim());
     ViewData["Description"] = $"{label} — {Fa.Digits(Model.Total.ToString())} آگهی بررسی‌شده با عکس واقعی و قیمت شفاف.";
     // Filtered/paged variants point to the base listing to avoid duplicate-content indexing.
     ViewData["Canonical"] = $"{Model.Request.Scheme}://{Model.Request.Host}/املاک" + (Model.Deal is { } d ? "?deal=" + d : "");
+    var rent = Model.Deal == DealType.Rent;
+    string[] bedLabels = ["همه", "۱+", "۲+", "۳+", "۴+"];
 }
 @section Head {
     <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(Amlak.Web.Services.Seo.JsonLd.Breadcrumbs(("خانه", Model.Request.Scheme + "://" + Model.Request.Host + "/"), (label, (string)ViewData["Canonical"]!))))</script>
 }
-<div class="wrap">
-    <h1 style="margin-top:24px">@ViewData["Title"]</h1>
-    <p class="crumbs">@Fa.Digits(Model.Total.ToString()) آگهی</p>
-    <form method="get" class="search" style="margin:18px 0" aria-label="فیلتر">
-        <select name="deal" aria-label="نوع معامله"><option value="">همه معاملات</option><option value="Sale" selected="@(Model.Deal==DealType.Sale)">خرید</option><option value="Rent" selected="@(Model.Deal==DealType.Rent)">اجاره / رهن</option></select>
-        <input name="city" value="@Model.City" placeholder="شهر" aria-label="شهر" />
-        <select name="kind" aria-label="نوع ملک"><option value="">همهٔ انواع</option>
-            @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k" selected="@(Model.Kind==k)">@(k switch { PropertyKind.Apartment=>"آپارتمان",PropertyKind.Villa=>"ویلا",PropertyKind.Land=>"زمین",PropertyKind.Commercial=>"تجاری",_=>"اداری" })</option> }
-        </select>
-        <input name="maxPrice" value="@Model.MaxPrice" inputmode="numeric" placeholder="سقف قیمت" aria-label="سقف قیمت" />
-        <button class="btn">اعمال فیلتر</button>
-    </form>
-    <div class="grid">@foreach (var p in Model.Items) { <partial name="_PropertyCard" model="p" /> }</div>
-    @if (Model.Items.Count == 0) { <p>آگهی‌ای با این فیلتر پیدا نشد.</p> }
-    @if (Model.Pages > 1)
-    {
-        <nav class="pager" aria-label="صفحه‌بندی">
-            @for (var i = 1; i <= Model.Pages; i++) { <a href="?deal=@Model.Deal&kind=@Model.Kind&city=@Model.City&maxPrice=@Model.MaxPrice&p=@i" aria-current="@(i==Model.P?"page":null)">@Fa.Digits(i.ToString())</a> }
-        </nav>
-    }
+<div class="wrap page-pad">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / @label</nav>
+    <div class="list-head">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            <p>@(Model.Total == 0 ? "آگهی‌ای پیدا نشد" : Fa.Digits(Model.Total.ToString()) + " آگهی پیدا شد")</p>
+        </div>
+        <div class="row-actions">
+            <button class="btn quiet filter-toggle" type="button" aria-expanded="false" aria-controls="filters" data-filter-toggle>@Icons.Get("filter") فیلترها</button>
+            <form method="get" class="sort" data-autosubmit>
+                @foreach (var (k, v) in new (string, object?)[] { ("deal", Model.Deal), ("kind", Model.Kind), ("city", Model.City), ("maxPrice", Model.MaxPrice), ("minArea", Model.MinArea), ("beds", Model.Beds) })
+                {
+                    if (v is not null && v.ToString() != "") { <input type="hidden" name="@k" value="@v" /> }
+                }
+                <label for="sort">مرتب‌سازی</label>
+                <select id="sort" name="sort" class="btn quiet" style="font-weight:500">
+                    <option value="Newest" selected="@(Model.Sort == SortOrder.Newest)">جدیدترین</option>
+                    <option value="Cheapest" selected="@(Model.Sort == SortOrder.Cheapest)">ارزان‌ترین</option>
+                    <option value="Priciest" selected="@(Model.Sort == SortOrder.Priciest)">گران‌ترین</option>
+                    <option value="Largest" selected="@(Model.Sort == SortOrder.Largest)">بزرگ‌ترین متراژ</option>
+                </select>
+                <noscript><button class="btn sm">اعمال</button></noscript>
+            </form>
+        </div>
+    </div>
+
+    <div class="list-layout">
+        <form method="get" class="filters" id="filters" aria-label="فیلتر آگهی‌ها">
+            <strong>فیلترها</strong>
+            <fieldset class="seg" style="border:0;margin:0">
+                <legend class="sr-only">نوع معامله</legend>
+                <label><input type="radio" name="deal" value="" checked="@(Model.Deal is null)" /><span>همه</span></label>
+                <label><input type="radio" name="deal" value="Sale" checked="@(Model.Deal == DealType.Sale)" /><span>خرید</span></label>
+                <label><input type="radio" name="deal" value="Rent" checked="@(Model.Deal == DealType.Rent)" /><span>اجاره</span></label>
+            </fieldset>
+            <label class="field">شهر<input name="city" value="@Model.City" placeholder="مثلاً تهران" /></label>
+            <label class="field">نوع ملک
+                <select name="kind">
+                    <option value="">همهٔ انواع</option>
+                    @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k" selected="@(Model.Kind == k)">@Labels.Kind(k)</option> }
+                </select>
+            </label>
+            <fieldset style="border:0;margin:0;padding:0">
+                <legend class="field" style="margin-bottom:6px">تعداد خواب</legend>
+                <div class="seg beds">
+                    @for (var i = 0; i < bedLabels.Length; i++)
+                    {
+                        <label><input type="radio" name="beds" value="@(i == 0 ? "" : i.ToString())" checked="@((Model.Beds ?? 0) == i)" /><span>@bedLabels[i]</span></label>
+                    }
+                </div>
+            </fieldset>
+            <div class="field-pair">
+                <label class="field">حداقل متراژ<input name="minArea" value="@Model.MinArea" inputmode="numeric" placeholder="مثلاً ۸۰" /></label>
+                <label class="field">@(rent ? "سقف رهن" : "سقف قیمت")<input name="maxPrice" value="@Model.MaxPrice" inputmode="numeric" placeholder="تومان" data-money /></label>
+            </div>
+            <p class="hint" data-money-hint aria-live="polite"></p>
+            @if (Model.Sort != SortOrder.Newest) { <input type="hidden" name="sort" value="@Model.Sort" /> }
+            <button class="btn block">اعمال فیلتر</button>
+            @if (Model.HasFilters) { <a href="/املاک@(Model.Deal is { } dd ? "?deal=" + dd : "")" style="text-align:center;font-size:.9rem">پاک کردن فیلترها</a> }
+        </form>
+
+        <div class="list-main">
+            @if (Model.HasFilters)
+            {
+                <div class="chips" aria-label="فیلترهای فعال">
+                    @if (Model.Kind is { } fk) { <span class="chip">@Labels.Kind(fk) <a href="@Model.Link(("kind", null))" aria-label="حذف فیلتر نوع ملک">×</a></span> }
+                    @if (!string.IsNullOrWhiteSpace(Model.City)) { <span class="chip">@Model.City <a href="@Model.Link(("city", null))" aria-label="حذف فیلتر شهر">×</a></span> }
+                    @if (Model.Beds is { } fb and > 0) { <span class="chip">@Fa.Digits(fb.ToString())+ خواب <a href="@Model.Link(("beds", null))" aria-label="حذف فیلتر خواب">×</a></span> }
+                    @if (Model.MinAreaValue is { } fa) { <span class="chip">از @Fa.Digits(fa.ToString()) متر <a href="@Model.Link(("minArea", null))" aria-label="حذف فیلتر متراژ">×</a></span> }
+                    @if (Model.MaxPriceValue is { } fp) { <span class="chip">تا @Fa.Money(fp) <a href="@Model.Link(("maxPrice", null))" aria-label="حذف فیلتر قیمت">×</a></span> }
+                </div>
+            }
+            @if (Model.Items.Count == 0)
+            {
+                <div class="empty-state">
+                    @Icons.Get("search", 48)
+                    <h2>آگهی‌ای با این فیلترها پیدا نشد</h2>
+                    <p>فیلترها را کمتر کنید، یا مشخصات ملک موردنظرتان را بفرستید تا وقتی پیدا شد خبرتان کنیم.</p>
+                    <div class="row-actions" style="justify-content:center">
+                        <a class="btn ghost" href="/املاک">همهٔ آگهی‌ها</a>
+                        <a class="btn" href="/تماس">سفارش ملک</a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="grid cols-3">@foreach (var p in Model.Items) { <partial name="_PropertyCard" model="p" /> }</div>
+            }
+            @if (Model.Pages > 1)
+            {
+                <nav class="pager" aria-label="صفحه‌بندی">
+                    @if (Model.P > 1) { <a href="@Model.Link(("p", Model.P - 1))" rel="prev">قبلی</a> }
+                    @for (var i = 1; i <= Model.Pages; i++)
+                    {
+                        if (i == Model.P) { <span aria-current="page">@Fa.Digits(i.ToString())</span> }
+                        else if (i == 1 || i == Model.Pages || Math.Abs(i - Model.P) <= 2) { <a href="@Model.Link(("p", i))">@Fa.Digits(i.ToString())</a> }
+                        else if (Math.Abs(i - Model.P) == 3) { <span aria-hidden="true">…</span> }
+                    }
+                    @if (Model.P < Model.Pages) { <a href="@Model.Link(("p", Model.P + 1))" rel="next">بعدی</a> }
+                </nav>
+            }
+        </div>
+    </div>
 </div>

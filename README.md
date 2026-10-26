@@ -12,10 +12,12 @@
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | معماری، مدل داده، جریان انتشار، امنیت |
 | [docs/ADMIN-GUIDE.md](docs/ADMIN-GUIDE.md) | راهنمای استفاده از پنل مدیریت |
 | [docs/CHANNELS.md](docs/CHANNELS.md) | راه‌اندازی ربات تلگرام و بله، تنظیمات، رفع خطا |
+| [docs/STORAGE.md](docs/STORAGE.md) | ذخیرهٔ عکس‌ها روی دیسک یا MinIO |
 | [docs/SEO-GEO.md](docs/SEO-GEO.md) | سئو و GEO: آنچه هست و آنچه برنامه‌ریزی شده |
 | [docs/DESIGN.md](docs/DESIGN.md) | تصمیم‌های طراحی و سیستم طراحی |
 | [design-system/amlak/MASTER.md](design-system/amlak/MASTER.md) | سیستم طراحی تولیدشده (منبع حقیقت رنگ و فونت) |
 | [design-options.html](design-options.html) | پیش‌نمایش سه طرح پیشنهادی (طرح ۱ انتخاب شد) |
+| [design/canvas/](design/canvas/) | بوم طراحی نسخهٔ ۲: صفحه‌های وب و اپ موبایل |
 
 ## استک
 
@@ -36,6 +38,15 @@ dotnet ef database update      # ساخت دیتابیس Amlak
 dotnet run --launch-profile http
 ```
 
+اطلاعات تماس سایت (اختیاری؛ اگر خالی باشد نمایش داده نمی‌شود):
+
+```bash
+dotnet user-secrets set "Site:Phone" "۰۲۱-۱۲۳۴۵۶۷۸"
+dotnet user-secrets set "Site:Address" "تهران، ..."
+dotnet user-secrets set "Site:TelegramUrl" "https://t.me/<کانال>"
+dotnet user-secrets set "Site:BaleUrl" "https://ble.ir/<کانال>"
+```
+
 سایت روی `http://localhost:5244` بالا می‌آید. در حالت Development چهار آگهی نمونه خودکار ساخته می‌شود. ورود مدیر: `/Account/Login` ← پنل: `/Admin`.
 
 ## تست
@@ -44,7 +55,7 @@ dotnet run --launch-profile http
 dotnet test tests/Amlak.Tests
 ```
 
-تست‌های ناشر کانال (۸ مورد) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
+۲۹ تست (ناشر کانال و آلبوم، دکمهٔ پست، اعلان سرنخ، کد تیکت، ذخیره‌ساز محلی، سئو، نرمال‌سازی موبایل) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
 
 ## ساختار پوشه‌ها
 

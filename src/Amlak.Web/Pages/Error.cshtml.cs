@@ -9,19 +9,16 @@ namespace Amlak.Web.Pages;
 public class ErrorModel : PageModel
 {
     public string? RequestId { get; set; }
+    public int Code { get; private set; } = 500;
 
     public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-    private readonly ILogger<ErrorModel> _logger;
-
-    public ErrorModel(ILogger<ErrorModel> logger)
+    public void OnGet(int? code)
     {
-        _logger = logger;
-    }
-
-    public void OnGet()
-    {
+        Code = code ?? 500;
         RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
     }
-}
 
+    // Status-code re-execution keeps the original method, so a failed POST lands here.
+    public void OnPost(int? code) => OnGet(code);
+}
