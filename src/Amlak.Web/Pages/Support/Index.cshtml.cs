@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>Public support desk: open a ticket, or look one up by tracking code + mobile.</summary>
-public class IndexModel(AppDbContext db, AdminNotifier notifier) : PageModel
+public class IndexModel(AppDbContext db, AdminNotifier notifier, TimeProvider clock) : PageModel
 {
     /// <summary>Route prefix of the support pages; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/پشتیبانی";
@@ -42,18 +42,22 @@ public class IndexModel(AppDbContext db, AdminNotifier notifier) : PageModel
         ModelState.Clear();
         if (!TryValidateModel(New, nameof(New))) return Page();
         if (!string.IsNullOrEmpty(New.Website)) return RedirectToPage(); // pretend success to the bot
-        var phone = Fa.Mobile(New.Phone);
-        if (phone is null)
+        if (!PhoneNumber.TryParse(New.Phone, out var phone))
         {
             ModelState.AddModelError("New.Phone", "شمارهٔ موبایل معتبر نیست (مثل ۰۹۱۲۱۲۳۴۵۶۷)");
             return Page();
         }
 
-        var ticket = new Ticket
+        Ticket ticket;
+        try
         {
-            Code = await UniqueCodeAsync(), Name = New.Name.Trim(), Phone = phone, Subject = New.Subject.Trim(), Category = New.Category,
-        };
-        ticket.Messages.Add(new TicketMessage { Body = New.Message.Trim() });
+            ticket = Ticket.Open(await UniqueCodeAsync(), New.Name, phone, New.Subject, New.Category, New.Message, clock.GetUtcNow().UtcDateTime);
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return Page();
+        }
         db.Tickets.Add(ticket);
         await db.SaveChangesAsync();
         await notifier.NotifyTicketAsync(ticket, ticket.Messages[0].Body, isNew: true);

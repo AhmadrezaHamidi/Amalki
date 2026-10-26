@@ -19,21 +19,25 @@ public class PhotoStorage(IFileStore primary, LocalFileStore local)
         [".webp"] = b => b.Length > 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P',
     };
 
+    /// <summary>True when the upload is an accepted image: size, extension and the file's own signature agree.</summary>
+    public static bool LooksValid(IFormFile file)
+    {
+        if (file.Length is 0 or > MaxBytes) return false;
+        if (!Signatures.TryGetValue(Path.GetExtension(file.FileName).ToLowerInvariant(), out var isValid)) return false;
+        using var input = file.OpenReadStream();
+        var head = new byte[16];
+        var read = input.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+        return isValid(head.AsSpan(0, read).ToArray());
+    }
+
     /// <returns>The stored photo (URL, size and WebP copies), or null when the file is not an accepted image.</returns>
     public async Task<PropertyPhoto?> SaveAsync(IFormFile file, CancellationToken ct = default)
     {
-        if (file.Length is 0 or > MaxBytes) return null;
+        if (!LooksValid(file)) return null;
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!Signatures.TryGetValue(ext, out var isValid)) return null;
-
         await using var input = file.OpenReadStream();
-        var head = new byte[16];
-        var read = await input.ReadAsync(head, ct);
-        if (!isValid(head.AsSpan(0, read).ToArray())) return null;
-        input.Position = 0;
-
         var url = await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, file.Length, MimeFor(ext), ct);
-        var photo = new PropertyPhoto { Url = url };
+        var photo = PropertyPhoto.Stored(url);
 
         input.Position = 0;
         await AddVariantsAsync(photo, input, primary, ct);

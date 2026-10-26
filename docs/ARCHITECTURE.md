@@ -11,6 +11,20 @@
               └─ Pages/Admin ──> ChannelPublisher ──> BotApiClient ──> Telegram / Bale
 ```
 
+## لایهٔ Domain (DDD)
+
+قوانین کسب‌وکار داخل Aggregateها هستند، نه در صفحه‌ها. همهٔ setterها private هستند و تغییر فقط از متدها می‌گذرد (`src/Amlak.Web/Domain`).
+
+| Aggregate | متدها | قانون‌ها | رویدادها |
+|---|---|---|---|
+| `Property` (آگهی، با `PropertyPhoto`) | `Create`، `Update`، `Publish`، `Unpublish`، `Close`، `ChangeStatus`، `TogglePublished`، `AddPhoto`، `RemovePhoto`، `MarkDeleted` | فقط آگهی با قیمت کامل منتشر می‌شود؛ آگهی منتشرشده قیمتش را از دست نمی‌دهد؛ تاریخ اولین انتشار حفظ می‌شود؛ مبلغ منفی، متراژ صفر و enum نامعتبر رد می‌شود | `ListingCreated`، `ListingChanged`، `ListingPublished`، `ListingUnpublished`، `ListingPhotosChanged`، `ListingDeleted` |
+| `Ticket` (با `TicketMessage`) | `Open`، `ReplyFromVisitor`، `ReplyFromStaff`، `ChangeStatus` | تیکت بسته پیام بازدیدکننده نمی‌گیرد؛ پاسخ پشتیبانی تیکت را «پاسخ داده شد» می‌کند | `TicketOpened`، `TicketMessageReceived`، `TicketAnswered` |
+| `Lead` | `Submit`، `ToggleHandled` | نام و پیام محدودیت طول دارند | `LeadSubmitted` |
+
+Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails` (مشخصات آگهی، با نرمال‌سازی ي/ك)، `PhoneNumber` (همیشه 09xxxxxxxxx). خطای قانون با `DomainException` و پیام فارسی برمی‌گردد و صفحه آن را در فرم نشان می‌دهد. زمان از `TimeProvider` تزریق می‌شود.
+
+رویدادها فعلاً فقط جمع می‌شوند؛ انتشار آن‌ها از طریق Outbox مرحلهٔ بعد است.
+
 ## مدل داده
 
 | جدول | کلیدها و ستون‌های مهم |
@@ -55,6 +69,9 @@
 ## امنیت
 
 - **احراز هویت:** ASP.NET Identity با کوکی؛ رمز حداقل ۱۰ نویسه؛ قفل پس از ۵ تلاش ناموفق؛ کوکی HttpOnly.
+- **پشت پراکسی:** `UseForwardedHeaders` اول pipeline است. IP پراکسی (nginx) را در `Proxy:KnownProxies` یا `Proxy:KnownNetworks` بگذارید (loopback پیش‌فرض قبول است)؛ وگرنه همهٔ بازدیدکننده‌ها یک IP دارند و rate limit برای همه با هم بسته می‌شود.
+- **Host:** در Production، scheme و host درخواست از `Site:BaseUrl` گرفته می‌شود تا canonical و sitemap با هدر Host جعلی ساخته نشوند.
+- **هدرها:** `X-Content-Type-Options`، `Referrer-Policy`، `Permissions-Policy`، `X-Frame-Options` و CSP پایه (`frame-ancestors`، `base-uri`، `object-src`، `form-action`).
 - **مجوز:** سیاست `Admin` روی کل پوشهٔ `/Admin` (convention در `Program.cs`).
 - **CSRF:** توکن ضدجعل روی همهٔ فرم‌های POST (پیش‌فرض Razor Pages)؛ درخواست بدون توکن ۴۰۰ می‌گیرد.
 - **آپلود:** فقط `.jpg/.jpeg/.png/.webp`، حداکثر ۵ مگابایت، بررسی امضای بایتی فایل (نه فقط پسوند)، نام فایل تصادفی (GUID).

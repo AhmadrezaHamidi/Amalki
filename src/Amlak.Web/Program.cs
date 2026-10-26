@@ -42,6 +42,8 @@ else
 {
     builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(sp => sp.GetRequiredService<Amlak.Web.Services.Storage.LocalFileStore>());
 }
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddProxySupport(builder.Configuration);
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
@@ -76,6 +78,9 @@ builder.Services.AddRazorPages(o => o.Conventions.AuthorizeFolder("/Admin", "Adm
 
 var app = builder.Build();
 
+// First, so the real client IP and scheme reach HTTPS redirection, the rate limiter and the logs.
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -94,6 +99,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment()) app.UseCanonicalHost(builder.Configuration);
+app.UseSecurityHeaders();
 // Serves runtime uploads in wwwroot/uploads. Names are random GUIDs and never reused, so browsers may keep them for a year.
 app.UseStaticFiles(new StaticFileOptions
 {

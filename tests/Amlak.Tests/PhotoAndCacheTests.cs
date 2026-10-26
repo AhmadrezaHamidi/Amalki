@@ -96,16 +96,16 @@ public sealed class PhotoAndCacheTests : IDisposable
             .AddInterceptors(new ListingCacheInterceptor(store)).Options);
         await db.Database.EnsureCreatedAsync();
 
-        db.Leads.Add(new Lead { Name = "n", Phone = "09120000000" });
+        db.Leads.Add(TestData.Lead("n", "09120000000"));
         await db.SaveChangesAsync();
         Assert.Equal(0, store.Evictions);
 
-        var p = new Property { Title = "t", Slug = "t", City = "c", District = "d", AreaM2 = 1 };
+        var p = TestData.Listing("t", area: 1, published: false);
         db.Properties.Add(p);
         await db.SaveChangesAsync();
         Assert.Equal(1, store.Evictions);
 
-        p.Photos.Add(new PropertyPhoto { Url = "/uploads/x.jpg" });
+        p.AddPhoto("/uploads/x.jpg", TestData.Now);
         await db.SaveChangesAsync();
         Assert.Equal(2, store.Evictions);
         Assert.Equal([SiteCache.Listings], store.Tags.Distinct());

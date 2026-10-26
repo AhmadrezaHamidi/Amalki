@@ -16,6 +16,7 @@
 
     <form method="post" enctype="multipart/form-data" class="form" data-deal-form>
         <div asp-validation-summary="All" class="err alert bad" role="alert"></div>
+        @if (TempData["Error"] is string error) { <div class="err alert bad" role="alert">@error</div> }
 
         <section class="form-card">
             <h2>اطلاعات اصلی</h2>
