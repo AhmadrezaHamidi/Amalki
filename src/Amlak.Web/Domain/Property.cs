@@ -98,14 +98,25 @@ public class Property : AggregateRoot
         else Publish(nowUtc);
     }
 
-    public PropertyPhoto AddPhoto(string url, DateTime nowUtc)
+    public PropertyPhoto AddPhoto(string url, DateTime nowUtc) => AddPhoto(PropertyPhoto.Stored(url), nowUtc);
+
+    /// <summary>Adds a stored photo at the end; its alt text describes the listing.</summary>
+    public PropertyPhoto AddPhoto(PropertyPhoto photo, DateTime nowUtc)
     {
-        if (string.IsNullOrWhiteSpace(url)) throw new DomainException("نشانی عکس خالی است");
-        var order = _photos.Count == 0 ? 0 : _photos.Max(x => x.SortOrder) + 1;
-        var photo = new PropertyPhoto(url, $"{Title} - {District} {City}", order);
+        photo.SortOrder = _photos.Count == 0 ? 0 : _photos.Max(x => x.SortOrder) + 1;
+        photo.Alt = $"{Title} - {District} {City}";
         _photos.Add(photo);
         Raise(new ListingPhotosChanged(this, nowUtc));
         return photo;
+    }
+
+    /// <summary>Moves a photo; the first one is the cover (cards, og:image, channel posts).</summary>
+    /// <returns>False when the listing has no such photo.</returns>
+    public bool MovePhoto(int photoId, PhotoOrder.Move move, DateTime nowUtc)
+    {
+        if (!PhotoOrder.Apply(_photos, photoId, move)) return false;
+        Raise(new ListingPhotosChanged(this, nowUtc));
+        return true;
     }
 
     /// <returns>The removed photo (its file is the caller's to delete), or null when the listing has no such photo.</returns>
@@ -141,20 +152,28 @@ public class Property : AggregateRoot
     }
 }
 
+/// <summary>
+/// A photo of a listing. Order and alt text belong to the listing (<see cref="Property.AddPhoto(PropertyPhoto, DateTime)"/>,
+/// <see cref="Property.MovePhoto"/>); size and WebP copies are facts about the stored file, recorded by the storage.
+/// </summary>
 public class PropertyPhoto
 {
-    private PropertyPhoto() { } // EF Core
+    internal PropertyPhoto() { } // EF Core and tests
 
-    internal PropertyPhoto(string url, string alt, int sortOrder)
-    {
-        Url = url; Alt = alt; SortOrder = sortOrder;
-    }
+    /// <summary>A stored file that is not yet part of a listing.</summary>
+    public static PropertyPhoto Stored(string url) =>
+        string.IsNullOrWhiteSpace(url) ? throw new DomainException("نشانی عکس خالی است") : new() { Url = url };
 
-    public int Id { get; private set; }
+    public int Id { get; internal set; }
     public int PropertyId { get; private set; }
-    public string Url { get; private set; } = "";
-    public string Alt { get; private set; } = "";
-    public int SortOrder { get; private set; }
+    public string Url { get; internal set; } = "";
+    public string Alt { get; internal set; } = "";
+    public int SortOrder { get; internal set; }
+    /// <summary>Pixel size of the upright original; null for photos uploaded before WebP copies existed.</summary>
+    public int? Width { get; internal set; }
+    public int? Height { get; internal set; }
+    /// <summary>Widths of the WebP copies next to the original (comma-separated, see PhotoVariants); null when there are none.</summary>
+    public string? Variants { get; internal set; }
 }
 
 /// <summary>Everything about a listing except its price, already trimmed and normalized.</summary>

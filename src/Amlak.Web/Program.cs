@@ -8,8 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddSiteCache();
+builder.Services.AddDbContext<AppDbContext>((sp, o) => o
+    .UseSqlServer(builder.Configuration.GetConnectionString("Default"))
+    .AddInterceptors(sp.GetRequiredService<ListingCacheInterceptor>()));
 builder.Services.AddDefaultIdentity<IdentityUser>(o =>
     {
         o.Password.RequiredLength = 10;
@@ -99,12 +101,21 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 if (!app.Environment.IsDevelopment()) app.UseCanonicalHost(builder.Configuration);
 app.UseSecurityHeaders();
-app.UseStaticFiles(); // serves runtime uploads in wwwroot/uploads
+// Serves runtime uploads in wwwroot/uploads. Names are random GUIDs and never reused, so browsers may keep them for a year.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    },
+});
 app.UseStatusCodePagesWithReExecute("/Error", "?code={0}");
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseOutputCache(); // after auth, so the default policy can see signed-in admins and skip them
 
 app.MapSeo();
 app.MapStaticAssets();

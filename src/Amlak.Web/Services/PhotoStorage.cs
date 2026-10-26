@@ -30,21 +30,63 @@ public class PhotoStorage(IFileStore primary, LocalFileStore local)
         return isValid(head.AsSpan(0, read).ToArray());
     }
 
-    /// <returns>Public URL of the stored file, or null when the file is not an accepted image.</returns>
-    public async Task<string?> SaveAsync(IFormFile file, CancellationToken ct = default)
+    /// <returns>The stored photo (URL, size and WebP copies), or null when the file is not an accepted image.</returns>
+    public async Task<PropertyPhoto?> SaveAsync(IFormFile file, CancellationToken ct = default)
     {
         if (!LooksValid(file)) return null;
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         await using var input = file.OpenReadStream();
-        return await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, file.Length, MimeFor(ext), ct);
+        var url = await primary.PutAsync($"{Guid.NewGuid():N}{ext}", input, file.Length, MimeFor(ext), ct);
+        var photo = PropertyPhoto.Stored(url);
+
+        input.Position = 0;
+        await AddVariantsAsync(photo, input, primary, ct);
+        return photo;
+    }
+
+    /// <summary>
+    /// Makes the WebP copies of a photo uploaded before copies existed (Variants is null) and records them.
+    /// Afterwards Variants is never null, so a photo the decoder cannot read is not retried.
+    /// </summary>
+    /// <returns>False when the original is gone from its store.</returns>
+    public async Task<bool> BackfillAsync(PropertyPhoto photo, CancellationToken ct = default)
+    {
+        if (StoreOf(photo.Url) is not { } store) return false;
+        await using var original = await store.OpenAsync(photo.Url, ct);
+        if (original is null) return false;
+        await AddVariantsAsync(photo, original, store, ct);
+        return true;
+    }
+
+    // WebP copies for srcset, stored next to the original. A photo the decoder cannot read is kept without copies.
+    private static async Task AddVariantsAsync(PropertyPhoto photo, Stream original, IFileStore store, CancellationToken ct)
+    {
+        var made = PhotoVariants.Make(original);
+        photo.Variants = "";
+        if (made is null) return;
+        photo.Width = made.Width;
+        photo.Height = made.Height;
+        var stem = Path.GetFileNameWithoutExtension(photo.Url);
+        foreach (var v in made.Variants)
+        {
+            using var webp = new MemoryStream(v.Webp);
+            await store.PutAsync($"{stem}-{v.Width}.webp", webp, v.Webp.Length, "image/webp", ct);
+        }
+        photo.Variants = string.Join(",", made.Variants.Select(v => v.Width));
     }
 
     /// <returns>The photo's bytes, or null when it is gone from its store.</returns>
     public Task<Stream?> OpenAsync(string url, CancellationToken ct = default) =>
         StoreOf(url)?.OpenAsync(url, ct) ?? Task.FromResult<Stream?>(null);
 
-    public Task DeleteAsync(string url, CancellationToken ct = default) =>
-        StoreOf(url)?.DeleteAsync(url, ct) ?? Task.CompletedTask;
+    /// <summary>Deletes the photo and its WebP copies.</summary>
+    public async Task DeleteAsync(PropertyPhoto photo, CancellationToken ct = default)
+    {
+        if (StoreOf(photo.Url) is not { } store) return;
+        await store.DeleteAsync(photo.Url, ct);
+        foreach (var w in PhotoVariants.ParseWidths(photo.Variants))
+            await store.DeleteAsync(PhotoVariants.UrlFor(photo.Url, w), ct);
+    }
 
     private IFileStore? StoreOf(string url) => primary.Owns(url) ? primary : local.Owns(url) ? local : null;
 

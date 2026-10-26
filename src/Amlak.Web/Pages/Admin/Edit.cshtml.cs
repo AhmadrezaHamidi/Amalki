@@ -108,13 +108,13 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
         foreach (var file in uploads)
         {
-            var url = await storage.SaveAsync(file);
-            if (url is null)
+            var photo = await storage.SaveAsync(file);
+            if (photo is null)
             {
                 ModelState.AddModelError("", $"فایل «{Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
                 return await Redisplay(isNew ? null : p);
             }
-            p.AddPhoto(url, now);
+            p.AddPhoto(photo, now);
         }
 
         await db.SaveChangesAsync();
@@ -128,8 +128,18 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         if (p?.RemovePhoto(photoId, clock.GetUtcNow().UtcDateTime) is not { } photo) return NotFound();
         await db.SaveChangesAsync();
         // The file goes only after the database no longer points at it.
-        await storage.DeleteAsync(photo.Url);
+        await storage.DeleteAsync(photo);
         // A published listing's channel album must lose the photo too.
+        await publisher.SyncAsync(id);
+        return RedirectToPage("Edit", new { id });
+    }
+
+    public async Task<IActionResult> OnPostMovePhotoAsync(int id, int photoId, PhotoOrder.Move move)
+    {
+        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
+        if (p is null || !p.MovePhoto(photoId, move, clock.GetUtcNow().UtcDateTime)) return NotFound();
+        await db.SaveChangesAsync();
+        // A new cover or order replaces the channel album too.
         await publisher.SyncAsync(id);
         return RedirectToPage("Edit", new { id });
     }

@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Amlak.Web.Domain" />
+    <!-- Tests may build domain objects with internal setters; pages in this project should use the aggregate methods. -->
+    <InternalsVisibleTo Include="Amlak.Tests" />
   </ItemGroup>
   <PropertyGroup>
   </PropertyGroup>
@@ -21,6 +23,8 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.22" />
     <PackageReference Include="Minio" Version="6.0.5" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
   </ItemGroup>
 
 </Project>

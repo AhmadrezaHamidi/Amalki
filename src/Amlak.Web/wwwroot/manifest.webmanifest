@@ -1,0 +1,25 @@
+{
+  "name": "آشیانه | خرید، فروش و اجارهٔ ملک",
+  "short_name": "آشیانه",
+  "description": "آگهی‌های بررسی‌شدهٔ خرید، فروش، رهن و اجارهٔ ملک با مشاور اختصاصی.",
+  "lang": "fa",
+  "dir": "rtl",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF7F2",
+  "theme_color": "#1E3A5F",
+  "categories": ["lifestyle", "business"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "خرید ملک", "url": "/املاک?deal=Sale", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "اجاره و رهن", "url": "/املاک?deal=Rent", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "نشان‌شده‌ها", "url": "/نشان‌شده", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

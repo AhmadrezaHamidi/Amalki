@@ -1,10 +1,13 @@
 using Amlak.Web.Data;
+using Amlak.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Properties;
 
+[OutputCache(PolicyName = SiteCache.Listings)]
 public class DetailsModel(AppDbContext db) : PageModel
 {
     public Property Item { get; private set; } = null!;

@@ -78,7 +78,7 @@
 
         <div class="hero-media">
             <div class="hero-photo">
-                @if (featured?.Photos.FirstOrDefault() is { } hp) { <img src="@hp.Url" alt="@hp.Alt" width="900" height="660" fetchpriority="high" /> }
+                @if (featured?.Photos.FirstOrDefault() is { } hp) { @PhotoVariants.Img(hp, "(max-width: 900px) 100vw, 50vw", 900, 660, eager: true) }
                 else { @Icons.Get("home", 72) }
             </div>
             @if (featured is not null)
@@ -96,7 +96,7 @@
 <div class="wrap">
     <section class="section" aria-labelledby="kinds-title">
         <div class="section-head"><h2 id="kinds-title">دنبال چه ملکی هستی؟</h2></div>
-        <div class="kinds">
+        <div class="kinds rail">
             @foreach (var k in Enum.GetValues<PropertyKind>())
             {
                 var n = Model.CountByKind.GetValueOrDefault(k);
@@ -120,7 +120,7 @@
         }
         else
         {
-            <div class="grid">@foreach (var p in Model.Latest) { <partial name="_PropertyCard" model="p" /> }</div>
+            <div class="grid rail">@foreach (var p in Model.Latest) { <partial name="_PropertyCard" model="p" /> }</div>
         }
     </section>
 

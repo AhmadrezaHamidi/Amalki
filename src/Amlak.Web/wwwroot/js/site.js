@@ -17,6 +17,21 @@
   toggle($('[data-filter-toggle]'), $('#filters'), 'open');
   toggle($('[data-admin-toggle]'), $('#admin-nav'), 'open', $('.admin-side'));
 
+  // ---- forms on output-cached pages: fetch this visitor's antiforgery token just before submitting ----
+  $$('form[data-csrf]').forEach((f) => f.addEventListener('submit', async (e) => {
+    if (f.dataset.ready) return;
+    e.preventDefault();
+    try {
+      const r = await fetch('/antiforgery-token', { credentials: 'same-origin', cache: 'no-store' });
+      const { field, token } = await r.json();
+      let input = f.elements[field];
+      if (!input) { input = document.createElement('input'); input.type = 'hidden'; input.name = field; f.append(input); }
+      input.value = token;
+      f.dataset.ready = '1';
+      f.requestSubmit ? f.requestSubmit() : f.submit();
+    } catch { location.href = '/تماس?propertyId=' + (f.elements['Input.PropertyId']?.value ?? ''); }
+  }));
+
   // ---- sort select submits itself ----
   $$('form[data-autosubmit] select').forEach((s) => s.addEventListener('change', () => s.form.submit()));
 
@@ -76,8 +91,7 @@
       const label = b.hasAttribute('data-fav-label') ? $('span', b) : null;
       if (label) label.textContent = on ? 'نشان شد' : 'نشان کردن';
     });
-    const count = $('[data-fav-count]');
-    if (count) { count.hidden = ids.length === 0; count.textContent = fa(ids.length); }
+    $$('[data-fav-count]').forEach((count) => { count.hidden = ids.length === 0; count.textContent = fa(ids.length); });
   };
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-fav]');
@@ -136,4 +150,24 @@
     });
     if (photos.length < 2) $$('.lb-stage .lb-btn', box).forEach((b) => { b.hidden = true; });
   }
+
+  // ---- installable app (PWA): offline support + "install" button where the browser offers it ----
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => { /* optional */ }));
+  }
+  let installEvent = null;
+  const installBtns = $$('[data-install]');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvent = e;
+    installBtns.forEach((b) => { b.hidden = false; });
+  });
+  installBtns.forEach((b) => b.addEventListener('click', async () => {
+    if (!installEvent) return;
+    installEvent.prompt();
+    await installEvent.userChoice.catch(() => null);
+    installEvent = null;
+    installBtns.forEach((x) => { x.hidden = true; });
+  }));
+  window.addEventListener('appinstalled', () => installBtns.forEach((b) => { b.hidden = true; }));
 })();

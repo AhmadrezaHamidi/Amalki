@@ -42,11 +42,11 @@ public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublishe
         if (p is null) return NotFound();
         p.MarkDeleted(clock.GetUtcNow().UtcDateTime);
         await publisher.RemoveAllAsync(id);
-        var files = p.Photos.Select(f => f.Url).ToList();
+        var files = p.Photos.ToList();
         db.Properties.Remove(p);
         await db.SaveChangesAsync();
         // Files go only after the database no longer points at them.
-        foreach (var url in files) await photos.DeleteAsync(url);
+        foreach (var f in files) await photos.DeleteAsync(f);
         return RedirectToPage();
     }
 }
