@@ -14,6 +14,8 @@
 
 - SEO/GEO files: `/sitemap.xml`, `/robots.txt` (AI crawlers allowed), `/llms.txt`; JSON-LD RealEstateAgent+WebSite (home), BreadcrumbList (list, detail); login noindex; base URL from `Site:BaseUrl`. 6 new xunit tests (14 total pass); endpoints verified over HTTP. Not yet: Search Console submission, FAQPage, WebP/srcset, city/district pages.
 
+- SEO/GEO pass on list + detail pages (skill `.claude/skills/seo-geo`): canonical from `Site:BaseUrl` (deal+city+page), noindex empty lists, stats intro, ItemList; detail summary sentence, `<dl>` specs, Persian publish date, similar listings, RealEstateListing with IRR prices and rent/deposit specs; city list pages in sitemap; Persian text no longer entity-encoded; JSON-LD script type fixed. 23 tests pass; pages checked over HTTP on a SQLite copy.
+
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
 - Then: contact/lead form (PUB-06), FAQPage + city/district pages, image WebP/srcset.
@@ -25,4 +27,4 @@
 - Map (Leaflet/Neshan), favorites, contact/lead form.
 - Deploy.
 
-Last updated: 2026-10-25 12:00
+Last updated: 2026-10-26 12:00

@@ -13,6 +13,16 @@ public static class SeoFiles
 
     public static string ListUrl(string baseUrl) => $"{baseUrl}/{Uri.EscapeDataString("املاک")}";
 
+    /// <summary>List URL with only the parameters that define an indexable page (deal, city, page), in a fixed order.</summary>
+    public static string ListUrl(string baseUrl, DealType? deal, string? city = null, int page = 1)
+    {
+        var q = new List<string>();
+        if (deal is { } d) q.Add("deal=" + d);
+        if (!string.IsNullOrWhiteSpace(city)) q.Add("city=" + Uri.EscapeDataString(city.Trim()));
+        if (page > 1) q.Add("p=" + page);
+        return ListUrl(baseUrl) + (q.Count == 0 ? "" : "?" + string.Join("&", q));
+    }
+
     public static string PropertyUrl(string baseUrl, Property p) =>
         $"{baseUrl}/{Uri.EscapeDataString("ملک")}/{Uri.EscapeDataString(p.Slug)}";
 
@@ -31,7 +41,13 @@ public static class SeoFiles
             new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl) + "?deal=Rent"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")),
         };
 
-        foreach (var p in published.Take(MaxSitemapUrls - urls.Count))
+        var list = published.ToList();
+        // City list pages (per deal type) act as landing pages for "خرید/اجاره ملک در {شهر}".
+        foreach (var (deal, city) in list.Where(p => !string.IsNullOrWhiteSpace(p.City))
+                     .Select(p => (p.Deal, City: p.City.Trim())).Distinct().OrderBy(x => x.Deal).ThenBy(x => x.City, StringComparer.Ordinal))
+            urls.Add(new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl, deal, city)), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")));
+
+        foreach (var p in list.Take(Math.Max(0, MaxSitemapUrls - urls.Count)))
         {
             var url = new XElement(ns + "url",
                 new XElement(ns + "loc", PropertyUrl(baseUrl, p)),

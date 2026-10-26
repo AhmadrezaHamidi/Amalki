@@ -4,6 +4,8 @@ using Amlak.Web.Services.Publishing;
 using Amlak.Web.Services.Seo;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +27,10 @@ builder.Services.ConfigureApplicationCookie(o =>
 });
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Admin", p => p.RequireRole("Admin"));
+
+// Emit Persian text as-is instead of &#x...; entities: smaller HTML that crawlers and AI engines read directly.
+// HTML-sensitive characters (<, >, &, quotes) are still encoded.
+builder.Services.AddSingleton(HtmlEncoder.Create(UnicodeRanges.All));
 
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));

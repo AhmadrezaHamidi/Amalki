@@ -1,18 +1,38 @@
 @page "/املاک"
 @model Amlak.Web.Pages.Properties.IndexModel
+@using Amlak.Web.Services.Seo
+@inject IConfiguration Cfg
 @{
+    var site = SeoEndpoints.BaseUrl(Cfg, Model.Request);
+    var siteName = Cfg["Site:Name"] ?? "آشیانه";
     var label = Model.Deal switch { DealType.Sale => "خرید ملک", DealType.Rent => "اجارهٔ ملک", _ => "آگهی‌های ملک" };
-    ViewData["Title"] = label + (string.IsNullOrWhiteSpace(Model.City) ? "" : " در " + Model.City);
-    ViewData["Description"] = $"{label} — {Fa.Digits(Model.Total.ToString())} آگهی بررسی‌شده با عکس واقعی و قیمت شفاف.";
-    // Filtered/paged variants point to the base listing to avoid duplicate-content indexing.
-    ViewData["Canonical"] = $"{Model.Request.Scheme}://{Model.Request.Host}/املاک" + (Model.Deal is { } d ? "?deal=" + d : "");
+    var city = string.IsNullOrWhiteSpace(Model.City) ? null : Model.City.Trim();
+    var heading = label + (city is null ? "" : " در " + city);
+    var intro = SeoText.ListIntro(siteName, label == "آگهی‌های ملک" ? "ملک" : label, city, Model.Total, Model.MinFound, Model.MaxFound, Model.Deal);
+    ViewData["Title"] = heading + (Model.P > 1 ? $" — صفحهٔ {Fa.Digits(Model.P.ToString())}" : "");
+    ViewData["Description"] = intro + " عکس واقعی، متراژ، محله و قیمت هر آگهی.";
+    // deal, city and page define the indexable page; kind/maxPrice variants collapse to it.
+    ViewData["Canonical"] = SeoFiles.ListUrl(site, Model.Deal, city, Model.P);
+    if (Model.Items.Count == 0) ViewData["Robots"] = "noindex, follow";
+
+    var crumbs = new List<(string Name, string Url)> { ("خانه", site + "/"), (label, SeoFiles.ListUrl(site, Model.Deal)) };
+    if (city is not null) crumbs.Add((city, SeoFiles.ListUrl(site, Model.Deal, city)));
 }
 @section Head {
-    <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(Amlak.Web.Services.Seo.JsonLd.Breadcrumbs(("خانه", Model.Request.Scheme + "://" + Model.Request.Host + "/"), (label, (string)ViewData["Canonical"]!))))</script>
+    @Html.Raw(JsonLd.Script(JsonLd.Breadcrumbs(crumbs.ToArray())))
+    @if (Model.Items.Count > 0)
+    {
+        @Html.Raw(JsonLd.Script(JsonLd.ItemList(Model.Items, site, Model.FirstPosition)))
+    }
 }
 <div class="wrap">
-    <h1 style="margin-top:24px">@ViewData["Title"]</h1>
-    <p class="crumbs">@Fa.Digits(Model.Total.ToString()) آگهی</p>
+    <nav class="crumbs" aria-label="مسیر">
+        <a href="/">خانه</a> /
+        @if (city is null) { <span>@label</span> }
+        else { <a href="@SeoFiles.ListUrl("", Model.Deal)">@label</a> <text>/</text> <span>@city</span> }
+    </nav>
+    <h1 style="margin-top:8px">@heading</h1>
+    <p class="lead">@intro</p>
     <form method="get" class="search" style="margin:18px 0" aria-label="فیلتر">
         <select name="deal" aria-label="نوع معامله"><option value="">همه معاملات</option><option value="Sale" selected="@(Model.Deal==DealType.Sale)">خرید</option><option value="Rent" selected="@(Model.Deal==DealType.Rent)">اجاره / رهن</option></select>
         <input name="city" value="@Model.City" placeholder="شهر" aria-label="شهر" />
@@ -27,7 +47,7 @@
     @if (Model.Pages > 1)
     {
         <nav class="pager" aria-label="صفحه‌بندی">
-            @for (var i = 1; i <= Model.Pages; i++) { <a href="?deal=@Model.Deal&kind=@Model.Kind&city=@Model.City&maxPrice=@Model.MaxPrice&p=@i" aria-current="@(i==Model.P?"page":null)">@Fa.Digits(i.ToString())</a> }
+            @for (var i = 1; i <= Model.Pages; i++) { <a href="@Model.PageUrl(i)" aria-current="@(i==Model.P?"page":null)">@Fa.Digits(i.ToString())</a> }
         </nav>
     }
 </div>

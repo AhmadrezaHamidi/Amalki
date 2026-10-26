@@ -1,61 +1,71 @@
 @page "/ملک/{slug}"
 @model Amlak.Web.Pages.Properties.DetailsModel
 @using Amlak.Web.Services.Seo
+@inject IConfiguration Cfg
 @{
     var p = Model.Item;
-    var url = $"{Model.Request.Scheme}://{Model.Request.Host}/ملک/{p.Slug}";
-    var dealLabel = p.Deal == DealType.Sale ? "فروش" : "اجارهٔ";
-    ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
-    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (p.Deal == DealType.Sale ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
-    ViewData["Canonical"] = url;
-    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = first.Url;
-    var ld = new Dictionary<string, object?>
-    {
-        ["@context"] = "https://schema.org",
-        ["@type"] = "RealEstateListing",
-        ["name"] = p.Title,
-        ["description"] = p.Description,
-        ["url"] = url,
-        ["datePosted"] = p.PublishedAtUtc?.ToString("yyyy-MM-dd"),
-        ["image"] = p.Photos.Select(x => x.Url).ToArray(),
-        ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["addressLocality"] = p.City, ["addressRegion"] = p.District, ["addressCountry"] = "IR" },
-        ["floorSize"] = new Dictionary<string, object> { ["@type"] = "QuantitativeValue", ["value"] = p.AreaM2, ["unitCode"] = "MTK" },
-        ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["price"] = p.Deal == DealType.Sale ? p.Price : p.MonthlyRent, ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" }
-    };
-    var site = (Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>()["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
-    var ldJson = JsonLd.Serialize(ld);
-    var crumbJson = JsonLd.Serialize(JsonLd.Breadcrumbs(
-        ("خانه", site + "/"),
-        (p.Deal == DealType.Sale ? "خرید" : "اجاره", SeoFiles.ListUrl(site) + "?deal=" + p.Deal),
-        (p.Title, SeoFiles.PropertyUrl(site, p))));
+    var site = SeoEndpoints.BaseUrl(Cfg, Model.Request);
+    var sale = p.Deal == DealType.Sale;
+    var dealLabel = sale ? "فروش" : "اجاره";
+    var listLabel = sale ? "خرید" : "اجاره";
+    var summary = SeoText.Summary(p);
+    ViewData["Title"] = $"{p.Title} | {dealLabel} در {SeoText.Location(p)}";
+    ViewData["Description"] = summary;
+    ViewData["Canonical"] = SeoFiles.PropertyUrl(site, p);
+    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = SeoFiles.Absolute(site, first.Url);
+    var crumbs = new List<(string Name, string Url)> { ("خانه", site + "/"), (listLabel, SeoFiles.ListUrl(site, p.Deal)) };
+    if (!string.IsNullOrWhiteSpace(p.City)) crumbs.Add((p.City, SeoFiles.ListUrl(site, p.Deal, p.City)));
+    crumbs.Add((p.Title, SeoFiles.PropertyUrl(site, p)));
 }
 @section Head {
-    <script type="application/ld+json">@Html.Raw(ldJson)</script>
-    <script type="application/ld+json">@Html.Raw(crumbJson)</script>
+    @Html.Raw(JsonLd.Script(JsonLd.Listing(p, site)))
+    @Html.Raw(JsonLd.Script(JsonLd.Breadcrumbs(crumbs.ToArray())))
 }
 <div class="wrap">
-    <p class="crumbs"><a href="/">خانه</a> / <a href="/املاک?deal=@p.Deal">@(p.Deal == DealType.Sale ? "خرید" : "اجاره")</a> / @p.City</p>
+    <nav class="crumbs" aria-label="مسیر">
+        <a href="/">خانه</a> / <a href="@SeoFiles.ListUrl("", p.Deal)">@listLabel</a>
+        @if (!string.IsNullOrWhiteSpace(p.City)) { <text>/</text> <a href="@SeoFiles.ListUrl("", p.Deal, p.City)">@p.City</a> }
+    </nav>
     <h1 style="margin-top:8px">@p.Title</h1>
-    <p class="loc">@p.City، @p.District</p>
+    <p class="loc">@SeoText.Location(p)
+        @if (p.PublishedAtUtc is { } at) { <text>· منتشرشده در </text><time datetime="@at.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)">@Fa.Date(at)</time> }
+    </p>
+    <p class="lead">@summary</p>
     <div class="detail">
         <div>
-            <div class="gallery">@foreach (var f in p.Photos) { <img src="@f.Url" alt="@f.Alt" loading="lazy" /> }</div>
+            <div class="gallery">
+                @for (var i = 0; i < p.Photos.Count; i++)
+                {
+                    var f = p.Photos[i];
+                    if (i == 0) { <img src="@f.Url" alt="@f.Alt" loading="eager" fetchpriority="high" /> }
+                    else { <img src="@f.Url" alt="@f.Alt" loading="lazy" /> }
+                }
+            </div>
             <h2>توضیحات</h2>
             <p style="white-space:pre-line">@p.Description</p>
         </div>
         <aside class="panel">
             <div class="price" style="font-size:1.3rem">
-                @if (p.Deal == DealType.Sale) { <text>@Fa.Money(p.Price) <small>تومان</small></text> }
+                @if (sale) { <text>@Fa.Money(p.Price) <small>تومان</small></text> }
                 else { <text>رهن @Fa.Money(p.Deposit)<br />اجاره @Fa.Money(p.MonthlyRent) <small>در ماه</small></text> }
             </div>
-            <ul class="specs">
-                <li>متراژ: @Fa.Digits(p.AreaM2.ToString())</li>
-                @if (p.Bedrooms is { } b) {<li>خواب: @Fa.Digits(b.ToString())</li>}
-                @if (p.Floor is { } fl) {<li>طبقه: @Fa.Digits(fl.ToString())</li>}
-                @if (p.Parking is { } pk) {<li>پارکینگ: @Fa.Digits(pk.ToString())</li>}
-                @if (p.YearBuilt is { } y) {<li>سال ساخت: @Fa.Digits(y.ToString())</li>}
-            </ul>
+            <h2 class="sr-only">مشخصات</h2>
+            <dl class="specs">
+                <div><dt>نوع معامله</dt><dd>@(sale ? "فروش" : "رهن و اجاره")</dd></div>
+                <div><dt>نوع ملک</dt><dd>@Fa.Kind(p.Kind)</dd></div>
+                <div><dt>متراژ</dt><dd>@Fa.Digits(p.AreaM2.ToString()) متر</dd></div>
+                @if (p.Bedrooms is { } b) {<div><dt>خواب</dt><dd>@Fa.Digits(b.ToString())</dd></div>}
+                @if (p.Floor is { } fl) {<div><dt>طبقه</dt><dd>@Fa.Digits(fl.ToString())</dd></div>}
+                @if (p.Parking is { } pk) {<div><dt>پارکینگ</dt><dd>@Fa.Digits(pk.ToString())</dd></div>}
+                @if (p.YearBuilt is { } y) {<div><dt>سال ساخت</dt><dd>@Fa.Digits(y.ToString())</dd></div>}
+                <div><dt>محله</dt><dd>@SeoText.Location(p)</dd></div>
+            </dl>
             <a class="btn" href="#contact" style="width:100%">درخواست تماس</a>
         </aside>
     </div>
+    @if (Model.Similar.Count > 0)
+    {
+        <h2>آگهی‌های مشابه در @p.City <a href="@SeoFiles.ListUrl("", p.Deal, p.City)">همهٔ آگهی‌های @listLabel در @p.City ←</a></h2>
+        <div class="grid">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
+    }
 </div>

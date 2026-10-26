@@ -8,7 +8,7 @@
     }
     @foreach (var node in Amlak.Web.Services.Seo.JsonLd.Site(cfg["Site:Name"] ?? "آشیانه", site))
     {
-        <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(node))</script>
+        @Html.Raw(Amlak.Web.Services.Seo.JsonLd.Script(node))
     }
 }
 <div class="wrap">
