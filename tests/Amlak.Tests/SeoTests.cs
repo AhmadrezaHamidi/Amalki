@@ -8,12 +8,12 @@ public class SeoTests
 {
     private const string Base = "https://example.ir";
 
-    private static Property Sample(string slug = "آپارتمان-تست") => new()
+    private static Property Sample(string slug = "آپارتمان-تست")
     {
-        Title = "آپارتمان تست", Slug = slug, Deal = DealType.Sale, City = "تهران", District = "ونک", AreaM2 = 90,
-        Price = 5_000_000_000, Status = ListingStatus.Published, PublishedAtUtc = new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc),
-        Photos = { new PropertyPhoto { Url = "/uploads/a.jpg", SortOrder = 0 } },
-    };
+        var p = TestData.Listing(slug: slug);
+        p.AddPhoto("/uploads/a.jpg", TestData.Now);
+        return p;
+    }
 
     [Fact]
     public void Sitemap_is_valid_xml_with_encoded_absolute_urls_lastmod_and_images()

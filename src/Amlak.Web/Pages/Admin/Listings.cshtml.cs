@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublisher publisher) : PageModel
+public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublisher publisher, TimeProvider clock) : PageModel
 {
     public List<Property> Items { get; private set; } = [];
 
@@ -21,14 +21,15 @@ public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublishe
     {
         var p = await db.Properties.FindAsync(id);
         if (p is null) return NotFound();
-        if (p.Status == ListingStatus.Published)
+        try
         {
-            p.Status = ListingStatus.Draft;
+            p.TogglePublished(clock.GetUtcNow().UtcDateTime);
         }
-        else
+        catch (DomainException ex)
         {
-            p.Status = ListingStatus.Published;
-            p.PublishedAtUtc ??= DateTime.UtcNow;
+            // An incomplete draft cannot go live; send the admin to the form that names the missing field.
+            TempData["Error"] = ex.Message;
+            return RedirectToPage("Edit", new { id });
         }
         await db.SaveChangesAsync();
         await publisher.SyncAsync(id);
@@ -39,10 +40,13 @@ public class ListingsModel(AppDbContext db, PhotoStorage photos, ChannelPublishe
     {
         var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return NotFound();
+        p.MarkDeleted(clock.GetUtcNow().UtcDateTime);
         await publisher.RemoveAllAsync(id);
-        foreach (var f in p.Photos) await photos.DeleteAsync(f.Url);
+        var files = p.Photos.Select(f => f.Url).ToList();
         db.Properties.Remove(p);
         await db.SaveChangesAsync();
+        // Files go only after the database no longer points at them.
+        foreach (var url in files) await photos.DeleteAsync(url);
         return RedirectToPage();
     }
 }
