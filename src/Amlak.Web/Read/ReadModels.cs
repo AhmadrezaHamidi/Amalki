@@ -42,7 +42,7 @@ public class ListingCard
     /// <summary>The cover as a photo, for PhotoVariants.Img (srcset of the WebP copies).</summary>
     [NotMapped]
     public PropertyPhoto? Cover => CoverUrl is null ? null
-        : new() { Id = 0, PropertyId = Id, Url = CoverUrl, Alt = CoverAlt ?? "", Width = CoverWidth, Height = CoverHeight, Variants = CoverVariants };
+        : new() { Url = CoverUrl, Alt = CoverAlt ?? "", Width = CoverWidth, Height = CoverHeight, Variants = CoverVariants };
 }
 
 /// <summary>

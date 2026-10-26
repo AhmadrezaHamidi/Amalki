@@ -24,42 +24,50 @@ public abstract class ReadSideTests : IAsyncLifetime
     private ListingQueries Listings => new(Db);
     private static readonly DateTime Now = new(2026, 10, 26, 12, 0, 0, DateTimeKind.Utc);
 
-    private static Property Make(string slug, DealType deal, PropertyKind kind, string city, string district, int area,
-        int? beds = null, long? price = null, long? deposit = null, long? rent = null, int ageDays = 1,
-        ListingStatus status = ListingStatus.Published) => new()
+    // Built through the aggregate (Create/Publish/AddPhoto) the way the admin panel does.
+    private static Property Make(string slug, PropertyKind kind, string city, string district, int area, Pricing pricing,
+        int? beds = null, int ageDays = 1, ListingStatus status = ListingStatus.Published,
+        Func<ListingDetails, ListingDetails>? extra = null)
     {
-        Slug = slug, Title = slug, Deal = deal, Kind = kind, City = city, District = district, AreaM2 = area, Bedrooms = beds,
-        Price = price, Deposit = deposit, MonthlyRent = rent, Status = status,
-        PublishedAtUtc = status == ListingStatus.Published ? Now.AddDays(-ageDays) : null,
-    };
+        var details = ListingDetails.Of(slug, "", kind, area, city, district, bedrooms: beds);
+        if (extra is not null) details = extra(details);
+        var p = Property.Create(slug, details, pricing, Now.AddDays(-ageDays));
+        if (status != ListingStatus.Draft) p.ChangeStatus(status, Now.AddDays(-ageDays));
+        return p;
+    }
 
     public async Task InitializeAsync()
     {
         _db = await CreateDbAsync();
         if (_db is null) return;
 
-        var vanak = Make("vanak-sale", DealType.Sale, PropertyKind.Apartment, "تهران", "ونک", 100, beds: 2, price: 10_000_000_000, ageDays: 1);
-        vanak.HasElevator = true; vanak.Parking = 1; vanak.YearBuilt = 1400;
-        vanak.Photos.Add(new PropertyPhoto { Url = "/u/second.jpg", Alt = "دوم", SortOrder = 2 });
-        vanak.Photos.Add(new PropertyPhoto { Url = "/u/cover.jpg", Alt = "کاور", SortOrder = 0, Width = 1600, Height = 1200, Variants = "480,960" });
-        var rent = Make("vanak-rent", DealType.Rent, PropertyKind.Apartment, "تهران", "ونک", 60, beds: 1, deposit: 400_000_000, rent: 8_000_000, ageDays: 2);
-        rent.Convertible = true;
-        var villa = Make("karaj-villa", DealType.Sale, PropertyKind.Villa, "کرج", "مشکین‌دشت", 500, beds: 4, price: 28_000_000_000, ageDays: 3);
-        villa.HasStorage = true; villa.YearBuilt = 1390;
-        villa.Photos.Add(new PropertyPhoto { Url = "/u/villa.jpg", Alt = "ویلا", SortOrder = 0 });
-        var saadat = Make("saadat-sale", DealType.Sale, PropertyKind.Apartment, "تهران", "سعادت‌آباد", 120, beds: 3, price: 12_000_000_000, ageDays: 4);
-        var draft = Make("draft", DealType.Sale, PropertyKind.Apartment, "تهران", "ونک", 90, price: 1, status: ListingStatus.Draft);
-        var closed = Make("closed", DealType.Sale, PropertyKind.Office, "تهران", "ونک", 90, price: 1, status: ListingStatus.Closed);
+        var vanak = Make("vanak-sale", PropertyKind.Apartment, "تهران", "ونک", 100, Pricing.ForSale(10_000_000_000), beds: 2, ageDays: 1,
+            extra: d => d with { HasElevator = true, Parking = 1, YearBuilt = 1400 });
+        var second = vanak.AddPhoto("/u/second.jpg", Now);
+        var cover = vanak.AddPhoto("/u/cover.jpg", Now);
+        (second.SortOrder, cover.SortOrder) = (2, 0);
+        (cover.Alt, cover.Width, cover.Height, cover.Variants) = ("کاور", 1600, 1200, "480,960");
+        var rent = Make("vanak-rent", PropertyKind.Apartment, "تهران", "ونک", 60, Pricing.ForRent(400_000_000, 8_000_000, convertible: true), beds: 1, ageDays: 2);
+        var villa = Make("karaj-villa", PropertyKind.Villa, "کرج", "مشکین‌دشت", 500, Pricing.ForSale(28_000_000_000), beds: 4, ageDays: 3,
+            extra: d => d with { HasStorage = true, YearBuilt = 1390 });
+        villa.AddPhoto("/u/villa.jpg", Now);
+        var saadat = Make("saadat-sale", PropertyKind.Apartment, "تهران", "سعادت‌آباد", 120, Pricing.ForSale(12_000_000_000), beds: 3, ageDays: 4);
+        var draft = Make("draft", PropertyKind.Apartment, "تهران", "ونک", 90, Pricing.ForSale(1), status: ListingStatus.Draft);
+        var closed = Make("closed", PropertyKind.Office, "تهران", "ونک", 90, Pricing.ForSale(1), status: ListingStatus.Closed);
         _db.Properties.AddRange(vanak, rent, villa, saadat, draft, closed);
         await _db.SaveChangesAsync();
 
-        _db.Leads.AddRange(new Lead { Name = "a", Phone = "1" }, new Lead { Name = "b", Phone = "2", PropertyId = vanak.Id },
-            new Lead { Name = "c", Phone = "3", Handled = true });
-        _db.Tickets.AddRange(
-            new Ticket { Code = "T1", Name = "a", Phone = "1", Subject = "s", Status = TicketStatus.Open },
-            new Ticket { Code = "T2", Name = "a", Phone = "1", Subject = "s", Status = TicketStatus.Answered },
-            new Ticket { Code = "T3", Name = "a", Phone = "1", Subject = "s", Status = TicketStatus.Answered },
-            new Ticket { Code = "T4", Name = "a", Phone = "1", Subject = "s", Status = TicketStatus.Closed });
+        var handled = Lead.Submit("c", PhoneNumber.Parse("09120000003"), null, null, Now);
+        handled.ToggleHandled();
+        _db.Leads.AddRange(Lead.Submit("a", PhoneNumber.Parse("09120000001"), null, null, Now),
+            Lead.Submit("b", PhoneNumber.Parse("09120000002"), null, vanak.Id, Now), handled);
+        Ticket T(string code, TicketStatus status)
+        {
+            var t = Ticket.Open(code, "a", PhoneNumber.Parse("09120000001"), "s", TicketCategory.General, "m", Now);
+            t.ChangeStatus(status, Now);
+            return t;
+        }
+        _db.Tickets.AddRange(T("T1", TicketStatus.Open), T("T2", TicketStatus.Answered), T("T3", TicketStatus.Answered), T("T4", TicketStatus.Closed));
         _db.ChannelPosts.AddRange(new ChannelPost { PropertyId = vanak.Id, Channel = Channel.Telegram, Error = "timeout" },
             new ChannelPost { PropertyId = vanak.Id, Channel = Channel.Bale, ExternalMessageId = "5" });
         await _db.SaveChangesAsync();
@@ -147,9 +155,9 @@ public abstract class ReadSideTests : IAsyncLifetime
     {
         // Publish the draft and unpublish a live one through the aggregate, as the admin panel does.
         var draft = await Db.Properties.SingleAsync(p => p.Slug == "draft");
-        draft.Status = ListingStatus.Published; draft.PublishedAtUtc = Now;
+        draft.Publish(Now);
         var villa = await Db.Properties.SingleAsync(p => p.Slug == "karaj-villa");
-        villa.Status = ListingStatus.Draft;
+        villa.Unpublish(Now);
         await Db.SaveChangesAsync();
 
         Assert.Equal("draft", (await Listings.LatestAsync(1)).Single().Slug);
@@ -178,8 +186,8 @@ public abstract class ReadSideTests : IAsyncLifetime
 
         Assert.Equal(["saadat-sale"], (await Listings.SimilarAsync(vanak, 3)).Select(c => c.Slug));
         // Not enough of the same kind: the rest are filled with other kinds, newest first.
-        var villaInTehran = new Property { Id = -1, Deal = DealType.Sale, Kind = PropertyKind.Villa, City = "تهران" };
-        Assert.Equal(["vanak-sale", "saadat-sale"], (await Listings.SimilarAsync(villaInTehran, 3)).Select(c => c.Slug));
+        Assert.Equal(["vanak-sale", "saadat-sale"],
+            (await Listings.SimilarAsync(-1, DealType.Sale, PropertyKind.Villa, "تهران", 3)).Select(c => c.Slug));
     }
 }
 

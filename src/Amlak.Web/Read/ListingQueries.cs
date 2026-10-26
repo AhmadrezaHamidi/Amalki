@@ -82,14 +82,17 @@ public class ListingQueries(AppDbContext db)
         db.ListingCards.Where(c => ids.Contains(c.Id)).OrderByDescending(c => c.PublishedAtUtc).ToListAsync(ct);
 
     /// <summary>Same deal in the same city, same kind first.</summary>
-    public async Task<List<ListingCard>> SimilarAsync(Property p, int take, CancellationToken ct = default)
+    public Task<List<ListingCard>> SimilarAsync(Property p, int take, CancellationToken ct = default) =>
+        SimilarAsync(p.Id, p.Deal, p.Kind, p.City, take, ct);
+
+    public async Task<List<ListingCard>> SimilarAsync(int id, DealType deal, PropertyKind kind, string city, int take, CancellationToken ct = default)
     {
         // Two plain queries instead of ORDER BY (Kind = @kind): that expression cannot use an index, so SQL Server
         // built the cover photo for every listing in the city before picking three (~45 ms vs ~1 ms at 20k listings).
-        var near = db.ListingCards.Where(c => c.Id != p.Id && c.Deal == p.Deal && c.City == p.City);
-        var items = await near.Where(c => c.Kind == p.Kind).OrderByDescending(c => c.PublishedAtUtc).Take(take).ToListAsync(ct);
+        var near = db.ListingCards.Where(c => c.Id != id && c.Deal == deal && c.City == city);
+        var items = await near.Where(c => c.Kind == kind).OrderByDescending(c => c.PublishedAtUtc).Take(take).ToListAsync(ct);
         if (items.Count < take)
-            items.AddRange(await near.Where(c => c.Kind != p.Kind).OrderByDescending(c => c.PublishedAtUtc).Take(take - items.Count).ToListAsync(ct));
+            items.AddRange(await near.Where(c => c.Kind != kind).OrderByDescending(c => c.PublishedAtUtc).Take(take - items.Count).ToListAsync(ct));
         return items;
     }
 
