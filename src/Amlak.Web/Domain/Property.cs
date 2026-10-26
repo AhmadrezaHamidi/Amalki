@@ -1,6 +1,7 @@
 namespace Amlak.Web.Domain;
 
-public enum DealType { Sale = 1, Rent = 2 }
+/// <summary>ShortTerm: daily/temporary rent (Divar's "اجارهٔ کوتاه‌مدت"); its Price is the price per night.</summary>
+public enum DealType { Sale = 1, Rent = 2, ShortTerm = 3 }
 public enum PropertyKind { Apartment = 1, Villa = 2, Land = 3, Commercial = 4, Office = 5 }
 /// <summary>Pending: sent in by a visitor from /ثبت-آگهی, waiting for an admin to review it.</summary>
 public enum ListingStatus { Draft = 0, Published = 1, Closed = 2, Pending = 3 }
@@ -17,7 +18,7 @@ public class Property
     public PropertyKind Kind { get; set; }
     public ListingStatus Status { get; set; } = ListingStatus.Draft;
 
-    // Sale: Price. Rent: Deposit (rahn) + MonthlyRent. Amounts in Toman.
+    // Sale: Price. Rent: Deposit (rahn) + MonthlyRent. ShortTerm: Price per night. Amounts in Toman.
     public long? Price { get; set; }
     public long? Deposit { get; set; }
     public long? MonthlyRent { get; set; }

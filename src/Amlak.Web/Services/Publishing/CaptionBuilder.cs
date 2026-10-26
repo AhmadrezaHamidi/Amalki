@@ -4,7 +4,7 @@ public static class CaptionBuilder
 {
     public static string Build(Property p, string baseUrl)
     {
-        var deal = p.Deal == DealType.Sale ? "فروش" : "اجاره";
+        var deal = p.Deal == DealType.ShortTerm ? "اجاره_روزانه" : Tag(Labels.Deal(p.Deal));
         var lines = new List<string>
         {
             $"🏠 {p.Title}",
@@ -14,6 +14,8 @@ public static class CaptionBuilder
 
         if (p.Deal == DealType.Sale)
             lines.Add($"💰 قیمت: {Fa.Money(p.Price)} تومان");
+        else if (p.Deal == DealType.ShortTerm)
+            lines.Add($"💰 هر شب: {Fa.Money(p.Price)} تومان");
         else
         {
             lines.Add($"💰 رهن: {Fa.Money(p.Deposit)} تومان");

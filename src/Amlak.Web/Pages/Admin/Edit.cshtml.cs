@@ -134,8 +134,8 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
     private void Validate()
     {
-        if (Input.Deal == DealType.Sale && Input.Price is null or 0)
-            ModelState.AddModelError("Input.Price", "برای فروش، قیمت لازم است");
+        if (Input.Deal != DealType.Rent && Input.Price is null or 0)
+            ModelState.AddModelError("Input.Price", Input.Deal == DealType.Sale ? "برای فروش، قیمت لازم است" : "قیمت هر شب لازم است");
         if (Input.Deal == DealType.Rent && Input.Deposit is null && Input.MonthlyRent is null)
             ModelState.AddModelError("Input.Deposit", "رهن یا اجارهٔ ماهانه را وارد کنید");
     }
@@ -144,7 +144,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
     {
         p.Title = Input.Title.Trim(); p.Description = Input.Description.Trim();
         p.Deal = Input.Deal; p.Kind = Input.Kind;
-        p.Price = Input.Deal == DealType.Sale ? Input.Price : null;
+        p.Price = Input.Deal != DealType.Rent ? Input.Price : null;
         p.Deposit = Input.Deal == DealType.Rent ? Input.Deposit : null;
         p.MonthlyRent = Input.Deal == DealType.Rent ? Input.MonthlyRent : null;
         p.AreaM2 = Input.AreaM2; p.Bedrooms = Input.Bedrooms; p.Floor = Input.Floor;
