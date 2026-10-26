@@ -437,3 +437,4 @@ a.stat:hover{border-color:var(--primary);color:var(--ink)}
   .badge.warn,.fav-count{color:#1A1208}
   .admin-nav a[aria-current=page]{background:#1F3354}
 }
+.tablewrap .table tbody th{background:none;color:var(--ink);font-weight:700;font-size:.95rem}

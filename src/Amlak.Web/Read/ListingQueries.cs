@@ -120,6 +120,28 @@ public class ListingQueries(AppDbContext db)
         return avg is { } a ? (long)a : null;
     }
 
+    /// <summary>Price table per district of <paramref name="city"/>, or per city when it is null; busiest first.</summary>
+    public async Task<List<PlacePrice>> PlacePricesAsync(string? city, CancellationToken ct = default)
+    {
+        var cards = city is null ? db.ListingCards : db.ListingCards.Where(c => c.City == city);
+        var keyed = cards.Select(c => new { Place = city == null ? c.City : c.District, c.Deal, c.Price, c.Deposit, c.AreaM2 });
+        // Listings priced "توافقی" (no price) would drag the averages down, so they are left out.
+        var sale = await keyed.Where(c => c.Deal == DealType.Sale && c.Price > 0 && c.AreaM2 > 0).GroupBy(c => c.Place)
+            .Select(g => new { g.Key, N = g.Count(), Price = g.Sum(x => (double)x.Price!.Value), Area = g.Sum(x => (double)x.AreaM2) })
+            .ToListAsync(ct);
+        var rent = await keyed.Where(c => c.Deal == DealType.Rent && c.Deposit > 0).GroupBy(c => c.Place)
+            .Select(g => new { g.Key, N = g.Count(), Deposit = g.Average(x => (double)x.Deposit!.Value) })
+            .ToListAsync(ct);
+        return sale.Select(x => x.Key).Union(rent.Select(x => x.Key))
+            .Select(name =>
+            {
+                var s = sale.FirstOrDefault(x => x.Key == name);
+                var r = rent.FirstOrDefault(x => x.Key == name);
+                return new PlacePrice(name, s?.N ?? 0, s is null ? null : (long)(s.Price / s.Area), r?.N ?? 0, r is null ? null : (long)r.Deposit);
+            })
+            .OrderByDescending(x => x.SaleListings + x.RentListings).ThenBy(x => x.Name, StringComparer.Ordinal).ToList();
+    }
+
     /// <summary>Cities with published listings, busiest first.</summary>
     public async Task<List<CityFacet>> CitiesAsync(DealType? deal = null, CancellationToken ct = default)
     {

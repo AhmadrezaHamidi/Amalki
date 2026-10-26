@@ -1,0 +1,59 @@
+@page "/قیمت-ملک/{citySlug?}"
+@model Amlak.Web.Pages.Prices.IndexModel
+@using Amlak.Web.Pages.Prices
+@using Amlak.Web.Services.Seo
+@inject IConfiguration Cfg
+@{
+    var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
+    var where = Model.City is null ? "شهرهای ایران" : "محله‌های " + Model.City;
+    var place = Model.City is null ? "شهر" : "محله";
+    var buy = Taxonomy.Find("خرید");
+    var rent = Taxonomy.Find("رهن-و-اجاره");
+    ViewData["Title"] = $"قیمت ملک و میانگین قیمت هر متر در {where}";
+    var top = Model.Rows.Where(r => r.SalePricePerM2 is not null).Take(3).ToList();
+    ViewData["Description"] = $"میانگین قیمت هر متر آپارتمان و ملک و میانگین رهن در {where}، از روی آگهی‌های منتشرشده در آشیانه"
+        + (top.Count > 0 ? "؛ " + string.Join("، ", top.Select(r => $"{r.Name} هر متر {Fa.Money(r.SalePricePerM2)}")) + " تومان." : ".");
+    ViewData["Canonical"] = site + IndexModel.Path(Model.City);
+    if (Model.Rows.Count == 0) ViewData["Robots"] = "noindex,follow";
+    var crumbs = new List<(string, string)> { ("خانه", site + "/"), ("قیمت ملک", site + IndexModel.Path(null)) };
+    if (Model.City is not null) crumbs.Add((Model.City, site + IndexModel.Path(Model.City)));
+}
+@section Head {
+    <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(JsonLd.Breadcrumbs(crumbs.ToArray())))</script>
+}
+<div class="wrap page-pad">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / @if (Model.City is null) { <span aria-current="page">قیمت ملک</span> } else { <a href="@IndexModel.Path(null)">قیمت ملک</a> <text> / </text><span aria-current="page">@Model.City</span> }</nav>
+    <h1 style="margin:8px 0 4px">@ViewData["Title"]</h1>
+    <p class="hint" style="max-width:720px">قیمت هر متر = جمع قیمت آگهی‌های فروش تقسیم بر جمع متراژ آن‌ها. آگهی‌های «توافقی» حساب نمی‌شوند. این عددها قیمت پیشنهادی آگهی‌هاست، نه قیمت معامله‌شده.</p>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="empty-state"><h2>هنوز آگهی کافی برای محاسبهٔ قیمت نیست</h2></div>
+    }
+    else
+    {
+        <div class="tablewrap" style="margin-top:20px">
+            <table class="table">
+                <thead>
+                    <tr><th scope="col">@place</th><th scope="col">میانگین قیمت هر متر (تومان)</th><th scope="col">آگهی فروش</th><th scope="col">میانگین رهن (تومان)</th><th scope="col">آگهی اجاره</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rows)
+                    {
+                        var city = Model.City ?? r.Name;
+                        var district = Model.City is null ? null : r.Name;
+                        <tr>
+                            <th scope="row">
+                                @if (Model.City is null) { <a href="@IndexModel.Path(r.Name)">@r.Name</a> } else { @r.Name }
+                            </th>
+                            <td>@(r.SalePricePerM2 is { } ppm ? Fa.Money(ppm) : "—")</td>
+                            <td>@if (r.SaleListings > 0) { <a href="@Taxonomy.EncodedPath(city, buy, district)">@Fa.Digits(r.SaleListings.ToString())</a> } else { <text>—</text> }</td>
+                            <td>@(r.AvgDeposit is { } dep ? Fa.Money(dep) : "—")</td>
+                            <td>@if (r.RentListings > 0) { <a href="@Taxonomy.EncodedPath(city, rent, district)">@Fa.Digits(r.RentListings.ToString())</a> } else { <text>—</text> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

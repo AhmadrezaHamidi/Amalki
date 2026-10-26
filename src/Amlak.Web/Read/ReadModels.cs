@@ -73,3 +73,9 @@ public class AdminCounters
 
 /// <summary>Published listings in one city, with average price and area.</summary>
 public record CityFacet(string City, int Listings, long AvgPrice, int AvgArea);
+
+/// <summary>
+/// Asking prices in one place (a city, or a district of a city), Melkradar-style: sale price per m² weighted by
+/// area (total price / total area of sale listings with a price), and the average rent deposit.
+/// </summary>
+public record PlacePrice(string Name, int SaleListings, long? SalePricePerM2, int RentListings, long? AvgDeposit);

@@ -38,7 +38,7 @@
         <div>
             <h1>@Model.Heading</h1>
             <p>@(Model.Total == 0 ? "آگهی‌ای پیدا نشد" : Fa.Digits(Model.Total.ToString()) + " آگهی پیدا شد")
-                @if (Model.AvgPricePerM2 is { } ppm) { <span class="hint"> · میانگین قیمت هر متر @Fa.Money(ppm) تومان</span> }
+                @if (Model.AvgPricePerM2 is { } ppm) { <span class="hint"> · <a href="@Amlak.Web.Pages.Prices.IndexModel.Path(Model.City)">میانگین قیمت هر متر @Fa.Money(ppm) تومان</a></span> }
             </p>
         </div>
         <div class="row-actions">
