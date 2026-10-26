@@ -18,6 +18,8 @@
 
 - Admin panel v2 + support desk + storage (2026-10-26): canvas boards AdminDashboard/AdminTickets/Support; `/Admin` dashboard, listings at `/Admin/Listings`, sidebar with pending counts; tickets (`Ticket`/`TicketMessage`, migration `Tickets`): public `/پشتیبانی` new + track (code+mobile), `/پشتیبانی/{code}` thread, `/Admin/Tickets` inbox with reply/close; admin bot alerts for tickets (`AdminNotifier`). Storage: `IFileStore` with Local + MinIO (`Storage:Provider`, docs/STORAGE.md), verified against moto S3, not real MinIO. Channels: albums via sendMediaGroup, repost on photo change, delete all album messages (migration `ChannelAlbums`). 29 tests pass.
 
+- Divar-style structure (2026-10-26): landing pages `/املاک/{city}/{category}/{district}` (Services/Taxonomy.cs, 12 categories, "ایران" = all cities), old `?deal=&city=` links 301 to them, self-canonical + breadcrumb per landing, district/city link blocks, avg price per m² (Melkradar idea). Property fields HasElevator/HasStorage/HasBalcony/Deed/Convertible (migration `ListingFeatures`), filters for price/area ranges, max rent, building age, amenities, has photo. Sitemap lists landing pages with listings. Comparison doc: https://claude.ai/artifact/2oDapv7FwxA1Am4PqcDaCb. 35 tests pass.
+
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
 - Apply the `Leads` migration on the real SQL Server (`dotnet ef database update`).

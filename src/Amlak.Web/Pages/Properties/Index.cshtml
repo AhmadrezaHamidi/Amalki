@@ -1,32 +1,52 @@
-@page "/املاک"
+@page "/املاک/{citySlug?}/{categorySlug?}/{districtSlug?}"
 @model Amlak.Web.Pages.Properties.IndexModel
 @using Amlak.Web.Pages.Properties
+@using Amlak.Web.Services.Seo
+@inject IConfiguration Cfg
 @{
-    var label = Model.Deal switch { DealType.Sale => "خرید ملک", DealType.Rent => "اجارهٔ ملک", _ => "آگهی‌های ملک" };
-    if (Model.Kind is { } kk) label = Model.Deal switch { DealType.Sale => "خرید ", DealType.Rent => "اجارهٔ ", _ => "" } + Labels.Kind(kk);
-    ViewData["Title"] = label + (string.IsNullOrWhiteSpace(Model.City) ? "" : " در " + Model.City.Trim());
-    ViewData["Description"] = $"{label} — {Fa.Digits(Model.Total.ToString())} آگهی بررسی‌شده با عکس واقعی و قیمت شفاف.";
-    // Filtered/paged variants point to the base listing to avoid duplicate-content indexing.
-    ViewData["Canonical"] = $"{Model.Request.Scheme}://{Model.Request.Host}/املاک" + (Model.Deal is { } d ? "?deal=" + d : "");
+    var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
+    var cat = Model.Category;
+    ViewData["Title"] = Model.Heading;
+    ViewData["Description"] = $"{Model.Heading}: {Fa.Digits(Model.Total.ToString())} آگهی بررسی‌شده با عکس واقعی و قیمت شفاف"
+        + (Model.AvgPricePerM2 is { } avg ? $"، میانگین هر متر {Fa.Money(avg)} تومان." : ".");
+    // Each landing page is its own canonical; filtered and paged variants point to it.
+    ViewData["Canonical"] = site + Taxonomy.EncodedPath(Model.City, cat, Model.District);
+    if (Model.UnknownPlace || Model.Total == 0) ViewData["Robots"] = "noindex,follow";
     var rent = Model.Deal == DealType.Rent;
     string[] bedLabels = ["همه", "۱+", "۲+", "۳+", "۴+"];
+    // Breadcrumb: خانه / تهران / خرید آپارتمان / سعادت‌آباد
+    var crumbs = new List<(string Name, string Url)> { ("خانه", site + "/") };
+    if (Model.City is not null) crumbs.Add((Model.City, site + Taxonomy.EncodedPath(Model.City, null)));
+    if (cat is not null) crumbs.Add((cat.Name, site + Taxonomy.EncodedPath(Model.City, cat)));
+    if (Model.District is not null) crumbs.Add((Model.District, site + Taxonomy.EncodedPath(Model.City, cat, Model.District)));
+    if (crumbs.Count == 1) crumbs.Add(("آگهی‌ها", site + Taxonomy.EncodedPath(null, null)));
+    var dealCats = Taxonomy.All.Where(c => c.Deal == (Model.Deal ?? DealType.Sale)).ToList();
 }
 @section Head {
-    <script type="application/ld+json">@Html.Raw(Amlak.Web.Services.Seo.JsonLd.Serialize(Amlak.Web.Services.Seo.JsonLd.Breadcrumbs(("خانه", Model.Request.Scheme + "://" + Model.Request.Host + "/"), (label, (string)ViewData["Canonical"]!))))</script>
+    <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(JsonLd.Breadcrumbs(crumbs.ToArray())))</script>
 }
 <div class="wrap page-pad">
-    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / @label</nav>
+    <nav class="crumbs" aria-label="مسیر">
+        @for (var i = 0; i < crumbs.Count; i++)
+        {
+            if (i > 0) { <text> / </text> }
+            if (i == crumbs.Count - 1) { <span aria-current="page">@crumbs[i].Name</span> }
+            else { <a href="@crumbs[i].Url.Substring(site.Length)">@crumbs[i].Name</a> }
+        }
+    </nav>
     <div class="list-head">
         <div>
-            <h1>@ViewData["Title"]</h1>
-            <p>@(Model.Total == 0 ? "آگهی‌ای پیدا نشد" : Fa.Digits(Model.Total.ToString()) + " آگهی پیدا شد")</p>
+            <h1>@Model.Heading</h1>
+            <p>@(Model.Total == 0 ? "آگهی‌ای پیدا نشد" : Fa.Digits(Model.Total.ToString()) + " آگهی پیدا شد")
+                @if (Model.AvgPricePerM2 is { } ppm) { <span class="hint"> · میانگین قیمت هر متر @Fa.Money(ppm) تومان</span> }
+            </p>
         </div>
         <div class="row-actions">
             <button class="btn quiet filter-toggle" type="button" aria-expanded="false" aria-controls="filters" data-filter-toggle>@Icons.Get("filter") فیلترها</button>
             <form method="get" class="sort" data-autosubmit>
-                @foreach (var (k, v) in new (string, object?)[] { ("deal", Model.Deal), ("kind", Model.Kind), ("city", Model.City), ("maxPrice", Model.MaxPrice), ("minArea", Model.MinArea), ("beds", Model.Beds) })
+                @foreach (var (k, v) in Model.QueryFilters())
                 {
-                    if (v is not null && v.ToString() != "") { <input type="hidden" name="@k" value="@v" /> }
+                    if (k is not ("sort" or "p") && v is not null && v.ToString() != "") { <input type="hidden" name="@k" value="@v" /> }
                 }
                 <label for="sort">مرتب‌سازی</label>
                 <select id="sort" name="sort" class="btn quiet" style="font-weight:500">
@@ -40,7 +60,14 @@
         </div>
     </div>
 
-    <div class="list-layout">
+    <nav class="cat-links" aria-label="دسته‌بندی‌ها">
+        @foreach (var c in dealCats)
+        {
+            <a class="chip @(c == cat ? "on" : "")" href="@Model.LinkTo(Model.City, c, c.Kind == Model.Kind ? Model.District : null)" aria-current="@(c == cat ? "page" : null)">@(c.Kind is { } ck ? Labels.Kind(ck) : "همه")</a>
+        }
+    </nav>
+
+<div class="list-layout">
         <form method="get" class="filters" id="filters" aria-label="فیلتر آگهی‌ها">
             <strong>فیلترها</strong>
             <fieldset class="seg" style="border:0;margin:0">
@@ -49,7 +76,17 @@
                 <label><input type="radio" name="deal" value="Sale" checked="@(Model.Deal == DealType.Sale)" /><span>خرید</span></label>
                 <label><input type="radio" name="deal" value="Rent" checked="@(Model.Deal == DealType.Rent)" /><span>اجاره</span></label>
             </fieldset>
-            <label class="field">شهر<input name="city" value="@Model.City" placeholder="مثلاً تهران" /></label>
+            <label class="field">شهر<input name="city" value="@Model.City" placeholder="مثلاً تهران" list="city-list" /></label>
+            <datalist id="city-list">@foreach (var c in Model.Cities) { <option value="@c.Name"></option> }</datalist>
+            @if (Model.Districts.Count > 0)
+            {
+                <label class="field">محله
+                    <select name="district">
+                        <option value="">همهٔ محله‌ها</option>
+                        @foreach (var d in Model.Districts) { <option value="@d.Name" selected="@(d.Name == Model.District)">@d.Name</option> }
+                    </select>
+                </label>
+            }
             <label class="field">نوع ملک
                 <select name="kind">
                     <option value="">همهٔ انواع</option>
@@ -66,24 +103,54 @@
                 </div>
             </fieldset>
             <div class="field-pair">
-                <label class="field">حداقل متراژ<input name="minArea" value="@Model.MinArea" inputmode="numeric" placeholder="مثلاً ۸۰" /></label>
-                <label class="field">@(rent ? "سقف رهن" : "سقف قیمت")<input name="maxPrice" value="@Model.MaxPrice" inputmode="numeric" placeholder="تومان" data-money /></label>
+                <label class="field">متراژ از<input name="minArea" value="@Model.MinArea" inputmode="numeric" placeholder="مثلاً ۸۰" /></label>
+                <label class="field">تا<input name="maxArea" value="@Model.MaxArea" inputmode="numeric" placeholder="متر" /></label>
+            </div>
+            <div class="field-pair">
+                <label class="field">@(rent ? "رهن از" : "قیمت از")<input name="minPrice" value="@Model.MinPrice" inputmode="numeric" placeholder="تومان" data-money /></label>
+                <label class="field">تا<input name="maxPrice" value="@Model.MaxPrice" inputmode="numeric" placeholder="تومان" data-money /></label>
             </div>
             <p class="hint" data-money-hint aria-live="polite"></p>
+            @if (rent)
+            {
+                <label class="field">سقف اجارهٔ ماهانه<input name="maxRent" value="@Model.MaxRent" inputmode="numeric" placeholder="تومان" data-money /></label>
+            }
+            <label class="field">سن بنا
+                <select name="age">
+                    <option value="">فرقی نمی‌کند</option>
+                    @foreach (var a in new[] { 0, 5, 10, 15, 20 }) { <option value="@a" selected="@(Model.Age == a)">@(a == 0 ? "نوساز" : "تا " + Fa.Digits(a.ToString()) + " سال")</option> }
+                </select>
+            </label>
+            <fieldset class="checks">
+                <legend class="field">امکانات</legend>
+                <label><input type="checkbox" name="elevator" value="true" checked="@Model.Elevator" /> آسانسور</label>
+                <label><input type="checkbox" name="parking" value="true" checked="@Model.Parking" /> پارکینگ</label>
+                <label><input type="checkbox" name="storage" value="true" checked="@Model.Storage" /> انباری</label>
+                <label><input type="checkbox" name="photo" value="true" checked="@Model.Photo" /> فقط عکس‌دار</label>
+                @if (rent) { <label><input type="checkbox" name="convertible" value="true" checked="@Model.Convertible" /> رهن و اجاره قابل تبدیل</label> }
+            </fieldset>
             @if (Model.Sort != SortOrder.Newest) { <input type="hidden" name="sort" value="@Model.Sort" /> }
             <button class="btn block">اعمال فیلتر</button>
-            @if (Model.HasFilters) { <a href="/املاک@(Model.Deal is { } dd ? "?deal=" + dd : "")" style="text-align:center;font-size:.9rem">پاک کردن فیلترها</a> }
+            @if (Model.HasFilters) { <a href="@Taxonomy.EncodedPath(Model.City, cat, Model.District)" style="text-align:center;font-size:.9rem">پاک کردن فیلترها</a> }
         </form>
 
         <div class="list-main">
             @if (Model.HasFilters)
             {
                 <div class="chips" aria-label="فیلترهای فعال">
-                    @if (Model.Kind is { } fk) { <span class="chip">@Labels.Kind(fk) <a href="@Model.Link(("kind", null))" aria-label="حذف فیلتر نوع ملک">×</a></span> }
-                    @if (!string.IsNullOrWhiteSpace(Model.City)) { <span class="chip">@Model.City <a href="@Model.Link(("city", null))" aria-label="حذف فیلتر شهر">×</a></span> }
+                    @if (Model.Kind is { } fk && Model.Deal is null) { <span class="chip">@Labels.Kind(fk) <a href="@Model.Link(("kind", null))" aria-label="حذف فیلتر نوع ملک">×</a></span> }
                     @if (Model.Beds is { } fb and > 0) { <span class="chip">@Fa.Digits(fb.ToString())+ خواب <a href="@Model.Link(("beds", null))" aria-label="حذف فیلتر خواب">×</a></span> }
-                    @if (Model.MinAreaValue is { } fa) { <span class="chip">از @Fa.Digits(fa.ToString()) متر <a href="@Model.Link(("minArea", null))" aria-label="حذف فیلتر متراژ">×</a></span> }
+                    @if (Model.MinAreaValue is { } fa) { <span class="chip">از @Fa.Digits(fa.ToString()) متر <a href="@Model.Link(("minArea", null))" aria-label="حذف فیلتر حداقل متراژ">×</a></span> }
+                    @if (Model.MaxAreaValue is { } fa2) { <span class="chip">تا @Fa.Digits(fa2.ToString()) متر <a href="@Model.Link(("maxArea", null))" aria-label="حذف فیلتر حداکثر متراژ">×</a></span> }
+                    @if (Model.MinPriceValue is { } fp1) { <span class="chip">از @Fa.Money(fp1) <a href="@Model.Link(("minPrice", null))" aria-label="حذف فیلتر حداقل قیمت">×</a></span> }
                     @if (Model.MaxPriceValue is { } fp) { <span class="chip">تا @Fa.Money(fp) <a href="@Model.Link(("maxPrice", null))" aria-label="حذف فیلتر قیمت">×</a></span> }
+                    @if (Model.MaxRentValue is { } fr) { <span class="chip">اجاره تا @Fa.Money(fr) <a href="@Model.Link(("maxRent", null))" aria-label="حذف فیلتر اجاره">×</a></span> }
+                    @if (Model.Age is { } fage) { <span class="chip">@(fage == 0 ? "نوساز" : "تا " + Fa.Digits(fage.ToString()) + " سال ساخت") <a href="@Model.Link(("age", null))" aria-label="حذف فیلتر سن بنا">×</a></span> }
+                    @if (Model.Elevator) { <span class="chip">آسانسور <a href="@Model.Link(("elevator", null))" aria-label="حذف فیلتر آسانسور">×</a></span> }
+                    @if (Model.Parking) { <span class="chip">پارکینگ <a href="@Model.Link(("parking", null))" aria-label="حذف فیلتر پارکینگ">×</a></span> }
+                    @if (Model.Storage) { <span class="chip">انباری <a href="@Model.Link(("storage", null))" aria-label="حذف فیلتر انباری">×</a></span> }
+                    @if (Model.Photo) { <span class="chip">عکس‌دار <a href="@Model.Link(("photo", null))" aria-label="حذف فیلتر عکس‌دار">×</a></span> }
+                    @if (Model.Convertible) { <span class="chip">قابل تبدیل <a href="@Model.Link(("convertible", null))" aria-label="حذف فیلتر قابل تبدیل">×</a></span> }
                 </div>
             }
             @if (Model.Items.Count == 0)
@@ -93,7 +160,7 @@
                     <h2>آگهی‌ای با این فیلترها پیدا نشد</h2>
                     <p>فیلترها را کمتر کنید، یا مشخصات ملک موردنظرتان را بفرستید تا وقتی پیدا شد خبرتان کنیم.</p>
                     <div class="row-actions" style="justify-content:center">
-                        <a class="btn ghost" href="/املاک">همهٔ آگهی‌ها</a>
+                        <a class="btn ghost" href="@Taxonomy.EncodedPath(null, null)">همهٔ آگهی‌ها</a>
                         <a class="btn" href="/تماس">سفارش ملک</a>
                     </div>
                 </div>
@@ -117,4 +184,18 @@
             }
         </div>
     </div>
+    @if (Model.Districts.Count > 0 && cat is not null)
+    {
+        <section class="place-links" aria-labelledby="districts-title">
+            <h2 id="districts-title">@cat.Name در محله‌های @Model.City</h2>
+            <ul>@foreach (var d in Model.Districts) { <li><a href="@Taxonomy.EncodedPath(Model.City, cat, d.Name)" aria-current="@(d.Name == Model.District ? "page" : null)">@cat.Name در @d.Name <small>(@Fa.Digits(d.Count.ToString()))</small></a></li> }</ul>
+        </section>
+    }
+    @if (Model.Cities.Any(c => c.Name != Model.City))
+    {
+        <section class="place-links" aria-labelledby="cities-title">
+            <h2 id="cities-title">@(cat?.Name ?? "آگهی ملک") در شهرهای دیگر</h2>
+            <ul>@foreach (var c in Model.Cities.Where(c => c.Name != Model.City)) { <li><a href="@Taxonomy.EncodedPath(c.Name, cat)">@(cat?.Name ?? "املاک") @c.Name</a></li> }</ul>
+        </section>
+    }
 </div>

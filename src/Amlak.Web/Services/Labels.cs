@@ -12,6 +12,14 @@ public static class Labels
         _ => "اداری",
     };
 
+    public static string Deed(DeedType d) => d switch
+    {
+        DeedType.Single => "تک‌برگ",
+        DeedType.Manguleh => "منگوله‌دار",
+        DeedType.Promissory => "قول‌نامه‌ای",
+        _ => "اوقافی",
+    };
+
     public static string Deal(DealType d) => d == DealType.Sale ? "فروش" : "اجاره";
 
     public static string Status(ListingStatus s) => s switch

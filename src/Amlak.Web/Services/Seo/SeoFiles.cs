@@ -19,17 +19,43 @@ public static class SeoFiles
     public static string Absolute(string baseUrl, string url) =>
         url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : baseUrl + (url.StartsWith('/') ? url : "/" + url);
 
+    /// <summary>
+    /// Divar-style landing pages that have at least one published listing: every city, every
+    /// city + category, and every city + category + district, plus the all-cities category pages.
+    /// </summary>
+    public static List<string> LandingPaths(IEnumerable<Property> published)
+    {
+        var list = published.ToList();
+        var paths = new List<string>();
+        foreach (var c in Taxonomy.All.Where(c => list.Any(p => Matches(c, p))))
+            paths.Add(Taxonomy.EncodedPath(null, c));
+        foreach (var city in list.GroupBy(p => p.City).OrderByDescending(g => g.Count()))
+        {
+            paths.Add(Taxonomy.EncodedPath(city.Key, null));
+            foreach (var c in Taxonomy.All.Where(c => city.Any(p => Matches(c, p))))
+            {
+                paths.Add(Taxonomy.EncodedPath(city.Key, c));
+                foreach (var district in city.Where(p => Matches(c, p)).Select(p => p.District).Distinct())
+                    paths.Add(Taxonomy.EncodedPath(city.Key, c, district));
+            }
+        }
+        return paths;
+    }
+
+    private static bool Matches(Category c, Property p) => p.Deal == c.Deal && (c.Kind is null || p.Kind == c.Kind);
+
     public static string Sitemap(IEnumerable<Property> published, string baseUrl)
     {
+        published = published.ToList();
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         XNamespace img = "http://www.google.com/schemas/sitemap-image/1.1";
         var urls = new List<XElement>
         {
             new(ns + "url", new XElement(ns + "loc", baseUrl + "/"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "1.0")),
             new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl)), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.9")),
-            new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl) + "?deal=Sale"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")),
-            new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl) + "?deal=Rent"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")),
         };
+        urls.AddRange(LandingPaths(published).Select(path =>
+            new XElement(ns + "url", new XElement(ns + "loc", baseUrl + path), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8"))));
 
         foreach (var p in published.Take(MaxSitemapUrls - urls.Count))
         {
@@ -73,8 +99,9 @@ public static class SeoFiles
         sb.AppendLine();
         sb.AppendLine("## صفحه‌های اصلی");
         sb.AppendLine($"- [همهٔ آگهی‌ها]({ListUrl(baseUrl)}): فهرست کامل با فیلتر شهر، نوع ملک و قیمت");
-        sb.AppendLine($"- [خرید ملک]({ListUrl(baseUrl)}?deal=Sale): آگهی‌های فروش");
-        sb.AppendLine($"- [اجاره و رهن]({ListUrl(baseUrl)}?deal=Rent): آگهی‌های رهن و اجاره");
+        sb.AppendLine($"- [خرید ملک]({baseUrl}{Taxonomy.EncodedPath(null, Taxonomy.Find("خرید"))}): آگهی‌های فروش");
+        sb.AppendLine($"- [رهن و اجاره]({baseUrl}{Taxonomy.EncodedPath(null, Taxonomy.Find("رهن-و-اجاره"))}): آگهی‌های رهن و اجاره");
+        sb.AppendLine($"- آدرس صفحه‌ها: {baseUrl}/املاک/{{شهر}}/{{دسته}}/{{محله}}، مثلاً /املاک/تهران/خرید-آپارتمان/سعادت-آباد. دسته‌ها: {string.Join("، ", Taxonomy.All.Select(c => c.Slug))}");
         sb.AppendLine();
         sb.AppendLine("## جدیدترین آگهی‌ها");
         foreach (var p in latest)

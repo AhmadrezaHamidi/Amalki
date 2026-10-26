@@ -25,6 +25,11 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         [Range(-5, 200)] public int? Floor { get; set; }
         [Range(0, 50)] public int? Parking { get; set; }
         [Range(1200, 1500)] public int? YearBuilt { get; set; }
+        public bool? HasElevator { get; set; }
+        public bool? HasStorage { get; set; }
+        public bool? HasBalcony { get; set; }
+        public DeedType? Deed { get; set; }
+        public bool Convertible { get; set; }
         [Required(ErrorMessage = "شهر لازم است"), StringLength(80)] public string City { get; set; } = "";
         [Required(ErrorMessage = "محله لازم است"), StringLength(80)] public string District { get; set; } = "";
         [StringLength(300)] public string? Address { get; set; }
@@ -51,6 +56,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
             Title = p.Title, Description = p.Description, Deal = p.Deal, Kind = p.Kind, Status = p.Status,
             Price = p.Price, Deposit = p.Deposit, MonthlyRent = p.MonthlyRent, AreaM2 = p.AreaM2, Bedrooms = p.Bedrooms,
             Floor = p.Floor, Parking = p.Parking, YearBuilt = p.YearBuilt, City = p.City, District = p.District,
+            HasElevator = p.HasElevator, HasStorage = p.HasStorage, HasBalcony = p.HasBalcony, Deed = p.Deed, Convertible = p.Convertible,
             Address = p.Address, Latitude = p.Latitude, Longitude = p.Longitude,
         };
         return Page();
@@ -128,6 +134,8 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         p.MonthlyRent = Input.Deal == DealType.Rent ? Input.MonthlyRent : null;
         p.AreaM2 = Input.AreaM2; p.Bedrooms = Input.Bedrooms; p.Floor = Input.Floor;
         p.Parking = Input.Parking; p.YearBuilt = Input.YearBuilt;
+        p.HasElevator = Input.HasElevator; p.HasStorage = Input.HasStorage; p.HasBalcony = Input.HasBalcony;
+        p.Deed = Input.Deed; p.Convertible = Input.Deal == DealType.Rent && Input.Convertible;
         p.City = Input.City.Trim(); p.District = Input.District.Trim(); p.Address = Input.Address?.Trim();
         p.Latitude = Input.Latitude; p.Longitude = Input.Longitude;
         if (Input.Status == ListingStatus.Published && p.Status != ListingStatus.Published)

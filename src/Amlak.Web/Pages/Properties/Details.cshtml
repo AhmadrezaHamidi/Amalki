@@ -28,10 +28,16 @@
     };
     var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var ldJson = JsonLd.Serialize(ld);
+    // خانه / تهران / خرید آپارتمان / سعادت‌آباد / آگهی, each a landing page.
+    var cat = Taxonomy.For(p.Deal, p.Kind)!;
+    var crumbs = new (string Name, string Path)[]
+    {
+        (p.City, Taxonomy.EncodedPath(p.City, null)),
+        (cat.Name, Taxonomy.EncodedPath(p.City, cat)),
+        (p.District, Taxonomy.EncodedPath(p.City, cat, p.District)),
+    };
     var crumbJson = JsonLd.Serialize(JsonLd.Breadcrumbs(
-        ("خانه", site + "/"),
-        (rent ? "اجاره" : "خرید", SeoFiles.ListUrl(site) + "?deal=" + p.Deal),
-        (p.Title, SeoFiles.PropertyUrl(site, p))));
+        [("خانه", site + "/"), .. crumbs.Select(c => (c.Name, site + c.Path)), (p.Title, SeoFiles.PropertyUrl(site, p))]));
     var phone = Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
@@ -43,13 +49,14 @@
     <script type="application/ld+json">@Html.Raw(crumbJson)</script>
 }
 <div class="wrap page-pad">
-    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / <a href="/املاک?deal=@p.Deal">@(rent ? "اجاره" : "خرید")</a> / <a href="/املاک?deal=@p.Deal&city=@Uri.EscapeDataString(p.City)">@p.City</a></nav>
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a>@foreach (var c in crumbs) { <text> / </text><a href="@c.Path">@c.Name</a> }</nav>
 
     <div class="detail-head">
         <div>
             <div class="tags"><span class="badge @(rent ? "rent" : "")">@Labels.Deal(p.Deal)</span><span class="badge soft">@Labels.Kind(p.Kind)</span></div>
             <h1>@p.Title</h1>
             <span class="loc">@Icons.Get("pin", 18) @p.District، @p.City · کد آگهی @Fa.Digits(p.Id.ToString())</span>
+            @if (p.PublishedAtUtc is { } pub) { <span class="posted"><time datetime="@pub.ToString("o")">@Fa.Ago(pub)</time> در @p.District</span> }
         </div>
         <div class="row-actions">
             <button class="btn quiet" type="button" data-fav="@p.Id" aria-pressed="false" data-fav-label>@Icons.Get("heart", 18)<span>نشان کردن</span></button>
@@ -98,7 +105,20 @@
                     @if (p.Parking is { } pk) { <li><span>پارکینگ</span><strong>@(pk == 0 ? "ندارد" : Fa.Digits(pk.ToString()))</strong></li> }
                     @if (p.YearBuilt is { } y) { <li><span>سال ساخت</span><strong>@Fa.Digits(y.ToString())</strong></li> }
                     <li><span>نوع ملک</span><strong>@Labels.Kind(p.Kind)</strong></li>
+                    @if (p.Deed is { } deed) { <li><span>سند</span><strong>@Labels.Deed(deed)</strong></li> }
+                    @if (rent) { <li><span>رهن و اجاره</span><strong>@(p.Convertible ? "قابل تبدیل" : "غیرقابل تبدیل")</strong></li> }
                 </ul>
+                @if (p.HasElevator is not null || p.Parking is not null || p.HasStorage is not null || p.HasBalcony is not null)
+                {
+                    // Divar's three-up "has / has not" row, plus balcony.
+                    var amenities = new (string Name, bool? Has)[] { ("آسانسور", p.HasElevator), ("پارکینگ", p.Parking is null ? null : p.Parking > 0), ("انباری", p.HasStorage), ("بالکن", p.HasBalcony) };
+                    <ul class="amenities" aria-label="امکانات">
+                        @foreach (var (name, has) in amenities.Where(x => x.Has is not null))
+                        {
+                            <li class="@(has == true ? "" : "no")">@name<span class="sr-only">@(has == true ? "دارد" : "ندارد")</span></li>
+                        }
+                    </ul>
+                }
             </section>
 
             <section aria-labelledby="desc-title">
@@ -123,6 +143,7 @@
             {
                 <section aria-labelledby="similar-title">
                     <h2 id="similar-title">آگهی‌های مشابه در @p.City</h2>
+                    <p><a href="@Taxonomy.EncodedPath(p.City, cat, p.District)">همهٔ آگهی‌های @cat.Name در @p.District</a></p>
                     <div class="grid cols-3">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
                 </section>
             }

@@ -41,4 +41,18 @@ public static class Fa
                  : $"{v:N0}";
         return Digits(t.Replace('.', '٫'));
     }
+
+    /// <summary>Relative time the way listing sites show it: "لحظاتی پیش"، "۳ ساعت پیش"، "۲ هفته پیش".</summary>
+    public static string Ago(DateTime utc, DateTime? nowUtc = null)
+    {
+        var d = (nowUtc ?? DateTime.UtcNow) - utc;
+        string t = d.TotalMinutes < 1 ? "لحظاتی"
+                 : d.TotalHours < 1 ? $"{(int)d.TotalMinutes} دقیقه"
+                 : d.TotalDays < 1 ? $"{(int)d.TotalHours} ساعت"
+                 : d.TotalDays < 7 ? ((int)d.TotalDays == 1 ? "دیروز" : $"{(int)d.TotalDays} روز")
+                 : d.TotalDays < 30 ? $"{(int)(d.TotalDays / 7)} هفته"
+                 : d.TotalDays < 365 ? $"{(int)(d.TotalDays / 30)} ماه"
+                 : $"{(int)(d.TotalDays / 365)} سال";
+        return t == "دیروز" ? t : Digits(t) + " پیش";
+    }
 }
