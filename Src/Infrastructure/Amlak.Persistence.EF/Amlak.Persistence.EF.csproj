@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Amlak.Estate.Persistence.EF</AssemblyName>
+    <RootNamespace>Amlak.Persistence.EF</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AhmadBase.Persistence"      Version="1.0.9" />
+    <PackageReference Include="AhmadBase.External.Service" Version="1.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"            Version="8.0.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens"   Version="8.7.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt"  Version="8.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\Amlak.Domain\Amlak.Domain.csproj" />
+    <ProjectReference Include="..\..\Application\Amlak.Application.Contract\Amlak.Application.Contract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Amlak.Application.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ── Identity ── -->
+
+  <!-- ── Identity (احراز هویت) ── -->
+  <data name="UserNotFoundException" xml:space="preserve"><value>کاربر مورد نظر یافت نشد.</value></data>
+  <data name="UserSuspendedException" xml:space="preserve"><value>حساب کاربری شما مسدود شده است.</value></data>
+  <data name="OtpNotFoundException" xml:space="preserve"><value>کد تأیید معتبری برای این شماره یافت نشد. لطفاً دوباره درخواست کد دهید.</value></data>
+  <data name="OtpExpiredException" xml:space="preserve"><value>کد تأیید منقضی شده است. لطفاً دوباره درخواست کد دهید.</value></data>
+  <data name="OtpAlreadyUsedException" xml:space="preserve"><value>این کد تأیید قبلاً استفاده شده است.</value></data>
+  <data name="OtpInvalidException" xml:space="preserve"><value>کد تأیید اشتباه است.</value></data>
+  <data name="OtpRequestTooSoonException" xml:space="preserve"><value>کد تأیید به‌تازگی ارسال شده است. لطفاً یک دقیقه صبر کنید.</value></data>
+  <data name="InvalidRefreshTokenException" xml:space="preserve"><value>توکن تمدید نامعتبر یا منقضی است. لطفاً دوباره وارد شوید.</value></data>
+
+  <!-- ── Listing (آگهی) ── -->
+  <data name="PropertyNotFoundException" xml:space="preserve"><value>آگهی مورد نظر یافت نشد.</value></data>
+  <data name="PropertyAlreadyPublishedException" xml:space="preserve"><value>این آگهی قبلاً منتشر شده است.</value></data>
+  <data name="PropertyNotPublishedException" xml:space="preserve"><value>این آگهی منتشر نشده است.</value></data>
+  <data name="PropertyAlreadyClosedException" xml:space="preserve"><value>این آگهی قبلاً بسته شده است.</value></data>
+  <data name="SalePriceRequiredException" xml:space="preserve"><value>برای آگهی فروش، قیمت لازم است.</value></data>
+  <data name="RentAmountRequiredException" xml:space="preserve"><value>برای آگهی اجاره، مبلغ رهن یا اجارهٔ ماهانه لازم است.</value></data>
+  <data name="InvalidAmountException" xml:space="preserve"><value>مبلغ نمی‌تواند منفی باشد.</value></data>
+  <data name="InvalidAreaException" xml:space="preserve"><value>متراژ باید بیشتر از صفر باشد.</value></data>
+  <data name="InvalidLocationException" xml:space="preserve"><value>مختصات نقشه نامعتبر است؛ عرض و طول جغرافیایی باید با هم و در بازهٔ مجاز باشند.</value></data>
+  <data name="InvalidSlugException" xml:space="preserve"><value>از عنوان آگهی نشانی صفحه ساخته نشد؛ عنوان باید حرف یا عدد داشته باشد.</value></data>
+  <data name="PhotoLimitExceededException" xml:space="preserve"><value>هر آگهی حداکثر ۲۰ عکس می‌تواند داشته باشد.</value></data>
+  <data name="PhotoNotFoundException" xml:space="preserve"><value>عکس مورد نظر در این آگهی یافت نشد.</value></data>
+  <data name="InvalidPhotoOrderException" xml:space="preserve"><value>ترتیب عکس‌ها باید دقیقاً شامل همهٔ عکس‌های آگهی باشد.</value></data>
+  <data name="InvalidPhotoFileException" xml:space="preserve"><value>فقط فایل JPG، PNG یا WebP معتبر پذیرفته می‌شود.</value></data>
+  <data name="PhotoTooLargeException" xml:space="preserve"><value>حجم عکس حداکثر ۵ مگابایت است.</value></data>
+
+  <!-- ── Lead (درخواست تماس) ── -->
+  <data name="LeadNotFoundException" xml:space="preserve"><value>درخواست تماس مورد نظر یافت نشد.</value></data>
+  <data name="InvalidLeadTransitionException" xml:space="preserve"><value>این تغییر وضعیت برای درخواست تماس مجاز نیست.</value></data>
+  <data name="TooManyLeadsException" xml:space="preserve"><value>درخواست‌های زیادی از این شماره ثبت شده است. لطفاً چند دقیقه بعد دوباره تلاش کنید.</value></data>
+</root>

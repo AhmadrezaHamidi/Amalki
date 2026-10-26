@@ -8,7 +8,7 @@
 
 ## توکن‌ها
 
-تعریف در `src/Amlak.Web/wwwroot/css/site.css` (`:root`).
+تعریف در `Front/tailwind.config.js` (رنگ‌های `brand` و `accent`) و `Front/src/index.css`. نام‌های جدول زیر نام توکن‌های سایت قبلی‌اند؛ معادل Tailwind: `--primary` = `brand-700`، `--accent` = `accent-700`، `--bg` = `brand-50`، `--fg` = `brand-900`، `--border` = `brand-200`.
 
 | توکن | مقدار | کاربرد |
 |---|---|---|

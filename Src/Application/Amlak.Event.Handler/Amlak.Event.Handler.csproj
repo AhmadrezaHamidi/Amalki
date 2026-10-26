@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Amlak.Estate.Event.Handler</AssemblyName>
+    <RootNamespace>Amlak.Event.Handler</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AhmadBase.Application"                     Version="1.0.1" />
+    <PackageReference Include="AhmadBase.Event.Handler"                   Version="1.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\Amlak.Domain\Amlak.Domain.csproj" />
+    <ProjectReference Include="..\Amlak.Application.Contract\Amlak.Application.Contract.csproj" />
+  </ItemGroup>
+
+</Project>

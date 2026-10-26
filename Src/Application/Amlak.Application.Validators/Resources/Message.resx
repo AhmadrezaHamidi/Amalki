@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ── Identity ── -->
+
+  <!-- ── Common ── -->
+  <data name="IdInvalid" xml:space="preserve"><value>شناسه نامعتبر است.</value></data>
+  <data name="NameTooLong" xml:space="preserve"><value>نام و نام خانوادگی هر کدام حداکثر ۵۰ نویسه است.</value></data>
+  <data name="FullNameTooLong" xml:space="preserve"><value>نام حداکثر ۱۰۰ نویسه است.</value></data>
+
+  <!-- ── Identity ── -->
+  <data name="PhoneNumberRequired" xml:space="preserve"><value>شماره موبایل الزامی است.</value></data>
+  <data name="PhoneNumberInvalid" xml:space="preserve"><value>شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.</value></data>
+  <data name="OtpCodeRequired" xml:space="preserve"><value>کد تأیید الزامی است.</value></data>
+  <data name="OtpCodeInvalid" xml:space="preserve"><value>کد تأیید باید ۴ تا ۶ رقم باشد.</value></data>
+  <data name="RefreshTokenRequired" xml:space="preserve"><value>توکن تمدید الزامی است.</value></data>
+
+  <!-- ── Listing ── -->
+  <data name="TitleRequired" xml:space="preserve"><value>عنوان آگهی الزامی است.</value></data>
+  <data name="TitleTooLong" xml:space="preserve"><value>عنوان آگهی حداکثر ۱۵۰ نویسه است.</value></data>
+  <data name="DescriptionRequired" xml:space="preserve"><value>توضیحات آگهی الزامی است.</value></data>
+  <data name="DescriptionTooLong" xml:space="preserve"><value>توضیحات آگهی حداکثر ۴۰۰۰ نویسه است.</value></data>
+  <data name="DealInvalid" xml:space="preserve"><value>نوع معامله نامعتبر است.</value></data>
+  <data name="KindInvalid" xml:space="preserve"><value>نوع ملک نامعتبر است.</value></data>
+  <data name="SalePriceRequired" xml:space="preserve"><value>برای آگهی فروش، قیمت لازم است.</value></data>
+  <data name="RentAmountRequired" xml:space="preserve"><value>برای آگهی اجاره، مبلغ رهن یا اجارهٔ ماهانه لازم است.</value></data>
+  <data name="AmountNegative" xml:space="preserve"><value>مبلغ نمی‌تواند منفی باشد.</value></data>
+  <data name="AreaInvalid" xml:space="preserve"><value>متراژ باید عددی مثبت باشد.</value></data>
+  <data name="BedroomsInvalid" xml:space="preserve"><value>تعداد خواب نامعتبر است.</value></data>
+  <data name="FloorInvalid" xml:space="preserve"><value>طبقه نامعتبر است.</value></data>
+  <data name="ParkingInvalid" xml:space="preserve"><value>تعداد پارکینگ نامعتبر است.</value></data>
+  <data name="YearBuiltInvalid" xml:space="preserve"><value>سال ساخت باید سال شمسی بین ۱۳۰۰ و ۱۴۵۰ باشد.</value></data>
+  <data name="CityRequired" xml:space="preserve"><value>شهر الزامی است.</value></data>
+  <data name="CityTooLong" xml:space="preserve"><value>نام شهر حداکثر ۵۰ نویسه است.</value></data>
+  <data name="DistrictRequired" xml:space="preserve"><value>محله الزامی است.</value></data>
+  <data name="DistrictTooLong" xml:space="preserve"><value>نام محله حداکثر ۸۰ نویسه است.</value></data>
+  <data name="AddressTooLong" xml:space="preserve"><value>آدرس حداکثر ۳۰۰ نویسه است.</value></data>
+  <data name="LocationInvalid" xml:space="preserve"><value>مختصات نقشه نامعتبر است؛ عرض و طول جغرافیایی باید با هم وارد شوند.</value></data>
+  <data name="PhotoRequired" xml:space="preserve"><value>فایل عکس الزامی است.</value></data>
+  <data name="PhotoTooLarge" xml:space="preserve"><value>حجم عکس حداکثر ۵ مگابایت است.</value></data>
+  <data name="AltTooLong" xml:space="preserve"><value>متن جایگزین عکس حداکثر ۲۰۰ نویسه است.</value></data>
+  <data name="PhotoOrderRequired" xml:space="preserve"><value>فهرست ترتیب عکس‌ها معتبر نیست.</value></data>
+
+  <!-- ── Lead ── -->
+  <data name="FullNameRequired" xml:space="preserve"><value>نام و نام خانوادگی الزامی است.</value></data>
+  <data name="MessageTooLong" xml:space="preserve"><value>پیام حداکثر ۱۰۰۰ نویسه است.</value></data>
+  <data name="LeadStatusInvalid" xml:space="preserve"><value>وضعیت انتخاب‌شده معتبر نیست.</value></data>
+  <data name="NoteTooLong" xml:space="preserve"><value>یادداشت حداکثر ۱۰۰۰ نویسه است.</value></data>
+</root>

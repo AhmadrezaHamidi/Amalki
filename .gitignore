@@ -1,5 +1,10 @@
 bin/
 obj/
-src/Amlak.Web/wwwroot/uploads/
+.vs/
 *.user
-src/Amlak.Web/wwwroot/lib/
+logs/
+appsettings.Local.json
+.env
+Src/Web/Amlak.Web/wwwroot/uploads/
+Src/Web/Amlak.Web/wwwroot/lib/
+Src/Host/Amlak.ServiceHost/storage/

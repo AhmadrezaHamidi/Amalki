@@ -1,0 +1,12 @@
+global using AhmadBase.Application;
+global using ISmsService = AhmadBase.External.Service.ISmsService;
+global using Amlak.Application.Contract.Services;
+global using Amlak.Domain.Identity.Repositories;
+global using Amlak.Domain.Lead.Repositories;
+global using Amlak.Domain.Listing.Repositories;
+global using Amlak.Domain.Publishing.Repositories;
+global using Amlak.Persistence.EF;
+global using Identity.Application.Commands;
+global using Listing.Application.Commands;
+global using Publishing.Application.Commands;
+global using Lead.Application.Commands;

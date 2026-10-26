@@ -9,7 +9,8 @@
 | فایل | محتوا |
 |---|---|
 | [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | نیازمندی‌های کارکردی و غیرکارکردی، با وضعیت هر مورد |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | معماری، مدل داده، جریان انتشار، امنیت |
+| [docs/BACKEND.md](docs/BACKEND.md) | بک‌اند DDD: لایه‌ها، Aggregate ها و قواعد، Endpoint ها، پیکربندی |
+| [docs/FRONTEND.md](docs/FRONTEND.md) | فرانت React: ساختار، مسیرها، اجرا، استقرار با nginx، محدودیت سئوی SPA |
 | [docs/ADMIN-GUIDE.md](docs/ADMIN-GUIDE.md) | راهنمای استفاده از پنل مدیریت |
 | [docs/CHANNELS.md](docs/CHANNELS.md) | راه‌اندازی ربات تلگرام و بله، تنظیمات، رفع خطا |
 | [docs/SEO-GEO.md](docs/SEO-GEO.md) | سئو و GEO: آنچه هست و آنچه برنامه‌ریزی شده |
@@ -19,48 +20,72 @@
 
 ## استک
 
-ASP.NET Core 9 (Razor Pages) · EF Core 9 · SQL Server (Express در توسعه) · ASP.NET Identity · xUnit + SQLite برای تست
+**بک‌اند (API):** .NET 8 · DDD + CQRS با ساختار همیشگی (`AhmadBase.*`) · Minimal API · EF Core 8 (نوشتن) · Dapper (خواندن) · Autofac · FluentValidation · JWT با ورود OTP · SQL Server — جزئیات: [docs/BACKEND.md](docs/BACKEND.md)
 
-## اجرای محلی
-
-پیش‌نیاز: .NET SDK 9، SQL Server (یا Express با نام `localhost\SQLEXPRESS`).
-
-```bash
-cd src/Amlak.Web
-
-# یک‌بار: حساب مدیر توسعه (مقادیر خودتان را بگذارید؛ رمز حداقل ۱۰ نویسه با حرف بزرگ، کوچک، عدد و نماد)
-dotnet user-secrets set "Admin:Email" "admin@example.com"
-dotnet user-secrets set "Admin:Password" "<رمز-قوی>"
-
-dotnet ef database update      # ساخت دیتابیس Amlak
-dotnet run --launch-profile http
-```
-
-سایت روی `http://localhost:5244` بالا می‌آید. در حالت Development چهار آگهی نمونه خودکار ساخته می‌شود. ورود مدیر: `/Account/Login` ← پنل: `/Admin`.
-
-## تست
-
-```bash
-dotnet test tests/Amlak.Tests
-```
-
-تست‌های ناشر کانال (۸ مورد) با Bot API ساختگی و SQLite اجرا می‌شوند؛ به اینترنت و توکن واقعی نیاز ندارند.
+**فرانت‌اند:** React 18 · Vite · TypeScript · Tailwind · React Query · Zustand — جزئیات: [docs/FRONTEND.md](docs/FRONTEND.md)
 
 ## ساختار پوشه‌ها
 
 ```
-src/Amlak.Web/
-  Domain/            موجودیت‌ها (Property, PropertyPhoto, ChannelPost)
-  Data/              AppDbContext, AdminSeed, DevSeed
-  Migrations/        EF Core migrations
-  Services/          Slugger, Fa (ارقام و پول فارسی), PhotoStorage
-  Services/Publishing/  BotApiClient, CaptionBuilder, ChannelPublisher
-  Pages/             صفحه‌های عمومی، Account، Admin
-tests/Amlak.Tests/   تست‌های ناشر
-docs/                مستندات
-design-system/       سیستم طراحی
+Src/
+├── Domain/
+│   ├── Amlak.Domain            ← Aggregate ها (Property, ChannelPost, ContactLead, User)، Args، Enums، Exceptions، Repository interfaces
+│   └── Amlak.Event             ← Domain Event ها
+├── Application/
+│   ├── Amlak.Application.Contract        ← Command ها + قرارداد سرویس‌ها (عکس، کانال، پیامک مدیر، JWT)
+│   ├── Amlak.Application                 ← Command Handler ها
+│   ├── Amlak.Application.Query.Contract  ← Query ها + Result ها
+│   ├── Amlak.Application.Query           ← Query Handler ها
+│   ├── Amlak.Application.Validators      ← FluentValidation + ValidationBehavior
+│   └── Amlak.Event.Handler               ← Event Handler ها (همگام‌سازی کانال، پیامک درخواست تماس)
+├── Infrastructure/
+│   ├── Amlak.Persistence.EF    ← AmlakDbContext، Configurations، Repositories، Migrations، Bot API، انبار عکس
+│   ├── Amlak.Read.Dapper       ← Read Repository ها (سمت Query)
+│   └── Amlak.Config            ← AutofacModule، DomainEventDispatchBehavior، Middlewares، Swagger
+├── Rest/Amlak.Rest             ← Minimal API Endpoints + sitemap/robots/llms
+└── Host/
+    ├── Amlak.Option
+    └── Amlak.ServiceHost       ← نقطهٔ شروع API
+Front/                          ← React: سایت عمومی + پنل مدیریت
+Test/
+├── Amlak.Domain.Tests          ← قواعد دامین
+└── Amlak.Application.Tests     ← Handler ها روی SQLite، Validator ها، Bot API ساختگی، فایل‌های سئو
+Nuget/                          ← پکیج‌های AhmadBase.* (منبع محلی در nuget.config)
+docs/                           مستندات
+design-system/                  سیستم طراحی
 ```
+
+## اجرا
+
+پیش‌نیاز: .NET SDK 8، Node 20+، SQL Server (پیش‌فرض `localhost\SQLEXPRESS`، دیتابیس `AmlakApi`).
+
+```bash
+# API
+cd Src/Host/Amlak.ServiceHost
+dotnet user-secrets set "JWTOptions:Secret" "<کلید-تصادفی-حداقل-۳۲-نویسه>"
+dotnet user-secrets set "Platform:AdminPhones:0" "09xxxxxxxxx"   # شمارهٔ مدیر
+cd ../../..
+dotnet ef database update --project Src/Infrastructure/Amlak.Persistence.EF --startup-project Src/Host/Amlak.ServiceHost
+dotnet run --project Src/Host/Amlak.ServiceHost                  # http://localhost:5300/swagger
+
+# فرانت (ترمینال دیگر)
+cd Front
+npm install
+npm run dev                                                      # http://localhost:5173
+```
+
+ورود مدیر: `http://localhost:5173/login` با شماره‌ای که در `Platform:AdminPhones` گذاشتید. در Development پیامک ارسال نمی‌شود و کد زیر فرم نشان داده می‌شود.
+
+## تست
+
+```bash
+dotnet test Test/Amlak.Domain.Tests        # ۳۱ تست قواعد دامین
+dotnet test Test/Amlak.Application.Tests   # ۳۵ تست Handler/Validator/Bot API/سئو
+cd Front && npm test                       # ۷ تست کمکی‌های فرانت
+```
+
+هیچ‌کدام به اینترنت، SQL Server یا توکن واقعی نیاز ندارند.
 
 ## امنیت پیکربندی
 
-هیچ رمز یا توکنی در مخزن ذخیره نمی‌شود. مقادیر حساس (`Admin:*`, `Telegram:*`, `Bale:*`) فقط با user-secrets یا متغیر محیطی تنظیم می‌شوند. جزئیات: [docs/CHANNELS.md](docs/CHANNELS.md).
+هیچ رمز یا توکنی در مخزن ذخیره نمی‌شود. مقادیر حساس (`JWTOptions:Secret`, `Sms:ApiKey`, `Telegram:*`, `Bale:*`) فقط با user-secrets یا متغیر محیطی تنظیم می‌شوند. جزئیات: [docs/CHANNELS.md](docs/CHANNELS.md).

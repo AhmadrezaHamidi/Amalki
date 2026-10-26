@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Amlak.Estate.Application.Query</AssemblyName>
+    <RootNamespace>Amlak.Application.Query</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AhmadBase.Application.Query" Version="1.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Amlak.Application.Query.Contract\Amlak.Application.Query.Contract.csproj" />
+    <ProjectReference Include="..\..\Domain\Amlak.Domain\Amlak.Domain.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Amlak.Read.Dapper\Amlak.Read.Dapper.csproj" />
+  </ItemGroup>
+</Project>
