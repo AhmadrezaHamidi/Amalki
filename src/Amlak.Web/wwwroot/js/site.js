@@ -17,6 +17,21 @@
   toggle($('[data-filter-toggle]'), $('#filters'), 'open');
   toggle($('[data-admin-toggle]'), $('#admin-nav'), 'open', $('.admin-side'));
 
+  // ---- forms on output-cached pages: fetch this visitor's antiforgery token just before submitting ----
+  $$('form[data-csrf]').forEach((f) => f.addEventListener('submit', async (e) => {
+    if (f.dataset.ready) return;
+    e.preventDefault();
+    try {
+      const r = await fetch('/antiforgery-token', { credentials: 'same-origin', cache: 'no-store' });
+      const { field, token } = await r.json();
+      let input = f.elements[field];
+      if (!input) { input = document.createElement('input'); input.type = 'hidden'; input.name = field; f.append(input); }
+      input.value = token;
+      f.dataset.ready = '1';
+      f.requestSubmit ? f.requestSubmit() : f.submit();
+    } catch { location.href = '/تماس?propertyId=' + (f.elements['Input.PropertyId']?.value ?? ''); }
+  }));
+
   // ---- sort select submits itself ----
   $$('form[data-autosubmit] select').forEach((s) => s.addEventListener('change', () => s.form.submit()));
 

@@ -6,13 +6,16 @@
 @{
     var p = Model.Item;
     var rent = p.Deal == DealType.Rent;
-    var url = $"{Model.Request.Scheme}://{Model.Request.Host}/ملک/{p.Slug}";
+    var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
+    var url = SeoFiles.PropertyUrl(site, p);
     var dealLabel = rent ? "اجارهٔ" : "فروش";
     ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
     ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (!rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
     ViewData["Canonical"] = url;
     ViewData["BodyClass"] = "has-mobile-cta";
-    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = first.Url;
+    // Crawlers and link previews need absolute image URLs; MinIO URLs already are.
+    string Abs(string u) => u.StartsWith('/') ? site + u : u;
+    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = Abs(first.Url);
     var ld = new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
@@ -21,12 +24,11 @@
         ["description"] = p.Description,
         ["url"] = url,
         ["datePosted"] = p.PublishedAtUtc?.ToString("yyyy-MM-dd"),
-        ["image"] = p.Photos.Select(x => x.Url).ToArray(),
+        ["image"] = p.Photos.Select(x => Abs(x.Url)).ToArray(),
         ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["addressLocality"] = p.City, ["addressRegion"] = p.District, ["addressCountry"] = "IR" },
         ["floorSize"] = new Dictionary<string, object> { ["@type"] = "QuantitativeValue", ["value"] = p.AreaM2, ["unitCode"] = "MTK" },
         ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["price"] = !rent ? p.Price : p.MonthlyRent, ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" }
     };
-    var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var ldJson = JsonLd.Serialize(ld);
     // خانه / تهران / خرید آپارتمان / سعادت‌آباد / آگهی, each a landing page.
     var cat = Taxonomy.For(p.Deal, p.Kind)!;
@@ -75,7 +77,7 @@
             {
                 var f = shown[i];
                 <button type="button" class="@(i == 0 ? "main" : "")" data-index="@i" aria-label="بزرگ‌نمایی عکس @Fa.Digits((i + 1).ToString())">
-                    <img src="@f.Url" alt="@f.Alt" loading="@(i == 0 ? "eager" : "lazy")" width="1200" height="900" />
+                    @PhotoVariants.Img(f, i == 0 || shown.Count <= 2 ? (shown.Count == 1 ? "(max-width: 900px) 88vw, 1200px" : "(max-width: 900px) 88vw, 600px") : "(max-width: 900px) 88vw, 300px", 1200, 900, eager: i == 0)
                     @if (i == shown.Count - 1 && photos.Count > 1) { <span class="all">نمایش همهٔ @Fa.Digits(photos.Count.ToString()) عکس</span> }
                 </button>
             }
@@ -90,7 +92,7 @@
                 <img data-lb-img alt="" />
                 <button class="lb-btn next" type="button" data-lb-next aria-label="عکس بعدی">@Icons.Get("chev-left")</button>
             </div>
-            <script type="application/json" data-lb-photos>@Html.Raw(JsonLd.Serialize(photos.Select(x => new { src = x.Url, alt = x.Alt })))</script>
+            <script type="application/json" data-lb-photos>@Html.Raw(JsonLd.Serialize(photos.Select(x => new { src = PhotoVariants.Largest(x), alt = x.Alt })))</script>
         </dialog>
     }
 
@@ -169,8 +171,8 @@
             }
             else
             {
-                <form method="post" action="/تماس">
-                    @Html.AntiForgeryToken()
+                @* This page is output-cached, so the per-visitor antiforgery token is fetched by site.js on submit. *@
+                <form method="post" action="/تماس" class="js-only" data-csrf>
                     <input type="hidden" name="Input.PropertyId" value="@p.Id" />
                     <label class="field">نام<input name="Input.Name" required maxlength="80" autocomplete="name" /></label>
                     <label class="field">شمارهٔ موبایل<input name="Input.Phone" required inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
@@ -179,6 +181,7 @@
                     <button class="btn lg block">ثبت درخواست تماس</button>
                     <span class="hint">شماره‌تان فقط برای هماهنگی همین ملک استفاده می‌شود.</span>
                 </form>
+                <a class="btn lg block no-js-only" href="/تماس?propertyId=@p.Id">ثبت درخواست تماس</a>
             }
             @if (!string.IsNullOrWhiteSpace(phone))
             {

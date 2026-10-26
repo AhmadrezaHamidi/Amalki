@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Amlak.Web.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261026150144_ListingFeatures")]
-    partial class ListingFeatures
+    [Migration("20261026145958_PhotoVariants")]
+    partial class PhotoVariants
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -129,16 +129,10 @@ namespace Amlak.Web.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
-                    b.Property<bool>("Convertible")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Deal")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Deed")
                         .HasColumnType("int");
 
                     b.Property<long?>("Deposit")
@@ -155,15 +149,6 @@ namespace Amlak.Web.Migrations
 
                     b.Property<int?>("Floor")
                         .HasColumnType("int");
-
-                    b.Property<bool?>("HasBalcony")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("HasElevator")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("HasStorage")
-                        .HasColumnType("bit");
 
                     b.Property<int>("Kind")
                         .HasColumnType("int");
@@ -207,8 +192,6 @@ namespace Amlak.Web.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.HasIndex("Status", "City", "District");
-
                     b.HasIndex("Status", "Deal", "City");
 
                     b.ToTable("Properties");
@@ -226,6 +209,9 @@ namespace Amlak.Web.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("Height")
+                        .HasColumnType("int");
+
                     b.Property<int>("PropertyId")
                         .HasColumnType("int");
 
@@ -235,6 +221,13 @@ namespace Amlak.Web.Migrations
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Variants")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int?>("Width")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

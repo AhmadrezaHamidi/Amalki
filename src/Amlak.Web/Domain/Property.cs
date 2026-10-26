@@ -55,6 +55,11 @@ public class PropertyPhoto
     public string Url { get; set; } = "";
     public string Alt { get; set; } = "";
     public int SortOrder { get; set; }
+    /// <summary>Pixel size of the upright original; null for photos uploaded before WebP copies existed.</summary>
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    /// <summary>Widths of the WebP copies next to the original (comma-separated, see PhotoVariants); null when there are none.</summary>
+    public string? Variants { get; set; }
 }
 
 public enum Channel { Telegram = 1, Bale = 2 }

@@ -3,6 +3,7 @@ using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Properties;
@@ -13,6 +14,7 @@ public enum SortOrder { Newest, Cheapest, Priciest, Largest }
 /// The listing page, served both as /املاک and as Divar-style landing pages /املاک/{city}/{category}/{district}.
 /// City, deal, kind and district live in the path; every other filter stays in the query string.
 /// </summary>
+[OutputCache(PolicyName = SiteCache.Listings)]
 public class IndexModel(AppDbContext db) : PageModel
 {
     private const int PageSize = 12;
