@@ -22,7 +22,7 @@ public class LeadsModel(AppDbContext db) : PageModel
     {
         var lead = await db.Leads.FindAsync(id);
         if (lead is null) return NotFound();
-        lead.Handled = !lead.Handled;
+        lead.ToggleHandled();
         await db.SaveChangesAsync();
         return RedirectToPage(new { All });
     }

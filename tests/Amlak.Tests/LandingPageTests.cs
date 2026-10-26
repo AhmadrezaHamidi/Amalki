@@ -23,13 +23,14 @@ public class LandingPageTests : IDisposable
         var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_conn).Options);
         db.Database.EnsureCreated();
         var now = DateTime.UtcNow;
-        Property P(string slug, DealType deal, PropertyKind kind, string city, string district, int area, long? price,
-            bool? elevator = null, int? parking = null) => new()
+        Property P(string slug, DealType deal, PropertyKind kind, string city, string district, int area, long price,
+            bool? elevator = null, int? parking = null)
         {
-            Slug = slug, Title = slug, Deal = deal, Kind = kind, City = city, District = district, AreaM2 = area,
-            Price = deal == DealType.Sale ? price : null, Deposit = deal == DealType.Rent ? price : null,
-            HasElevator = elevator, Parking = parking, Status = ListingStatus.Published, PublishedAtUtc = now,
-        };
+            var details = ListingDetails.Of(slug, slug, kind, area, city, district, parking: parking) with { HasElevator = elevator };
+            var p = Property.Create(slug, details, deal == DealType.Sale ? Pricing.ForSale(price) : Pricing.ForRent(price, null), now);
+            p.Publish(now);
+            return p;
+        }
         db.Properties.AddRange(
             P("a", DealType.Sale, PropertyKind.Apartment, "تهران", "سعادت‌آباد", 100, 10_000_000_000, elevator: true, parking: 1),
             P("b", DealType.Sale, PropertyKind.Apartment, "تهران", "سعادت‌آباد", 200, 30_000_000_000, elevator: false),

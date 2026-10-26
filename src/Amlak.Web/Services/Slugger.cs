@@ -7,7 +7,7 @@ public static partial class Slugger
     // Keeps Persian letters and digits; Google indexes Persian URLs fine.
     public static string Make(string text)
     {
-        var s = text.Trim().ToLowerInvariant().Replace('ي', 'ی').Replace('ك', 'ک');
+        var s = PersianText.Normalize(text).ToLowerInvariant();
         s = Disallowed().Replace(s, "-");
         return s.Trim('-');
     }

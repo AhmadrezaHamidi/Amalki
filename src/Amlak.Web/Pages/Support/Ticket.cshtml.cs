@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>One ticket's conversation. The unguessable tracking code in the URL is the visitor's key to it.</summary>
-public class TicketModel(AppDbContext db, AdminNotifier notifier) : PageModel
+public class TicketModel(AppDbContext db, AdminNotifier notifier, TimeProvider clock) : PageModel
 {
     // HTTP headers are ASCII-only, so the Persian path segment is percent-encoded.
     public static string Url(string code, bool created = false) =>
@@ -32,13 +32,18 @@ public class TicketModel(AppDbContext db, AdminNotifier notifier) : PageModel
     {
         var t = await LoadAsync(code, tracking: true);
         if (t is null) return NotFound();
-        if (t.Status == TicketStatus.Closed) ModelState.AddModelError("", "این تیکت بسته شده است؛ برای موضوع تازه یک تیکت جدید ثبت کنید.");
         if (!ModelState.IsValid) return Page();
 
-        var body = Reply.Trim();
-        t.Messages.Add(new TicketMessage { TicketId = t.Id, Body = body });
-        t.Status = TicketStatus.Open;
-        t.UpdatedAtUtc = DateTime.UtcNow;
+        string body;
+        try
+        {
+            body = t.ReplyFromVisitor(Reply, clock.GetUtcNow().UtcDateTime).Body;
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return Page();
+        }
         await db.SaveChangesAsync();
         await notifier.NotifyTicketAsync(t, body, isNew: false);
         return Redirect(Url(t.Code) + "#last");

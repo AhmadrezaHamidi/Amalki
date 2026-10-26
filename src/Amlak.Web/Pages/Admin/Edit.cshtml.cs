@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher publisher) : PageModel
+public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher publisher, TimeProvider clock) : PageModel
 {
     public class InputModel
     {
@@ -50,7 +50,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         if (id is null) return Page();
         var p = await db.Properties.AsNoTracking().Include(x => x.Photos.OrderBy(f => f.SortOrder)).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return NotFound();
-        Id = p.Id; Slug = p.Slug; Photos = p.Photos; Posts = p.ChannelPosts;
+        Id = p.Id; Slug = p.Slug; Photos = p.Photos.ToList(); Posts = p.ChannelPosts;
         Input = new InputModel
         {
             Title = p.Title, Description = p.Description, Deal = p.Deal, Kind = p.Kind, Status = p.Status,
@@ -73,17 +73,47 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         }
         if (!ModelState.IsValid) return await Redisplay(p);
 
-        var isNew = p is null;
-        p ??= new Property();
-        Apply(p);
-        if (isNew)
+        // Check every upload before storing any, so a bad second file leaves no orphaned first file.
+        var uploads = Uploads.Where(f => f.Length > 0).ToList();
+        if (uploads.FirstOrDefault(f => !PhotoStorage.LooksValid(f)) is { } bad)
         {
-            p.Slug = await UniqueSlugAsync(Slugger.Make(Input.Title));
-            db.Properties.Add(p);
+            ModelState.AddModelError("", $"فایل «{Path.GetFileName(bad.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
+            return await Redisplay(p);
         }
 
-        var order = p.Photos.Count == 0 ? 0 : p.Photos.Max(x => x.SortOrder) + 1;
-        foreach (var file in Uploads.Where(f => f.Length > 0))
+        var isNew = p is null;
+        var now = clock.GetUtcNow().UtcDateTime;
+        try
+        {
+            var details = ListingDetails.Of(Input.Title, Input.Description, Input.Kind, Input.AreaM2, Input.City, Input.District,
+                Input.Bedrooms, Input.Floor, Input.Parking, Input.YearBuilt, Input.Address, Input.Latitude, Input.Longitude)
+                with { HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed };
+            var pricing = Pricing.For(Input.Deal, Input.Price, Input.Deposit, Input.MonthlyRent, Input.Convertible);
+            if (p is null)
+            {
+                p = Property.Create(await UniqueSlugAsync(Slugger.Make(details.Title)), details, pricing, now);
+                p.ChangeStatus(Input.Status, now);
+                db.Properties.Add(p);
+            }
+            else if (Input.Status == ListingStatus.Published)
+            {
+                p.Update(details, pricing, now);
+                p.ChangeStatus(Input.Status, now);
+            }
+            else
+            {
+                // Leave the live state first, so a draft may be saved without a complete price.
+                p.ChangeStatus(Input.Status, now);
+                p.Update(details, pricing, now);
+            }
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return await Redisplay(isNew ? null : p);
+        }
+
+        foreach (var file in uploads)
         {
             var photo = await storage.SaveAsync(file);
             if (photo is null)
@@ -91,9 +121,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
                 ModelState.AddModelError("", $"فایل «{Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
                 return await Redisplay(isNew ? null : p);
             }
-            photo.Alt = $"{p.Title} - {p.District} {p.City}";
-            photo.SortOrder = order++;
-            p.Photos.Add(photo);
+            p.AddPhoto(photo, now);
         }
 
         await db.SaveChangesAsync();
@@ -103,11 +131,11 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
     public async Task<IActionResult> OnPostDeletePhotoAsync(int id, int photoId)
     {
-        var photo = await db.PropertyPhotos.FirstOrDefaultAsync(x => x.Id == photoId && x.PropertyId == id);
-        if (photo is null) return NotFound();
-        await storage.DeleteAsync(photo);
-        db.PropertyPhotos.Remove(photo);
+        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
+        if (p?.RemovePhoto(photoId, clock.GetUtcNow().UtcDateTime) is not { } photo) return NotFound();
         await db.SaveChangesAsync();
+        // The file goes only after the database no longer points at it.
+        await storage.DeleteAsync(photo);
         // A published listing's channel album must lose the photo too.
         await publisher.SyncAsync(id);
         return RedirectToPage("Edit", new { id });
@@ -115,8 +143,8 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
     public async Task<IActionResult> OnPostMovePhotoAsync(int id, int photoId, PhotoOrder.Move move)
     {
-        var photos = await db.PropertyPhotos.Where(x => x.PropertyId == id).ToListAsync();
-        if (!PhotoOrder.Apply(photos, photoId, move)) return NotFound();
+        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
+        if (p is null || !p.MovePhoto(photoId, move, clock.GetUtcNow().UtcDateTime)) return NotFound();
         await db.SaveChangesAsync();
         // A new cover or order replaces the channel album too.
         await publisher.SyncAsync(id);
@@ -135,24 +163,6 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
             ModelState.AddModelError("Input.Price", "برای فروش، قیمت لازم است");
         if (Input.Deal == DealType.Rent && Input.Deposit is null && Input.MonthlyRent is null)
             ModelState.AddModelError("Input.Deposit", "رهن یا اجارهٔ ماهانه را وارد کنید");
-    }
-
-    private void Apply(Property p)
-    {
-        p.Title = Input.Title.Trim(); p.Description = Input.Description.Trim();
-        p.Deal = Input.Deal; p.Kind = Input.Kind;
-        p.Price = Input.Deal == DealType.Sale ? Input.Price : null;
-        p.Deposit = Input.Deal == DealType.Rent ? Input.Deposit : null;
-        p.MonthlyRent = Input.Deal == DealType.Rent ? Input.MonthlyRent : null;
-        p.AreaM2 = Input.AreaM2; p.Bedrooms = Input.Bedrooms; p.Floor = Input.Floor;
-        p.Parking = Input.Parking; p.YearBuilt = Input.YearBuilt;
-        p.HasElevator = Input.HasElevator; p.HasStorage = Input.HasStorage; p.HasBalcony = Input.HasBalcony;
-        p.Deed = Input.Deed; p.Convertible = Input.Deal == DealType.Rent && Input.Convertible;
-        p.City = Input.City.Trim(); p.District = Input.District.Trim(); p.Address = Input.Address?.Trim();
-        p.Latitude = Input.Latitude; p.Longitude = Input.Longitude;
-        if (Input.Status == ListingStatus.Published && p.Status != ListingStatus.Published)
-            p.PublishedAtUtc ??= DateTime.UtcNow;
-        p.Status = Input.Status;
     }
 
     private async Task<string> UniqueSlugAsync(string baseSlug)
