@@ -23,13 +23,14 @@ public class LandingPageTests : IDisposable
         var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_conn).Options);
         db.Database.EnsureCreated();
         var now = DateTime.UtcNow;
-        Property P(string slug, DealType deal, PropertyKind kind, string city, string district, int area, long? price,
-            bool? elevator = null, int? parking = null) => new()
+        Property P(string slug, DealType deal, PropertyKind kind, string city, string district, int area, long price,
+            bool? elevator = null, int? parking = null)
         {
-            Slug = slug, Title = slug, Deal = deal, Kind = kind, City = city, District = district, AreaM2 = area,
-            Price = deal == DealType.Sale ? price : null, Deposit = deal == DealType.Rent ? price : null,
-            HasElevator = elevator, Parking = parking, Status = ListingStatus.Published, PublishedAtUtc = now,
-        };
+            var details = ListingDetails.Of(slug, slug, kind, area, city, district, parking: parking) with { HasElevator = elevator };
+            var p = Property.Create(slug, details, deal == DealType.Sale ? Pricing.ForSale(price) : Pricing.ForRent(price, null), now);
+            p.Publish(now);
+            return p;
+        }
         db.Properties.AddRange(
             P("a", DealType.Sale, PropertyKind.Apartment, "تهران", "سعادت‌آباد", 100, 10_000_000_000, elevator: true, parking: 1),
             P("b", DealType.Sale, PropertyKind.Apartment, "تهران", "سعادت‌آباد", 200, 30_000_000_000, elevator: false),
@@ -139,7 +140,12 @@ public class LandingPageTests : IDisposable
     {
         Assert.Equal("اجاره-روزانه-ویلا", Taxonomy.For(DealType.ShortTerm, PropertyKind.Villa)!.Slug);
         Assert.Equal("اجاره-کوتاه-مدت", Taxonomy.For(DealType.ShortTerm, PropertyKind.Land)!.Slug); // falls back to the deal
-        var p = new Property { Title = "ویلا", Slug = "v", Deal = DealType.ShortTerm, City = "رامسر", District = "ساحلی", AreaM2 = 200, Price = 3_000_000 };
+        var p = Property.Create("v", ListingDetails.Of("ویلا", "ویلا", PropertyKind.Villa, 200, "رامسر", "ساحلی"),
+            Pricing.For(DealType.ShortTerm, 3_000_000, null, null), DateTime.UtcNow);
+        p.Publish(DateTime.UtcNow);
+        Assert.Equal(3_000_000, p.Price);
+        Assert.Throws<DomainException>(() => Property.Create("w", ListingDetails.Of("ویلا", "ویلا", PropertyKind.Villa, 200, "رامسر", "ساحلی"),
+            Pricing.ForNightly(null), DateTime.UtcNow).Publish(DateTime.UtcNow));
         var caption = Amlak.Web.Services.Publishing.CaptionBuilder.Build(p, "https://example.ir");
         Assert.Contains("هر شب: ۳ میلیون تومان", caption);
         Assert.Contains("#اجاره_روزانه", caption);

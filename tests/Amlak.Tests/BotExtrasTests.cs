@@ -42,11 +42,7 @@ public sealed class BotExtrasTests : IDisposable
     {
         var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_conn).Options);
         db.Database.EnsureCreated();
-        var p = new Property
-        {
-            Title = "ویلا", Slug = "ویلا", Description = "d", Deal = DealType.Sale, Kind = PropertyKind.Villa,
-            City = "کرج", District = "مهرشهر", AreaM2 = 300, Price = 9_000_000_000, Status = ListingStatus.Published,
-        };
+        var p = TestData.Listing("ویلا", kind: PropertyKind.Villa, city: "کرج", district: "مهرشهر", area: 300, price: 9_000_000_000);
         db.Properties.Add(p); db.SaveChanges();
         return (db, p);
     }
@@ -82,7 +78,7 @@ public sealed class BotExtrasTests : IDisposable
         using var _ = db;
         var notifier = new AdminNotifier(new Factory(_bot), Cfg(("Telegram:AdminChatId", "777")), NullLogger<AdminNotifier>.Instance);
 
-        await notifier.NotifyAsync(new Lead { Name = "سارا", Phone = "09121112233", Message = "عصر" }, p);
+        await notifier.NotifyAsync(TestData.Lead(message: "عصر"), p);
 
         var call = Assert.Single(_bot.Calls);
         Assert.Equal("sendMessage", call.Method);
@@ -97,7 +93,7 @@ public sealed class BotExtrasTests : IDisposable
     {
         var notifier = new AdminNotifier(new Factory(_bot), Cfg(), NullLogger<AdminNotifier>.Instance);
         Assert.False(notifier.Configured);
-        await notifier.NotifyAsync(new Lead { Name = "x", Phone = "09120000000" }, null);
+        await notifier.NotifyAsync(TestData.Lead("x", "09120000000"), null);
         Assert.Empty(_bot.Calls);
     }
 
