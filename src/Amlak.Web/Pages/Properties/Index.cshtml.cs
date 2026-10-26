@@ -40,6 +40,8 @@ public class IndexModel(AppDbContext db) : PageModel
     [BindProperty(SupportsGet = true)] public bool Storage { get; set; }
     [BindProperty(SupportsGet = true)] public bool Photo { get; set; }
     [BindProperty(SupportsGet = true)] public bool Convertible { get; set; }
+    /// <summary>Free text from the header search box: title, district or city.</summary>
+    [BindProperty(SupportsGet = true)] public string? Q { get; set; }
     [BindProperty(SupportsGet = true)] public SortOrder Sort { get; set; }
     [BindProperty(SupportsGet = true)] public int P { get; set; } = 1;
 
@@ -148,6 +150,11 @@ public class IndexModel(AppDbContext db) : PageModel
     /// <summary>All listing filters in one place, so the query can move to a read model unchanged.</summary>
     public IQueryable<Property> Apply(IQueryable<Property> q)
     {
+        if (!string.IsNullOrWhiteSpace(Q))
+        {
+            var text = Q.Trim();
+            q = q.Where(p => p.Title.Contains(text) || p.District.Contains(text) || p.City.Contains(text));
+        }
         if (Deal is { } d) q = q.Where(p => p.Deal == d);
         if (Kind is { } k) q = q.Where(p => p.Kind == k);
         if (City is { } city) q = q.Where(p => p.City == city);
@@ -177,6 +184,7 @@ public class IndexModel(AppDbContext db) : PageModel
     public Dictionary<string, object?> QueryFilters() => new()
     {
         // A kind with no category page of its own (no deal, or none under this deal) stays a query value.
+        ["q"] = string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(),
         ["kind"] = Category?.Kind != Kind ? Kind : null,
         ["district"] = Areas.Count > 1 ? Areas.ToArray() : null,
         ["minPrice"] = MinPrice, ["maxPrice"] = MaxPrice, ["maxRent"] = MaxRent, ["minArea"] = MinArea, ["maxArea"] = MaxArea,

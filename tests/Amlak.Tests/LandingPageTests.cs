@@ -52,6 +52,7 @@ public class LandingPageTests : IDisposable
         if (q.TryGetValue("city", out var city)) model.City = city;
         if (q.TryGetValue("elevator", out var el)) model.Elevator = el == "true";
         if (q.TryGetValue("parking", out var pk)) model.Parking = pk == "true";
+        if (q.TryGetValue("q", out var text)) model.Q = text;
         return model;
     }
 
@@ -132,6 +133,20 @@ public class LandingPageTests : IDisposable
         var cleared = Assert.IsType<RedirectResult>(await Page(db, "/املاک/تهران/خرید-آپارتمان/ونک", "?district=")
             .OnGetAsync("تهران", "خرید-آپارتمان", "ونک"));
         Assert.Equal("/املاک/تهران/خرید-آپارتمان", Uri.UnescapeDataString(cleared.Url));
+    }
+
+    [Fact]
+    public async Task Header_search_matches_title_district_or_city_and_keeps_the_text_in_links()
+    {
+        using var db = Seed();
+        var page = Page(db, "/املاک", "?q=ونک");
+        Assert.IsType<PageResult>(await page.OnGetAsync(null, null, null));
+        Assert.Equal(["c", "d"], page.Items.Select(x => x.Slug).Order());
+        Assert.Contains("q=", page.Link());
+
+        var byCity = Page(db, "/املاک", "?q=کرج");
+        await byCity.OnGetAsync(null, null, null);
+        Assert.Equal(["e"], byCity.Items.Select(x => x.Slug));
     }
 
     [Fact]

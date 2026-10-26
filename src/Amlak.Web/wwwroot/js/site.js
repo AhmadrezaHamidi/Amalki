@@ -14,7 +14,20 @@
     });
   };
   toggle($('[data-nav-toggle]'), $('#main-nav'), 'open', $('[data-head]'));
-  toggle($('[data-filter-toggle]'), $('#filters'), 'open');
+  // Filter sheet (phones): opens full screen, locks page scroll, closes on the X, Escape or back gesture.
+  const sheet = $('[data-sheet]');
+  const sheetBtn = $('[data-filter-toggle]');
+  if (sheet && sheetBtn) {
+    const set = (open) => {
+      sheet.classList.toggle('open', open);
+      document.body.classList.toggle('sheet-open', open);
+      sheetBtn.setAttribute('aria-expanded', String(open));
+      if (open) $('input,select,button', sheet)?.focus({ preventScroll: true });
+    };
+    sheetBtn.addEventListener('click', () => set(!sheet.classList.contains('open')));
+    $('[data-filter-close]', sheet)?.addEventListener('click', () => { set(false); sheetBtn.focus(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheet.classList.contains('open')) { set(false); sheetBtn.focus(); } });
+  }
   toggle($('[data-admin-toggle]'), $('#admin-nav'), 'open', $('.admin-side'));
 
   // ---- forms on output-cached pages: fetch this visitor's antiforgery token just before submitting ----
