@@ -1,0 +1,73 @@
+@page "/پیگیری"
+@model Amlak.Web.Pages.Track.IndexModel
+@{
+    ViewData["Title"] = "پیگیری خانه با پیامک";
+    ViewData["Description"] = "شرایط خانهٔ دلخواهتان را بگویید؛ هر آگهی تازه یا کاهش قیمتی که بخواند، همان لحظه پیامک می‌شود.";
+}
+<div class="wrap narrow">
+    <h1 style="margin-top:16px">پیگیری خانه با پیامک</h1>
+    <p class="hint">شرایطتان را بگویید؛ هر آگهی تازه یا کاهش قیمتی که بخواند، همان لحظه پیامک می‌شود. برای لغو، «لغو۱۱» را پاسخ دهید.</p>
+
+    @if (Model.Done)
+    {
+        <div class="notice ok" role="status">
+            <b>پیگیری فعال شد.</b> از این پس آگهی‌های مطابق شرایط شما پیامک می‌شوند.
+            <div style="margin-top:8px"><a asp-page="/Properties/Index" asp-route-deal="@Model.Input.Deal">دیدن آگهی‌های فعلی</a></div>
+        </div>
+    }
+    else
+    {
+        <form method="post" class="form card-form">
+            <div asp-validation-summary="ModelOnly" class="err"></div>
+            @if (Model.Notice is not null) { <div class="notice" role="status">@Model.Notice</div> }
+
+            <fieldset @(Model.CodeSent ? "disabled" : null)>
+                <legend class="sr">شرایط</legend>
+                <div class="row">
+                    <div><label for="Input_Deal">نوع معامله</label>
+                        <select asp-for="Input.Deal"><option value="Sale">خرید</option><option value="Rent">رهن و اجاره</option></select></div>
+                    <div><label for="Input_Kind">نوع ملک</label>
+                        <select asp-for="Input.Kind">
+                            <option value="">فرقی ندارد</option><option value="Apartment">آپارتمان</option><option value="Villa">ویلا</option>
+                            <option value="Land">زمین</option><option value="Commercial">تجاری</option><option value="Office">اداری</option>
+                        </select></div>
+                </div>
+                <div class="row">
+                    <div><label for="Input_City">شهر</label><input asp-for="Input.City" placeholder="مثلاً تهران" /><span asp-validation-for="Input.City" class="err"></span></div>
+                    <div><label for="Input_Districts">محله‌ها (اختیاری)</label><input asp-for="Input.Districts" placeholder="سعادت‌آباد، شهرک غرب" /></div>
+                </div>
+                <div class="row">
+                    <div><label for="Input_MaxBudget">حداکثر بودجه (تومان)</label><input asp-for="Input.MaxBudget" inputmode="numeric" placeholder="مثلاً ۱۵۰۰۰۰۰۰۰۰۰" /><span asp-validation-for="Input.MaxBudget" class="err"></span></div>
+                    <div><label for="Input_MinBedrooms">حداقل خواب</label><input asp-for="Input.MinBedrooms" inputmode="numeric" /></div>
+                </div>
+                <p class="hint">برای رهن و اجاره، بودجه با «معادل رهن کامل» مقایسه می‌شود (هر ۱ میلیون اجاره ≈ ۳۳ میلیون رهن).</p>
+                <label class="check"><input asp-for="Input.NotifyNew" /> آگهی تازهٔ مطابق شرایط</label>
+                <label class="check"><input asp-for="Input.NotifyPriceDrop" /> کاهش قیمت آگهی‌های مطابق</label>
+                <div class="row">
+                    <div><label for="Input_Name">نام (اختیاری)</label><input asp-for="Input.Name" /></div>
+                    <div><label for="Input_Phone">شمارهٔ موبایل</label><input asp-for="Input.Phone" type="tel" inputmode="tel" dir="ltr" placeholder="09xx xxx xxxx" /><span asp-validation-for="Input.Phone" class="err"></span></div>
+                </div>
+            </fieldset>
+
+            @if (Model.CodeSent)
+            {
+                @* The fieldset above is disabled, so its values are carried in hidden fields. *@
+                <input type="hidden" asp-for="Input.Deal" /><input type="hidden" asp-for="Input.Kind" /><input type="hidden" asp-for="Input.City" />
+                <input type="hidden" asp-for="Input.Districts" /><input type="hidden" asp-for="Input.MaxBudget" /><input type="hidden" asp-for="Input.MinBedrooms" />
+                <input type="hidden" asp-for="Input.NotifyNew" /><input type="hidden" asp-for="Input.NotifyPriceDrop" />
+                <input type="hidden" asp-for="Input.Name" /><input type="hidden" asp-for="Input.Phone" />
+                <label for="Input_Code">کد تأیید پیامک‌شده</label>
+                <input asp-for="Input.Code" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="5" />
+                <span asp-validation-for="Input.Code" class="err"></span>
+                <div class="actions" style="margin-top:16px">
+                    <button class="btn" asp-page-handler="Confirm">تأیید و شروع پیگیری</button>
+                    <button class="btn ghost" asp-page-handler="Send">ارسال دوبارهٔ کد</button>
+                </div>
+            }
+            else
+            {
+                <button class="btn" style="margin-top:18px" asp-page-handler="Send">ارسال کد تأیید</button>
+            }
+        </form>
+    }
+</div>

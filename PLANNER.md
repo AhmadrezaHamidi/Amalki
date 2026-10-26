@@ -16,10 +16,11 @@
 
 - Design v2 on a design canvas (https://claude.ai/artifact/LtFubktn9FJ5DpTMyMQgKW): thinner type, illustrations in `design-system/amlak/illustrations`, new screens for posting/managing ads, price display, bulk SMS, SMS house tracking, mobile app and bots.
 - Backend (SMS, provider-agnostic) `Services/Sms`: `SmsGateway` (normalize, opt-out, `SmsLog`), `ISmsSender` with `LogSmsSender` dev stub, `OtpService` (5-digit, 2 min, 1/min resend, 5 guesses, hashed), `AlertService` + `AlertMatcher` (saved searches texted on new listing and price drop, deduped, hidden price never texted; runs after admin save), `BulkSmsService` + `CampaignWorker` (uploaded or subscriber audience, placeholders, «لغو۱۱», scheduling). `Pricing` (per-m2, full deposit, `PriceDisplay` Full/TotalOnly/Negotiable honoured by card, detail, JSON-LD, caption). Migration `SmsAlertsCampaignsPriceDisplay`. 15 new tests (29 total pass).
+- Frontend for SMS: public `/پیگیری` sign-up (criteria + OTP confirm, max 5 active per phone, fresh sign-up clears old opt-out), admin `/Admin/Sms` (audience, filters, listing placeholders, preview with recipient/segment count, Tehran-time scheduling, cancel, history). Lighter type in site.css (300/500/600). `Fa.ParseLong`, `Fa.When`. 8 new tests (37 total pass). Pages compile but were not rendered against a running server (no SQL Server here).
 
 ## Next task
 - Pick SMS provider (Kavenegar / SMS.ir / Melipayamak) and add its `ISmsSender`; inbound «لغو۱۱» webhook.
-- Frontend for the new backend: SMS tracking sign-up page (OTP), admin bulk-SMS page, user ad posting + "my ads" (needs owner phone, pending-review status, expiry), visit-request leads.
+- Frontend still to do: user ad posting + "my ads" (needs owner phone, pending-review status, expiry), visit-request leads.
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
 - Then: contact/lead form (PUB-06), FAQPage + city/district pages, image WebP/srcset.
 
@@ -30,4 +31,4 @@
 - Map (Leaflet/Neshan), favorites, contact/lead form.
 - Deploy.
 
-Last updated: 2026-10-25 20:40
+Last updated: 2026-10-26 00:45

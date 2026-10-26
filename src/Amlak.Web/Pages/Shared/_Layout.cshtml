@@ -21,7 +21,7 @@
     @if (ogImage is not null) { <meta property="og:image" content="@ogImage" /> }
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
@@ -33,6 +33,7 @@
         <ul>
             <li><a asp-page="/Properties/Index" asp-route-deal="Sale">خرید</a></li>
             <li><a asp-page="/Properties/Index" asp-route-deal="Rent">اجاره و رهن</a></li>
+            <li><a asp-page="/Track/Index">پیگیری با پیامک</a></li>
         </ul>
         <a class="btn" asp-page="/Properties/Index">همهٔ آگهی‌ها</a>
     </nav>
