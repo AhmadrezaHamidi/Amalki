@@ -1,8 +1,8 @@
-@model Property
+@model ListingCard
 @{ var rent = Model.Deal == DealType.Rent; }
 <article class="card">
     <div class="ph">
-        @if (Model.Photos.FirstOrDefault() is { } p) { @PhotoVariants.Img(p, "(max-width: 600px) 92vw, (max-width: 1000px) 46vw, 360px", 640, 480) }
+        @if (Model.Cover is { } p) { @PhotoVariants.Img(p, "(max-width: 600px) 92vw, (max-width: 1000px) 46vw, 360px", 640, 480) }
         else { @Icons.Get("photo", 36) }
         <span class="badge @(rent ? "rent" : "")">@Labels.Deal(Model.Deal)</span>
     </div>

@@ -1,13 +1,12 @@
-using Amlak.Web.Data;
+using Amlak.Web.Read;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages;
 
 /// <summary>Saved listings (PUB-08). The ids live in the visitor's browser and arrive as ?ids=1,2,3.</summary>
-public class SavedModel(AppDbContext db) : PageModel
+public class SavedModel(ListingQueries listings) : PageModel
 {
-    public List<Property> Items { get; private set; } = [];
+    public List<ListingCard> Items { get; private set; } = [];
     public bool HasIds { get; private set; }
 
     public async Task OnGetAsync(string? ids)
@@ -16,8 +15,6 @@ public class SavedModel(AppDbContext db) : PageModel
             .Select(x => int.TryParse(x, out var n) ? n : 0).Where(n => n > 0).Distinct().Take(100).ToList();
         HasIds = ids is not null;
         if (list.Count == 0) return;
-        Items = await db.Properties.AsNoTracking().Include(p => p.Photos.OrderBy(x => x.SortOrder).Take(1))
-            .Where(p => list.Contains(p.Id) && p.Status == ListingStatus.Published)
-            .OrderByDescending(p => p.PublishedAtUtc).ToListAsync();
+        Items = await listings.ByIdsAsync(list);
     }
 }

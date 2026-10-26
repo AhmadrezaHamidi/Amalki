@@ -38,6 +38,32 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 
 مهاجرت‌ها: `Initial` و `ChannelPostUniqueAndPhoto` در `src/Amlak.Web/Migrations`.
 
+## سمت خواندن (CQRS) با View های SQL
+
+نوشتن‌ها مثل قبل از مدل اصلی (`Property` و `AppDbContext`) انجام می‌شوند. همهٔ خواندن‌های صفحه‌های عمومی و شمارنده‌های پنل از `src/Amlak.Web/Read` و از View های SQL می‌آیند (موجودیت‌های keyless در EF):
+
+| View | محتوا | مصرف‌کننده |
+|---|---|---|
+| `vw_ListingCards` | هر آگهی منتشرشده، تخت‌شده با عکس کاور (اولین `SortOrder`)، تعداد عکس و `SortPrice` | خانه، لیست و لندینگ‌ها، آگهی‌های مشابه، نشان‌شده‌ها |
+| `vw_ListingFacets` | تعداد آگهی و جمع قیمت و متراژ به ازای (معامله، نوع، شهر، محله)؛ روی SQL Server **indexed view** است (ذخیره‌شده و خودکار به‌روز) و با `NOEXPAND` خوانده می‌شود | شمارش نوع ملک در خانه، لینک شهرها و محله‌ها، پیشنهاد شهر |
+| `vw_AdminCounters` | یک ردیف با همهٔ شمارنده‌های داشبورد و badge های منو | داشبورد و منوی پنل |
+
+- `ListingQueries` و `AdminQueries` تنها جای کوئری خواندن هستند؛ فیلترها در `ListingFilter` جمع شده‌اند.
+- `Properties.SortPrice` ستون محاسبه‌شدهٔ ذخیره‌شده است (`ISNULL(Price, ISNULL(Deposit, 0))`) تا فیلتر و مرتب‌سازی قیمت از ایندکس استفاده کند.
+- ایندکس‌ها: `Properties(Status, Deal, City, Kind, PublishedAtUtc)` برای لندینگ‌ها، `(Status, PublishedAtUtc)`، `(Status, SortPrice)`، و `PropertyPhotos(PropertyId, SortOrder) INCLUDE (Url, Alt)` برای عکس کاور.
+- **هشدار:** `vw_ListingFacets` با `SCHEMABINDING` ساخته شده؛ تغییر ستون‌های `Status`، `Deal`، `Kind`، `City`، `District`، `AreaM2` یا `SortPrice` در یک migration باید اول این View را drop و بعد دوباره بسازد. اسکریپت‌هایی که با `sqlcmd` روی جدول `Properties` می‌نویسند باید با `-I` (QUOTED_IDENTIFIER ON) اجرا شوند.
+- نسخهٔ SQLite همین View ها در `Read/ReadViews.cs` است (برای تست‌ها، چون `EnsureCreated` View نمی‌سازد) و باید هم‌گام با migration `ReadViews` بماند.
+
+اندازه‌گیری روی SQL Server 2022 Express با ۲۰ هزار آگهی و ۱۰۰ هزار عکس (میانهٔ ۲۰ درخواست پشت‌سرهم، کل صفحه):
+
+| صفحه | قبل | بعد |
+|---|---|---|
+| `/املاک` | 27 ms | 11 ms |
+| `/املاک?sort=Cheapest` | 67 ms | 11 ms |
+| `/املاک/تهران` | 31 ms | 18 ms |
+| `/املاک/تهران/خرید-آپارتمان` | 57 ms | 8 ms |
+| `/ملک/{slug}` | 20 ms | 7 ms |
+
 ## صفحه‌ها و مسیرها
 
 | مسیر | توضیح |
@@ -95,6 +121,8 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 
 `tests/Amlak.Tests/PublishingTests.cs` (xUnit، SQLite درون‌حافظه، Bot API ساختگی):
 کپشن، ارسال یک‌باره و سپس ویرایش، عدم انتشار پیش‌نویس، حذف پیام هنگام لغو انتشار، مسیر عکس‌دار، ثبت خطا بدون نشت توکن و تلاش مجدد، دو کانال با دو میزبان، و بدون کانال = بدون اثر.
+
+`tests/Amlak.Tests/ReadSideTests.cs`: View ها و `ListingQueries` (کاور، فیلترها، مرتب‌سازی و صفحه‌بندی، facet ها، به‌روز شدن View بعد از نوشتن، شمارنده‌های پنل). هر تست دو بار اجرا می‌شود: روی SQLite و، اگر `AMLAK_TEST_SQLSERVER` (رشتهٔ اتصال بدون نام دیتابیس) تنظیم شده باشد، روی SQL Server واقعی با همان migration ها؛ در غیر این صورت نسخهٔ SQL Server رد (skip) می‌شود.
 
 پوشش‌داده‌نشده: صفحه‌های Razor (فقط با درخواست HTTP دستی بررسی شده‌اند)، `PhotoStorage`، ورود/خروج.
 
