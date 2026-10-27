@@ -1,6 +1,7 @@
 using Amlak.Web.Data;
 using Amlak.Web.Domain;
 using Amlak.Web.Pages.Properties;
+using Amlak.Web.Read;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Seo;
 using Microsoft.AspNetCore.Http;
@@ -22,6 +23,7 @@ public class LandingPageTests : IDisposable
     {
         var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_conn).Options);
         db.Database.EnsureCreated();
+        ReadViews.CreateSqliteAsync(db).GetAwaiter().GetResult();
         var now = DateTime.UtcNow;
         Property P(string slug, DealType deal, PropertyKind kind, string city, string district, int area, long price,
             bool? elevator = null, int? parking = null)
@@ -46,7 +48,7 @@ public class LandingPageTests : IDisposable
         var http = new DefaultHttpContext();
         http.Request.Path = path;
         http.Request.QueryString = new QueryString(query);
-        var model = new IndexModel(db) { PageContext = new PageContext { HttpContext = http } };
+        var model = new IndexModel(new ListingQueries(db)) { PageContext = new PageContext { HttpContext = http } };
         // Mimic model binding of the query string.
         var q = http.Request.Query;
         if (q.TryGetValue("deal", out var deal)) model.Deal = Enum.TryParse<DealType>(deal, out var d) ? d : null;
