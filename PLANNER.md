@@ -24,6 +24,7 @@
 
 - Photo order + WebP backfill (2026-10-26, ADM-09): admin Edit page lets you move a photo earlier/later or make it the cover (`PhotoOrder`, renumbers SortOrder, re-syncs channel album); dashboard button makes WebP copies for photos uploaded before copies existed (`PhotoStorage.BackfillAsync`, 40 per click, unreadable/missing originals marked done). 41 tests pass; checked in the browser against SQLite.
 - Dark mode (2026-10-26): automatic via prefers-color-scheme for site, admin and offline page; dark tokens in site.css, `--on-primary` for text on primary, theme-color per scheme. Checked at 390px and 1440px.
+- UI/UX v4 (2026-10-26): Divar-style redesign (direction A on the design canvas). New tokens, header search box (`q` filter on title/district/city), center post button in tab bar, row listing card, sticky filter bar + full filter panel (full-screen sheet on phones), detail key facts/price table/amenities/safety tip, new home (category grid, busy districts, latest), admin pending count. 55 tests pass. Checked at 390px and 1440px, light and dark. Docs: docs/DESIGN.md section 4.
 
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)

@@ -8,9 +8,10 @@
     var rent = p.Deal == DealType.Rent;
     var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var url = SeoFiles.PropertyUrl(site, p);
-    var dealLabel = rent ? "اجارهٔ" : "فروش";
+    var shortTerm = p.Deal == DealType.ShortTerm;
+    var dealLabel = rent ? "اجارهٔ" : shortTerm ? "اجارهٔ کوتاه‌مدت" : "فروش";
     ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
-    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (!rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (shortTerm ? "هر شب " + Fa.Money(p.Price) + " تومان" : !rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
     ViewData["Canonical"] = url;
     ViewData["BodyClass"] = "has-mobile-cta";
     // Crawlers and link previews need absolute image URLs; MinIO URLs already are.
@@ -43,16 +44,17 @@
     var phone = Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
-    var perMeter = !rent && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
+    var perMeter = p.Deal == DealType.Sale && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
     string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 }
 @section Head {
     <script type="application/ld+json">@Html.Raw(ldJson)</script>
     <script type="application/ld+json">@Html.Raw(crumbJson)</script>
 }
-<div class="wrap page-pad">
+<div class="wrap page-pad detail-page">
     <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a>@foreach (var c in crumbs) { <text> / </text><a href="@c.Path">@c.Name</a> }</nav>
 
+    <div class="detail-top">
     <div class="detail-head">
         <div>
             <div class="tags"><span class="badge @(rent ? "rent" : "")">@Labels.Deal(p.Deal)</span><span class="badge soft">@Labels.Kind(p.Kind)</span></div>
@@ -95,33 +97,49 @@
             <script type="application/json" data-lb-photos>@Html.Raw(JsonLd.Serialize(photos.Select(x => new { src = PhotoVariants.Largest(x), alt = x.Alt })))</script>
         </dialog>
     }
+    </div>
 
     <div class="detail-layout">
         <div class="detail-main">
             <section aria-labelledby="facts-title">
                 <h2 id="facts-title" class="sr-only">مشخصات</h2>
-                <ul class="facts">
-                    <li><span>متراژ</span><strong>@Fa.Digits(p.AreaM2.ToString()) متر</strong></li>
-                    @if (p.Bedrooms is { } b) { <li><span>خواب</span><strong>@Fa.Digits(b.ToString())</strong></li> }
-                    @if (p.Floor is { } fl) { <li><span>طبقه</span><strong>@(fl == 0 ? "همکف" : Fa.Digits(fl.ToString()))</strong></li> }
-                    @if (p.Parking is { } pk) { <li><span>پارکینگ</span><strong>@(pk == 0 ? "ندارد" : Fa.Digits(pk.ToString()))</strong></li> }
-                    @if (p.YearBuilt is { } y) { <li><span>سال ساخت</span><strong>@Fa.Digits(y.ToString())</strong></li> }
-                    <li><span>نوع ملک</span><strong>@Labels.Kind(p.Kind)</strong></li>
-                    @if (p.Deed is { } deed) { <li><span>سند</span><strong>@Labels.Deed(deed)</strong></li> }
-                    @if (rent) { <li><span>رهن و اجاره</span><strong>@(p.Convertible ? "قابل تبدیل" : "غیرقابل تبدیل")</strong></li> }
+                <ul class="keyfacts">
+                    <li><span>متراژ</span><strong>@Fa.Digits(p.AreaM2.ToString())</strong></li>
+                    <li><span>اتاق</span><strong>@(p.Bedrooms is { } b ? (b == 0 ? "ندارد" : Fa.Digits(b.ToString())) : "—")</strong></li>
+                    <li><span>ساخت</span><strong>@(p.YearBuilt is { } y ? Fa.Digits(y.ToString()) : "—")</strong></li>
+                    <li><span>طبقه</span><strong>@(p.Floor is { } fl ? (fl == 0 ? "همکف" : Fa.Digits(fl.ToString())) : "—")</strong></li>
                 </ul>
+                <dl class="rows">
+                    @if (rent)
+                    {
+                        <div><dt>ودیعه (رهن)</dt><dd>@Fa.Money(p.Deposit) تومان</dd></div>
+                        <div><dt>اجارهٔ ماهانه</dt><dd>@Fa.Money(p.MonthlyRent) تومان</dd></div>
+                        <div><dt>رهن و اجاره</dt><dd>@(p.Convertible ? "قابل تبدیل" : "غیرقابل تبدیل")</dd></div>
+                    }
+                    else
+                    {
+                        <div><dt>@(shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</dt><dd>@Fa.Money(p.Price) تومان</dd></div>
+                        @if (perMeter is { } ppm) { <div><dt>قیمت هر متر</dt><dd>@Fa.Money(ppm) تومان</dd></div> }
+                    }
+                    <div><dt>نوع ملک</dt><dd>@Labels.Kind(p.Kind)</dd></div>
+                    @if (p.Parking is { } pk) { <div><dt>پارکینگ</dt><dd>@(pk == 0 ? "ندارد" : Fa.Digits(pk.ToString()) + " واحد")</dd></div> }
+                    @if (p.Deed is { } deed) { <div><dt>سند</dt><dd>@Labels.Deed(deed)</dd></div> }
+                </dl>
                 @if (p.HasElevator is not null || p.Parking is not null || p.HasStorage is not null || p.HasBalcony is not null)
                 {
                     // Divar's three-up "has / has not" row, plus balcony.
                     var amenities = new (string Name, bool? Has)[] { ("آسانسور", p.HasElevator), ("پارکینگ", p.Parking is null ? null : p.Parking > 0), ("انباری", p.HasStorage), ("بالکن", p.HasBalcony) };
+                    <h2 class="sub">امکانات</h2>
                     <ul class="amenities" aria-label="امکانات">
                         @foreach (var (name, has) in amenities.Where(x => x.Has is not null))
                         {
-                            <li class="@(has == true ? "" : "no")">@name<span class="sr-only">@(has == true ? "دارد" : "ندارد")</span></li>
+                            <li class="@(has == true ? "" : "no")">@Icons.Get(has == true ? "check" : "close", 18)@name<span class="sr-only">@(has == true ? "دارد" : "ندارد")</span></li>
                         }
                     </ul>
                 }
             </section>
+
+            <p class="safety">@Icons.Get("warn", 20)<span>پیش از دیدن ملک و سند، هیچ مبلغی به‌عنوان بیعانه واریز نکنید. قرارداد را با حضور مشاور آشیانه ببندید.</span></p>
 
             <section aria-labelledby="desc-title">
                 <h2 id="desc-title">توضیحات</h2>
@@ -146,13 +164,13 @@
                 <section aria-labelledby="similar-title">
                     <h2 id="similar-title">آگهی‌های مشابه در @p.City</h2>
                     <p><a href="@Taxonomy.EncodedPath(p.City, cat, p.District)">همهٔ آگهی‌های @cat.Name در @p.District</a></p>
-                    <div class="grid cols-3">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
+                    <div class="listings">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
                 </section>
             }
         </div>
 
         <aside class="panel" id="contact" aria-labelledby="price-title">
-            <span class="hint" id="price-title">@(rent ? "رهن" : "قیمت کل")</span>
+            <span class="hint" id="price-title">@(rent ? "رهن" : shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</span>
             @if (!rent)
             {
                 <strong class="big">@Fa.Money(p.Price) <small>تومان</small></strong>
@@ -192,7 +210,7 @@
 </div>
 
 <div class="mobile-cta">
-    <div class="p"><small>@(rent ? "رهن" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
+    <div class="p"><small>@(rent ? "رهن" : shortTerm ? "هر شب" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
     @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس تلفنی">@Icons.Get("phone")</a> }
     <a class="btn" href="#contact">درخواست بازدید</a>
 </div>

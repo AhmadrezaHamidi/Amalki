@@ -24,7 +24,7 @@
             <input asp-for="Input.Title" placeholder="مثلاً آپارتمان ۱۲۰ متری نوساز" />
             <div class="row">
                 <div><label for="Input_Deal">نوع معامله</label>
-                    <select asp-for="Input.Deal" data-deal-select><option value="Sale">فروش</option><option value="Rent">اجاره / رهن</option></select></div>
+                    <select asp-for="Input.Deal" data-deal-select><option value="Sale">فروش</option><option value="Rent">اجاره / رهن</option><option value="ShortTerm">اجارهٔ کوتاه‌مدت</option></select></div>
                 <div><label for="Input_Kind">نوع ملک</label>
                     <select asp-for="Input.Kind">
                         @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k">@Labels.Kind(k)</option> }
@@ -42,7 +42,7 @@
         <section class="form-card">
             <h2>قیمت (تومان)</h2>
             <div class="row">
-                <div data-sale-only><label for="Input_Price">قیمت فروش</label><input asp-for="Input.Price" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
+                <div data-sale-only><label for="Input_Price">قیمت فروش (کوتاه‌مدت: هر شب)</label><input asp-for="Input.Price" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
                 <div data-rent-only><label for="Input_Deposit">رهن</label><input asp-for="Input.Deposit" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
                 <div data-rent-only><label for="Input_MonthlyRent">اجارهٔ ماهانه</label><input asp-for="Input.MonthlyRent" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
             </div>

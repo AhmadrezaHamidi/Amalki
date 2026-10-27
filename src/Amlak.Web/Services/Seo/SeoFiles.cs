@@ -106,9 +106,9 @@ public static class SeoFiles
         sb.AppendLine("## جدیدترین آگهی‌ها");
         foreach (var p in latest)
         {
-            var deal = p.Deal == DealType.Sale ? "فروش" : "اجاره";
-            var price = p.Deal == DealType.Sale
-                ? $"قیمت {Fa.Money(p.Price)} تومان"
+            var deal = Labels.Deal(p.Deal);
+            var price = p.Deal == DealType.Sale ? $"قیمت {Fa.Money(p.Price)} تومان"
+                : p.Deal == DealType.ShortTerm ? $"هر شب {Fa.Money(p.Price)} تومان"
                 : $"رهن {Fa.Money(p.Deposit)} و اجاره {Fa.Money(p.MonthlyRent)} تومان";
             sb.AppendLine($"- [{p.Title}]({PropertyUrl(baseUrl, p)}): {deal}، {Fa.Digits(p.AreaM2.ToString())} متر، {p.District} {p.City}، {price}");
         }

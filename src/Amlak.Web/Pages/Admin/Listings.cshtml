@@ -28,7 +28,7 @@
                         </td>
                         <td>@Labels.Deal(p.Deal)</td>
                         <td>@(rent ? Fa.Money(p.Deposit) + " + " + Fa.Money(p.MonthlyRent) : Fa.Money(p.Price))</td>
-                        <td><span class="pill @(p.Status switch { ListingStatus.Published => "pub", ListingStatus.Closed => "closed", _ => "draft" })">@Labels.Status(p.Status)</span></td>
+                        <td><span class="pill @(p.Status switch { ListingStatus.Published => "pub", ListingStatus.Closed => "closed", ListingStatus.Pending => "pending", _ => "draft" })">@Labels.Status(p.Status)</span></td>
                         <td>
                             @if (p.ChannelPosts.Count == 0) { <span class="hint">—</span> }
                             @foreach (var c in p.ChannelPosts)
