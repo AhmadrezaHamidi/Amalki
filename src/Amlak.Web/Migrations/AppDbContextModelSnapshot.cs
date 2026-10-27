@@ -149,6 +149,43 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Leads");
                 });
 
+            modelBuilder.Entity("Amlak.Web.Domain.PhoneCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Phone", "CreatedAtUtc");
+
+                    b.ToTable("PhoneCodes");
+                });
+
             modelBuilder.Entity("Amlak.Web.Domain.Property", b =>
                 {
                     b.Property<int>("Id")
@@ -219,6 +256,14 @@ namespace Amlak.Web.Migrations
                     b.Property<long?>("MonthlyRent")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("OwnerName")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("OwnerPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<int?>("Parking")
                         .HasColumnType("int");
 
@@ -250,6 +295,8 @@ namespace Amlak.Web.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerPhone");
 
                     b.HasIndex("Slug")
                         .IsUnique();

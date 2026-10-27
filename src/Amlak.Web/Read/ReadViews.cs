@@ -40,6 +40,7 @@ public static class ReadViews
         SELECT
             (SELECT COUNT(*) FROM Properties WHERE Status = 1) AS Published,
             (SELECT COUNT(*) FROM Properties WHERE Status = 0) AS Drafts,
+            (SELECT COUNT(*) FROM Properties WHERE Status = 3) AS PendingListings,
             (SELECT COUNT(*) FROM Leads WHERE Handled = 0) AS NewLeads,
             (SELECT COUNT(*) FROM Tickets WHERE Status = 0) AS OpenTickets,
             (SELECT COUNT(*) FROM Tickets WHERE Status = 1) AS AnsweredTickets,

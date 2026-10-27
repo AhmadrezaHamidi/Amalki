@@ -12,6 +12,10 @@ public record ListingFilter
     public PropertyKind? Kind { get; init; }
     public string? City { get; init; }
     public string? District { get; init; }
+    /// <summary>Several districts of the city at once; empty means any.</summary>
+    public IReadOnlyCollection<string> Areas { get; init; } = [];
+    /// <summary>Free text matched against title, district and city.</summary>
+    public string? Text { get; init; }
     /// <summary>Bounds on price for sale and deposit (rahn) for rent.</summary>
     public long? MinPrice { get; init; }
     public long? MaxPrice { get; init; }
@@ -62,6 +66,12 @@ public class ListingQueries(AppDbContext db)
         if (f.Kind is { } k) q = q.Where(c => c.Kind == k);
         if (!string.IsNullOrWhiteSpace(f.City)) { var city = f.City.Trim(); q = q.Where(c => c.City == city); }
         if (!string.IsNullOrWhiteSpace(f.District)) { var district = f.District.Trim(); q = q.Where(c => c.District == district); }
+        if (f.Areas.Count > 0) { var areas = f.Areas; q = q.Where(c => areas.Contains(c.District)); }
+        if (!string.IsNullOrWhiteSpace(f.Text))
+        {
+            var text = f.Text.Trim();
+            q = q.Where(c => c.Title.Contains(text) || c.District.Contains(text) || c.City.Contains(text));
+        }
         if (f.MinPrice is { } minP) q = q.Where(c => c.SortPrice >= minP);
         if (f.MaxPrice is { } maxP) q = q.Where(c => c.SortPrice <= maxP);
         if (f.MaxRent is { } maxR) q = q.Where(c => (c.MonthlyRent ?? 0) <= maxR);
@@ -109,15 +119,26 @@ public class ListingQueries(AppDbContext db)
         return rows.ToDictionary(x => x.Key, x => (int)x.N);
     }
 
+    /// <summary>Districts with the most published listings, across deals and kinds.</summary>
+    public async Task<List<(string City, string District, int Count)>> TopAreasAsync(int take, CancellationToken ct = default)
+    {
+        var rows = await db.ListingFacets.GroupBy(f => new { f.City, f.District })
+            .Select(g => new { g.Key.City, g.Key.District, N = g.Sum(x => x.Listings) })
+            .OrderByDescending(x => x.N).Take(take).ToListAsync(ct);
+        return rows.Select(x => (x.City, x.District, (int)x.N)).ToList();
+    }
+
     /// <summary>Every (deal, kind, city, district) group that has published listings, with its count.</summary>
     public Task<List<ListingFacet>> PlacesAsync(CancellationToken ct = default) =>
         db.ListingFacets.ToListAsync(ct);
 
-    /// <summary>Average asking price per m² of sale listings in a city (optionally a district and kind); null when none.</summary>
-    public async Task<long?> AvgSalePricePerM2Async(string city, string? district, PropertyKind? kind, CancellationToken ct = default)
+    /// <summary>Average asking price per m² of sale listings in a city (optionally districts and kind); null when none.</summary>
+    public async Task<long?> AvgSalePricePerM2Async(string city, string? district, PropertyKind? kind,
+        IReadOnlyCollection<string>? areas = null, CancellationToken ct = default)
     {
         var q = db.ListingCards.Where(c => c.Deal == DealType.Sale && c.City == city && c.Price > 0 && c.AreaM2 > 0);
         if (district is not null) q = q.Where(c => c.District == district);
+        if (areas is { Count: > 0 }) q = q.Where(c => areas.Contains(c.District));
         if (kind is { } k) q = q.Where(c => c.Kind == k);
         var avg = await q.Select(c => (double?)((double)c.Price!.Value / c.AreaM2)).AverageAsync(ct);
         return avg is { } a ? (long)a : null;

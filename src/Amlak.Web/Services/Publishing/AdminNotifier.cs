@@ -38,6 +38,10 @@ public class AdminNotifier
     public Task<bool> NotifyTicketAsync(Ticket ticket, string message, bool isNew, CancellationToken ct = default) =>
         SendAsync(CaptionBuilder.Ticket(ticket, message, isNew, _baseUrl), ct);
 
+    /// <summary>A visitor submitted a listing that waits for review.</summary>
+    public Task<bool> NotifyListingAsync(Property p, CancellationToken ct = default) =>
+        SendAsync(CaptionBuilder.Submitted(p, _baseUrl), ct);
+
     private async Task<bool> SendAsync(string text, CancellationToken ct)
     {
         var delivered = _clients.Count == 0;

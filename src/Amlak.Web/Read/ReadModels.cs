@@ -65,6 +65,8 @@ public class AdminCounters
 {
     public int Published { get; init; }
     public int Drafts { get; init; }
+    /// <summary>Submitted by users, waiting for review.</summary>
+    public int PendingListings { get; init; }
     public int NewLeads { get; init; }
     public int OpenTickets { get; init; }
     public int AnsweredTickets { get; init; }

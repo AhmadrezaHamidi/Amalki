@@ -42,6 +42,9 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
     public List<PropertyPhoto> Photos { get; private set; } = [];
     public int? Id { get; private set; }
     public string? Slug { get; private set; }
+    /// <summary>Who sent the listing in from /ثبت-آگهی; null for listings the admin created.</summary>
+    public string? OwnerName { get; private set; }
+    public string? OwnerPhone { get; private set; }
     public List<ChannelPost> Posts { get; private set; } = [];
     public IReadOnlyCollection<Channel> Configured => publisher.ConfiguredChannels;
 
@@ -50,7 +53,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         if (id is null) return Page();
         var p = await db.Properties.AsNoTracking().Include(x => x.Photos.OrderBy(f => f.SortOrder)).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
         if (p is null) return NotFound();
-        Id = p.Id; Slug = p.Slug; Photos = p.Photos.ToList(); Posts = p.ChannelPosts;
+        Id = p.Id; Slug = p.Slug; Photos = p.Photos.ToList(); Posts = p.ChannelPosts; OwnerName = p.OwnerName; OwnerPhone = p.OwnerPhone;
         Input = new InputModel
         {
             Title = p.Title, Description = p.Description, Deal = p.Deal, Kind = p.Kind, Status = p.Status,
@@ -91,7 +94,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
             var pricing = Pricing.For(Input.Deal, Input.Price, Input.Deposit, Input.MonthlyRent, Input.Convertible);
             if (p is null)
             {
-                p = Property.Create(await UniqueSlugAsync(Slugger.Make(details.Title)), details, pricing, now);
+                p = Property.Create(await Slugger.UniqueAsync(db, details.Title), details, pricing, now);
                 p.ChangeStatus(Input.Status, now);
                 db.Properties.Add(p);
             }
@@ -155,23 +158,15 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
 
     private void Validate()
     {
-        if (Input.Deal == DealType.Sale && Input.Price is null or 0)
-            ModelState.AddModelError("Input.Price", "برای فروش، قیمت لازم است");
+        if (Input.Deal != DealType.Rent && Input.Price is null or 0)
+            ModelState.AddModelError("Input.Price", Input.Deal == DealType.Sale ? "برای فروش، قیمت لازم است" : "قیمت هر شب لازم است");
         if (Input.Deal == DealType.Rent && Input.Deposit is null && Input.MonthlyRent is null)
             ModelState.AddModelError("Input.Deposit", "رهن یا اجارهٔ ماهانه را وارد کنید");
     }
 
-    private async Task<string> UniqueSlugAsync(string baseSlug)
-    {
-        if (baseSlug.Length == 0) baseSlug = "ملک";
-        var slug = baseSlug; var n = 2;
-        while (await db.Properties.AnyAsync(x => x.Slug == slug)) slug = $"{baseSlug}-{n++}";
-        return slug;
-    }
-
     private Task<IActionResult> Redisplay(Property? p)
     {
-        Id = p?.Id; Slug = p?.Slug; Photos = p?.Photos.OrderBy(x => x.SortOrder).ToList() ?? []; Posts = p?.ChannelPosts ?? [];
+        Id = p?.Id; Slug = p?.Slug; OwnerName = p?.OwnerName; OwnerPhone = p?.OwnerPhone; Photos = p?.Photos.OrderBy(x => x.SortOrder).ToList() ?? []; Posts = p?.ChannelPosts ?? [];
         return Task.FromResult<IActionResult>(Page());
     }
 }

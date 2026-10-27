@@ -54,7 +54,8 @@ public abstract class ReadSideTests : IAsyncLifetime
         var saadat = Make("saadat-sale", PropertyKind.Apartment, "تهران", "سعادت‌آباد", 120, Pricing.ForSale(12_000_000_000), beds: 3, ageDays: 4);
         var draft = Make("draft", PropertyKind.Apartment, "تهران", "ونک", 90, Pricing.ForSale(1), status: ListingStatus.Draft);
         var closed = Make("closed", PropertyKind.Office, "تهران", "ونک", 90, Pricing.ForSale(1), status: ListingStatus.Closed);
-        _db.Properties.AddRange(vanak, rent, villa, saadat, draft, closed);
+        var pending = Make("pending", PropertyKind.Office, "تهران", "ونک", 90, Pricing.ForSale(1), status: ListingStatus.Pending);
+        _db.Properties.AddRange(vanak, rent, villa, saadat, draft, closed, pending);
         await _db.SaveChangesAsync();
 
         var handled = Lead.Submit("c", PhoneNumber.Parse("09120000003"), null, null, Now);
@@ -116,6 +117,10 @@ public abstract class ReadSideTests : IAsyncLifetime
         Assert.Equal(["vanak-sale", "karaj-villa"], await Slugs(new() { HasPhoto = true }));
         Assert.Equal(["vanak-rent"], await Slugs(new() { Convertible = true }));
         Assert.Empty(await Slugs(new() { City = "اصفهان" }));
+        Assert.Equal(["vanak-sale", "vanak-rent", "saadat-sale"], await Slugs(new() { City = "تهران", Areas = ["ونک", "سعادت‌آباد"] }));
+        Assert.Equal(["saadat-sale"], await Slugs(new() { Areas = ["سعادت‌آباد", "پونک"] }));
+        Assert.Equal(["karaj-villa"], await Slugs(new() { Text = " کرج " })); // city
+        Assert.Equal(["vanak-sale", "vanak-rent"], await Slugs(new() { Text = "ونک" })); // district and title
     }
 
     [SkippableFact]
@@ -148,6 +153,10 @@ public abstract class ReadSideTests : IAsyncLifetime
         var cities = await Listings.CitiesAsync(DealType.Sale);
         Assert.Equal(["تهران", "کرج"], cities.Select(c => c.City));
         Assert.Equal(new CityFacet("تهران", 2, 11_000_000_000, 110), cities[0]);
+
+        var areas = await Listings.TopAreasAsync(2);
+        Assert.Equal(("تهران", "ونک", 2), areas[0]);
+        Assert.Equal(2, areas.Count);
     }
 
     [SkippableFact]
@@ -170,7 +179,7 @@ public abstract class ReadSideTests : IAsyncLifetime
     public async Task Admin_counters_come_back_in_one_row()
     {
         var c = await new AdminQueries(Db).CountersAsync();
-        Assert.Equal((4, 1, 2, 1, 2, 1), (c.Published, c.Drafts, c.NewLeads, c.OpenTickets, c.AnsweredTickets, c.ChannelErrors));
+        Assert.Equal((4, 1, 1, 2, 1, 2, 1), (c.Published, c.Drafts, c.PendingListings, c.NewLeads, c.OpenTickets, c.AnsweredTickets, c.ChannelErrors));
     }
 
     [SkippableFact]

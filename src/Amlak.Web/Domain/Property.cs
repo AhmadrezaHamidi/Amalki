@@ -1,8 +1,10 @@
 namespace Amlak.Web.Domain;
 
-public enum DealType { Sale = 1, Rent = 2 }
+/// <summary>ShortTerm: daily/temporary rent (Divar's "اجارهٔ کوتاه‌مدت"); its Price is the price per night.</summary>
+public enum DealType { Sale = 1, Rent = 2, ShortTerm = 3 }
 public enum PropertyKind { Apartment = 1, Villa = 2, Land = 3, Commercial = 4, Office = 5 }
-public enum ListingStatus { Draft = 0, Published = 1, Closed = 2 }
+/// <summary>Pending: sent in by a visitor from /ثبت-آگهی, waiting for an admin to review it.</summary>
+public enum ListingStatus { Draft = 0, Published = 1, Closed = 2, Pending = 3 }
 /// <summary>Ownership document, as Iranian listings label it (single-sheet, old "mangoleh" deed, ...).</summary>
 public enum DeedType { Single = 1, Manguleh = 2, Promissory = 3, Endowment = 4 }
 
@@ -27,7 +29,7 @@ public class Property : AggregateRoot
     public PropertyKind Kind { get; private set; }
     public ListingStatus Status { get; private set; } = ListingStatus.Draft;
 
-    // Sale: Price. Rent: Deposit (rahn) + MonthlyRent. Amounts in Toman.
+    // Sale: Price. Rent: Deposit (rahn) + MonthlyRent. ShortTerm: Price per night. Amounts in Toman.
     public long? Price { get; private set; }
     public long? Deposit { get; private set; }
     public long? MonthlyRent { get; private set; }
@@ -55,11 +57,15 @@ public class Property : AggregateRoot
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? PublishedAtUtc { get; private set; }
 
+    /// <summary>Set when a visitor submitted the listing; the phone was verified by SMS code.</summary>
+    public string? OwnerName { get; private set; }
+    public string? OwnerPhone { get; private set; }
+
     public IReadOnlyCollection<PropertyPhoto> Photos => _photos;
     /// <summary>Messenger posts of this listing; kept in sync by the publisher, not part of the listing's rules.</summary>
     public List<ChannelPost> ChannelPosts { get; private set; } = [];
 
-    public Pricing Pricing => Deal == DealType.Sale ? Pricing.ForSale(Price) : Pricing.ForRent(Deposit, MonthlyRent, Convertible);
+    public Pricing Pricing => Pricing.For(Deal, Price, Deposit, MonthlyRent, Convertible);
 
     public static Property Create(string slug, ListingDetails details, Pricing pricing, DateTime nowUtc)
     {
@@ -67,6 +73,19 @@ public class Property : AggregateRoot
         var p = new Property { Slug = slug, CreatedAtUtc = nowUtc };
         p.Apply(details, pricing);
         p.Raise(new ListingCreated(p, nowUtc));
+        return p;
+    }
+
+    /// <summary>A visitor's listing: it waits as Pending until an admin publishes it.</summary>
+    public static Property Submit(string slug, ListingDetails details, Pricing pricing, string ownerName, string ownerPhone, DateTime nowUtc)
+    {
+        if (string.IsNullOrWhiteSpace(ownerName) || string.IsNullOrWhiteSpace(ownerPhone))
+            throw new DomainException("نام و شمارهٔ موبایل آگهی‌دهنده لازم است");
+        pricing.EnsureComplete();
+        var p = Create(slug, details, pricing, nowUtc);
+        p.Status = ListingStatus.Pending;
+        p.OwnerName = ownerName.Trim(); p.OwnerPhone = ownerPhone.Trim();
+        p.Raise(new ListingSubmitted(p, nowUtc));
         return p;
     }
 
@@ -98,6 +117,7 @@ public class Property : AggregateRoot
         {
             case ListingStatus.Published: Publish(nowUtc); break;
             case ListingStatus.Closed: Close(nowUtc); break;
+            case ListingStatus.Pending: Leave(ListingStatus.Pending, nowUtc); break;
             default: Unpublish(nowUtc); break;
         }
     }
@@ -246,7 +266,7 @@ public sealed record Pricing
     /// <summary>Rent only: deposit and monthly rent can be traded against each other.</summary>
     public bool Convertible { get; private init; }
 
-    public bool IsComplete => Deal == DealType.Sale ? Price > 0 : Deposit is not null || MonthlyRent is not null;
+    public bool IsComplete => Deal == DealType.Rent ? Deposit is not null || MonthlyRent is not null : Price > 0;
 
     /// <summary>A sale price; null is allowed only while the listing is a draft.</summary>
     public static Pricing ForSale(long? price) => new() { Deal = DealType.Sale, Price = NonNegative(price) };
@@ -254,20 +274,29 @@ public sealed record Pricing
     public static Pricing ForRent(long? deposit, long? monthlyRent, bool convertible = false) =>
         new() { Deal = DealType.Rent, Deposit = NonNegative(deposit), MonthlyRent = NonNegative(monthlyRent), Convertible = convertible };
 
+    /// <summary>Short-term (daily) rent: a price per night.</summary>
+    public static Pricing ForNightly(long? pricePerNight) => new() { Deal = DealType.ShortTerm, Price = NonNegative(pricePerNight) };
+
     public static Pricing For(DealType deal, long? price, long? deposit, long? monthlyRent, bool convertible = false) => deal switch
     {
         DealType.Sale => ForSale(price),
         DealType.Rent => ForRent(deposit, monthlyRent, convertible),
+        DealType.ShortTerm => ForNightly(price),
         _ => throw new DomainException("نوع معامله نامعتبر است"),
     };
 
     /// <summary>The amount visitors budget by: the price for a sale, the deposit (or rent) for a rent.</summary>
-    public long? Headline => Deal == DealType.Sale ? Price : Deposit ?? MonthlyRent;
+    public long? Headline => Deal == DealType.Rent ? Deposit ?? MonthlyRent : Price;
 
     public void EnsureComplete()
     {
         if (IsComplete) return;
-        throw new DomainException(Deal == DealType.Sale ? "برای فروش، قیمت لازم است" : "رهن یا اجارهٔ ماهانه را وارد کنید");
+        throw new DomainException(Deal switch
+        {
+            DealType.Sale => "برای فروش، قیمت لازم است",
+            DealType.ShortTerm => "برای اجارهٔ روزانه، قیمت هر شب لازم است",
+            _ => "رهن یا اجارهٔ ماهانه را وارد کنید",
+        });
     }
 
     private static long? NonNegative(long? v) => v < 0 ? throw new DomainException("مبلغ نمی‌تواند منفی باشد") : v;
@@ -290,4 +319,17 @@ public class ChannelPost
     public string? PhotoKey { get; set; }
     public string? Error { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A one-time SMS code for proving a mobile number before submitting a listing.</summary>
+public class PhoneCode
+{
+    public int Id { get; set; }
+    public string Phone { get; set; } = "";
+    /// <summary>SHA-256 of phone + code; the code itself is never stored.</summary>
+    public string CodeHash { get; set; } = "";
+    public int Attempts { get; set; }
+    public bool Used { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAtUtc { get; set; }
 }

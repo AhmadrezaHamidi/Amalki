@@ -7,7 +7,7 @@ namespace Amlak.Web.Services.Events;
 
 /// <summary>
 /// Handles saved domain events: keeps the Telegram/Bale posts in sync, alerts the admin about leads and
-/// tickets, and deletes the files of removed listings. A failure is retried with growing delays.
+/// tickets and visitor listings, and deletes the files of removed listings. A failure is retried with growing delays.
 /// Handlers may run twice (a crash after the call, before the row is marked), so each one is safe to repeat.
 /// Assumes one app instance; several would need a row lock (UPDLOCK, READPAST) on the batch query.
 /// </summary>
@@ -81,6 +81,12 @@ public sealed class OutboxDispatcher(
                     photo.Variants = file.Variants;
                     await photos.DeleteAsync(photo, ct);
                 }
+                return;
+
+            case nameof(ListingSubmitted):
+                var submitted = await db.Properties.AsNoTracking().FirstOrDefaultAsync(p => p.Id == m.AggregateId, ct);
+                if (submitted is not null && !await notifier.NotifyListingAsync(submitted, ct))
+                    throw new InvalidOperationException("اعلان آگهی تازه به هیچ پیام‌رسانی نرسید");
                 return;
 
             case nameof(LeadSubmitted):

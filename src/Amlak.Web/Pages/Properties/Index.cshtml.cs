@@ -40,6 +40,8 @@ public class IndexModel(ListingQueries listings) : PageModel
     [BindProperty(SupportsGet = true)] public bool Storage { get; set; }
     [BindProperty(SupportsGet = true)] public bool Photo { get; set; }
     [BindProperty(SupportsGet = true)] public bool Convertible { get; set; }
+    /// <summary>Free text from the header search box: title, district or city.</summary>
+    [BindProperty(SupportsGet = true)] public string? Q { get; set; }
     [BindProperty(SupportsGet = true)] public SortOrder Sort { get; set; }
     [BindProperty(SupportsGet = true)] public int P { get; set; } = 1;
 
@@ -49,9 +51,11 @@ public class IndexModel(ListingQueries listings) : PageModel
     public Category? Category => Taxonomy.For(Deal, Kind);
     /// <summary>The landing page this view belongs to, without query filters.</summary>
     public string BasePath => Taxonomy.Path(City, Category, District);
-    public string Heading => Taxonomy.Heading(Category, City, District);
+    public string Heading => Taxonomy.Heading(Category, City, Areas.Count > 0 ? string.Join("، ", Areas) : District);
     /// <summary>Published districts of the current city with their listing counts, for the neighbourhood links.</summary>
     public List<(string Name, int Count)> Districts { get; private set; } = [];
+    /// <summary>Two or more districts picked together (Divar's multi-neighbourhood filter); they stay in the query.</summary>
+    public List<string> Areas { get; private set; } = [];
     /// <summary>Published cities with counts, shown when no city is chosen.</summary>
     public List<(string Name, int Count)> Cities { get; private set; } = [];
     /// <summary>Average sale price per square metre for this city/district/kind (Melkradar-style), when there are sale listings.</summary>
@@ -92,12 +96,21 @@ public class IndexModel(ListingQueries listings) : PageModel
             District = places.FirstOrDefault(x => x.City == City && Taxonomy.Slug(x.District) == slug)?.District;
             if (District is null) { District = districtSlug.Replace('-', ' '); UnknownPlace = true; }
         }
+        var picked = query["district"].Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()).Distinct().ToList();
+        if (query.ContainsKey("district"))
+        {
+            // The form always sends an empty "district" so unticking every box clears a district in the path.
+            District = picked.Count == 1 ? picked[0] : null;
+            Areas = picked.Count > 1 ? picked : [];
+        }
         City = string.IsNullOrWhiteSpace(City) ? null : City.Trim();
         District = City is null || string.IsNullOrWhiteSpace(District) ? null : District.Trim();
+        if (City is null) Areas = [];
 
         // One URL per landing page: /املاک?city=تهران&deal=Sale becomes /املاک/تهران/خرید.
         var target = BasePath;
-        if (PathKeys.Any(query.ContainsKey) || !string.Equals(Request.Path.Value?.TrimEnd('/'), target, StringComparison.Ordinal))
+        // Several districts cannot live in the path, so only a single one counts as a path key.
+        if (PathKeys.Any(k => query.ContainsKey(k) && (k != "district" || picked.Count <= 1)) || !string.Equals(Request.Path.Value?.TrimEnd('/'), target, StringComparison.Ordinal))
             return RedirectPermanent(Href(target, QueryFilters()));
 
         // Only link places that have listings in this category, with their counts.
@@ -110,14 +123,14 @@ public class IndexModel(ListingQueries listings) : PageModel
         (Items, Total, P) = (page.Items, page.Total, page.Page);
 
         if (Deal != DealType.Rent && City is not null)
-            AvgPricePerM2 = await listings.AvgSalePricePerM2Async(City, District, Kind);
+            AvgPricePerM2 = await listings.AvgSalePricePerM2Async(City, District, Kind, Areas);
         return Page();
     }
 
     /// <summary>All listing filters in one place; the read side (ListingQueries) applies them to the card view.</summary>
     public ListingFilter Filter() => new()
     {
-        Deal = Deal, Kind = Kind, City = City, District = District,
+        Deal = Deal, Kind = Kind, City = City, District = District, Areas = Areas, Text = Q,
         // Sale is filtered by price, rent by deposit (rahn), which is what renters budget by.
         MinPrice = MinPriceValue, MaxPrice = MaxPriceValue, MaxRent = MaxRentValue,
         MinArea = MinAreaValue, MaxArea = MaxAreaValue, MinBeds = Beds,
@@ -129,8 +142,10 @@ public class IndexModel(ListingQueries listings) : PageModel
     /// <summary>Filters that stay in the query string (everything the path does not encode).</summary>
     public Dictionary<string, object?> QueryFilters() => new()
     {
-        // A kind with no deal has no category page, so it stays a query value.
-        ["kind"] = Deal is null ? Kind : null,
+        // A kind with no category page of its own (no deal, or none under this deal) stays a query value.
+        ["q"] = string.IsNullOrWhiteSpace(Q) ? null : Q.Trim(),
+        ["kind"] = Category?.Kind != Kind ? Kind : null,
+        ["district"] = Areas.Count > 1 ? Areas.ToArray() : null,
         ["minPrice"] = MinPrice, ["maxPrice"] = MaxPrice, ["maxRent"] = MaxRent, ["minArea"] = MinArea, ["maxArea"] = MaxArea,
         ["beds"] = Beds is > 0 ? Beds : null, ["age"] = Age,
         ["elevator"] = Elevator ? "true" : null, ["parking"] = Parking ? "true" : null, ["storage"] = Storage ? "true" : null,
@@ -158,8 +173,10 @@ public class IndexModel(ListingQueries listings) : PageModel
 
     private static string Href(string path, Dictionary<string, object?> values)
     {
-        var parts = values.Where(x => x.Value is not null && x.Value.ToString() != "")
-            .Select(x => $"{x.Key}={Uri.EscapeDataString(x.Value!.ToString()!)}").ToList();
+        var parts = values.Where(x => x.Value is not null)
+            .SelectMany(x => (x.Value as string[] ?? [x.Value!.ToString()!]).Select(v => (x.Key, Value: v)))
+            .Where(x => x.Value != "")
+            .Select(x => $"{x.Key}={Uri.EscapeDataString(x.Value)}").ToList();
         var encoded = string.Join("/", path.Split('/').Select(Uri.EscapeDataString));
         return parts.Count == 0 ? encoded : encoded + "?" + string.Join("&", parts);
     }
