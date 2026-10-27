@@ -503,6 +503,8 @@ a.stat:hover{border-color:var(--primary);color:var(--ink)}
   .inbox-list{max-width:none;max-height:none}
 }
 .no-js .admin-nav{display:flex}
+/* ---- SEO/GEO content blocks ---- */
+.lead{margin-top:10px;max-width:760px;font-size:1.05rem}
 
 /* ---- divar features ---- */
 .cat-links{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}

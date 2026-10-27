@@ -21,6 +21,16 @@
 | JSON-LD `RealEstateAgent` + `WebSite` (صفحهٔ اصلی) و `BreadcrumbList` (لیست و جزئیات) | هست | `Services/Seo/JsonLd.cs` |
 | آدرس پایه از `Site:BaseUrl` (نه هدر Host) تا جعل Host فایل‌ها را مسموم نکند | هست | `SeoEndpoints.BaseUrl` |
 | `loading="lazy"` و ابعاد عکس کارت‌ها | هست | `_PropertyCard` |
+| **لیست:** canonical همان مسیر صفحهٔ فرود `/املاک/{شهر}/{دسته}/{محله}` (صفحهٔ ۲ به بعد با `?p=N` خودش canonical است؛ بقیهٔ فیلترها و مرتب‌سازی به همان جمع می‌شوند)، `noindex` برای نتیجهٔ خالی، «صفحهٔ N» در عنوان | هست | `Properties/Index` |
+| **لیست:** جملهٔ آغازین با آمار واقعی (تعداد آگهی و بازهٔ قیمت/اجاره) و همان در `meta description` | هست | `SeoText.ListIntro` |
+| **لیست:** JSON-LD `ItemList` (شمارهٔ ردیف در صفحه‌های بعدی ادامه دارد) | هست | `JsonLd.ItemList` |
+| **جزئیات:** خلاصهٔ مستقل در پاراگراف اول (چه، کجا، چند متر، چند تومان) و همان در `meta description` | هست | `SeoText.Summary` |
+| **جزئیات:** جدول مشخصات `<dl>` با برچسب ثابت، زمان انتشار در `<time>` (نسبی، با تاریخ شمسی در title)، آگهی‌های مشابه همان شهر | هست | `Details` |
+| **جزئیات:** `RealEstateListing` درست: قیمت به `IRR` (تومان × ۱۰)، اجاره با `unitCode: MON` و رهن جدا، اجارهٔ کوتاه‌مدت با `unitCode: DAY`، `itemOffered` (Apartment/House/Place)، عکس و نشانی مطلق، بدون `null`، بدون نشانی دقیق | هست | `JsonLd.Listing` |
+| **جزئیات:** عکس اول `fetchpriority="high"` (LCP)، بقیه lazy؛ `og:image` مطلق و `twitter:card` | هست | `Details`, `_Layout` |
+| متن فارسی بدون `&#x...;` در HTML (`HtmlEncoder` با `UnicodeRanges.All`) | هست | `Program.cs` |
+| تگ JSON-LD با `type="application/ld+json"` واقعی (قبلاً `ld&#x2B;json` می‌شد) | هست | `JsonLd.Script` |
+| Skill کلود برای سئو/GEO این پروژه | هست | `.claude/skills/seo-geo/SKILL.md` |
 
 ## برنامه (به ترتیب اولویت)
 
@@ -31,7 +41,7 @@
 - **`/llms.txt`**: خلاصهٔ سایت برای مدل‌ها (معرفی، بخش‌های اصلی، نحوهٔ یافتن آگهی‌ها، اطلاعات تماس). فایل متنی ساده و کوتاه.
 - در `robots.txt` خزندهٔ هوش مصنوعی را صریح مجاز کنید یا مسدود کنید (تصمیم کسب‌وکاری): `GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`, `CCBot`.
 
-### ۲. داده ساختاریافتهٔ بیشتر (SEO-06) — سازمان/وب‌سایت/مسیر انجام‌شده؛ FAQPage و ItemList مانده
+### ۲. داده ساختاریافتهٔ بیشتر (SEO-06) — سازمان/وب‌سایت/مسیر/ItemList/آگهی انجام‌شده؛ FAQPage مانده
 
 - `Organization` / `RealEstateAgent` + `WebSite` (با `SearchAction`) در صفحهٔ اصلی: نام، لوگو، تلفن، نشانی، ساعات کار.
 - `BreadcrumbList` در لیست و جزئیات (الان فقط مسیر متنی هست).

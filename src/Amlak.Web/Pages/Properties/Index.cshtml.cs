@@ -69,6 +69,11 @@ public class IndexModel(ListingQueries listings) : PageModel
     public int? MinAreaValue => Number(MinArea) is { } a and <= int.MaxValue ? (int)a : null;
     public int? MaxAreaValue => Number(MaxArea) is { } a and <= int.MaxValue ? (int)a : null;
     public bool HasFilters => QueryFilters().Any(x => x.Key is not ("sort" or "p") && x.Value is not null);
+    public int FirstPosition => (P - 1) * PageSize + 1;
+
+    /// <summary>Price range (sale price, monthly rent or nightly price) of the filtered set; only computed when one deal type is selected.</summary>
+    public long? MinFound { get; private set; }
+    public long? MaxFound { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string? citySlug, string? categorySlug, string? districtSlug)
     {

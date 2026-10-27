@@ -27,9 +27,9 @@
 @section Head {
     @foreach (var node in JsonLd.Site(cfg["Site:Name"] ?? "آشیانه", site))
     {
-        <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(node))</script>
+        @Html.Raw(JsonLd.Script(node))
     }
-    <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(faqLd))</script>
+    @Html.Raw(JsonLd.Script(faqLd))
 }
 
 <section class="home-hero">

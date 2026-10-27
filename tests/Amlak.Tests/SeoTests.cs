@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using Amlak.Web.Domain;
+using Amlak.Web.Services;
 using Amlak.Web.Services.Seo;
 
 namespace Amlak.Tests;
@@ -11,6 +12,15 @@ public class SeoTests
     private static Property Sample(string slug = "آپارتمان-تست")
     {
         var p = TestData.Listing(slug: slug);
+        p.AddPhoto("/uploads/a.jpg", TestData.Now);
+        return p;
+    }
+
+    /// <summary>Published listing with photo and specs, for the JSON-LD and summary tests.</summary>
+    private static Property Detailed(Pricing pricing, int? bedrooms = 2, int? floor = null)
+    {
+        var p = Property.Create("آپارتمان-تست", ListingDetails.Of("آپارتمان تست", "d", PropertyKind.Apartment, 90, "تهران", "ونک", bedrooms, floor), pricing, TestData.Now);
+        p.Publish(TestData.Now);
         p.AddPhoto("/uploads/a.jpg", TestData.Now);
         return p;
     }
@@ -73,5 +83,80 @@ public class SeoTests
         Assert.Contains("\"position\":1", json);
         Assert.Contains("\"position\":2", json);
         Assert.Contains("BreadcrumbList", json);
+    }
+
+    [Fact]
+    public void Listing_jsonld_uses_iso_currency_absolute_images_and_no_nulls()
+    {
+        var json = JsonLd.Serialize(JsonLd.Listing(Detailed(Pricing.ForSale(5_000_000_000)), Base));
+
+        Assert.Contains("\"@type\":\"RealEstateListing\"", json);
+        Assert.Contains("\"priceCurrency\":\"IRR\"", json);
+        Assert.Contains("\"price\":50000000000", json); // 5 billion Toman = 50 billion Rial
+        Assert.Contains("\"image\":[\"" + Base + "/uploads/a.jpg\"]", json);
+        Assert.Contains("\"datePosted\":\"2026-10-20\"", json);
+        Assert.Contains("\"numberOfBedrooms\":2", json);
+        Assert.DoesNotContain("null", json);
+        Assert.DoesNotContain("IRT", json);
+    }
+
+    [Fact]
+    public void Rent_listing_has_monthly_rent_and_deposit_specs()
+    {
+        var json = JsonLd.Serialize(JsonLd.Listing(Detailed(Pricing.ForRent(300_000_000, 20_000_000)), Base));
+
+        Assert.Contains("LeaseOut", json);
+        Assert.Contains("\"unitCode\":\"MON\"", json);
+        Assert.Contains("\"price\":200000000", json);
+        Assert.Contains("\"price\":3000000000", json);
+    }
+
+    [Fact]
+    public void Short_term_listing_has_nightly_price()
+    {
+        var p = Detailed(Pricing.ForNightly(2_000_000));
+        var json = JsonLd.Serialize(JsonLd.Listing(p, Base));
+
+        Assert.Contains("\"unitCode\":\"DAY\"", json);
+        Assert.Contains("\"price\":20000000", json);
+        Assert.Contains("هر شب ۲ میلیون تومان", SeoText.Summary(p));
+    }
+
+    [Fact]
+    public void ItemList_positions_continue_across_pages()
+    {
+        var json = JsonLd.Serialize(JsonLd.ItemList([Sample("a"), Sample("b")], Base, 13));
+        Assert.Contains("\"position\":13", json);
+        Assert.Contains("\"position\":14", json);
+        Assert.Contains(Base + "/%D9%85%D9%84%DA%A9/b", json);
+    }
+
+    [Fact]
+    public void Summary_states_kind_size_place_and_price()
+    {
+        var p = Detailed(Pricing.ForSale(5_000_000_000), bedrooms: 2, floor: 3);
+        Assert.Equal("آپارتمان ۹۰ متری در ونک، تهران برای فروش به قیمت ۵ میلیارد تومان؛ ۲ خواب، طبقهٔ ۳.", SeoText.Summary(p));
+    }
+
+    [Fact]
+    public void ListIntro_reports_count_and_price_range()
+    {
+        var txt = SeoText.ListIntro("آشیانه", "خرید ملک", "تهران", 12, 4_000_000_000, 9_500_000_000, DealType.Sale);
+        Assert.Equal("در حال حاضر ۱۲ آگهی خرید ملک در تهران در آشیانه منتشر شده است؛ قیمت‌ها از ۴ میلیارد تومان تا ۹٫۵ میلیارد تومان است.", txt);
+    }
+
+    [Fact]
+    public void Persian_date_uses_tehran_time()
+    {
+        // 2026-10-25 21:00 UTC is already 26 Oct in Tehran = 1405/08/04.
+        Assert.Equal("۱۴۰۵/۰۸/۰۴", Fa.Date(new DateTime(2026, 10, 25, 21, 0, 0, DateTimeKind.Utc)));
+    }
+
+    [Fact]
+    public void Script_tag_has_literal_ld_json_type()
+    {
+        var html = JsonLd.Script(new Dictionary<string, string> { ["name"] = "x</script>" });
+        Assert.StartsWith("<script type=\"application/ld+json\">", html);
+        Assert.Equal(1, html.Split("</script>").Length - 1);
     }
 }

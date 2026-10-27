@@ -6,11 +6,14 @@
 @{
     var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var cat = Model.Category;
-    ViewData["Title"] = Model.Heading;
-    ViewData["Description"] = $"{Model.Heading}: {Fa.Digits(Model.Total.ToString())} آگهی بررسی‌شده با عکس واقعی و قیمت شفاف"
-        + (Model.AvgPricePerM2 is { } avg ? $"، میانگین هر متر {Fa.Money(avg)} تومان." : ".");
-    // Each landing page is its own canonical; filtered and paged variants point to it.
-    ViewData["Canonical"] = site + Taxonomy.EncodedPath(Model.City, cat, Model.District);
+    var siteName = Cfg["Site:Name"] ?? "آشیانه";
+    var where = string.Join(" ", new[] { Model.Areas.Count > 0 ? string.Join("، ", Model.Areas) : Model.District, Model.City }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    // Opening sentence from real data (count and price range); it doubles as the meta description.
+    var intro = SeoText.ListIntro(siteName, cat?.Name ?? "ملک", where, Model.Total, Model.MinFound, Model.MaxFound, Model.Deal);
+    ViewData["Title"] = Model.Heading + (Model.P > 1 ? $" — صفحهٔ {Fa.Digits(Model.P.ToString())}" : "");
+    ViewData["Description"] = intro + (Model.Total > 0 && Model.AvgPricePerM2 is { } avg ? $" میانگین هر متر {Fa.Money(avg)} تومان." : " عکس واقعی، متراژ، محله و قیمت هر آگهی.");
+    // Each landing page is its own canonical; page 2+ points to itself, other filters and sort orders point to the landing page.
+    ViewData["Canonical"] = site + Taxonomy.EncodedPath(Model.City, cat, Model.District) + (Model.P > 1 ? $"?p={Model.P}" : "");
     if (Model.UnknownPlace || Model.Total == 0) ViewData["Robots"] = "noindex,follow";
     var rent = Model.Deal == DealType.Rent;
     var shortTerm = Model.Deal == DealType.ShortTerm;
@@ -25,7 +28,11 @@
     var activeCount = Model.QueryFilters().Count(x => x.Key is not ("sort" or "p") && x.Value is not null);
 }
 @section Head {
-    <script type="application/ld+json">@Html.Raw(JsonLd.Serialize(JsonLd.Breadcrumbs(crumbs.ToArray())))</script>
+    @Html.Raw(JsonLd.Script(JsonLd.Breadcrumbs(crumbs.ToArray())))
+    @if (Model.Items.Count > 0)
+    {
+        @Html.Raw(JsonLd.Script(JsonLd.ItemList(Model.Items, site, Model.FirstPosition)))
+    }
 }
 <div class="wrap page-pad list-page">
     <nav class="crumbs" aria-label="مسیر">

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Amlak.Web.Services;
 
 public static class Fa
@@ -25,6 +27,14 @@ public static class Fa
                  : v >= 1_000_000 ? string.Create(inv, $"{v / 1_000_000m:0.##} میلیون")
                  : string.Create(inv, $"{v:N0}");
         return Digits(t.Replace('.', '٫'));
+    }
+
+    /// <summary>Solar Hijri date in Tehran time (UTC+3:30, no DST since 2022), e.g. "۱۴۰۵/۰۸/۰۴".</summary>
+    public static string Date(DateTime utc)
+    {
+        var d = utc.AddHours(3.5);
+        var pc = new PersianCalendar();
+        return Digits($"{pc.GetYear(d)}/{pc.GetMonth(d):00}/{pc.GetDayOfMonth(d):00}");
     }
 
     /// <summary>Relative time the way listing sites show it: "لحظاتی پیش"، "۳ ساعت پیش"، "۲ هفته پیش".</summary>

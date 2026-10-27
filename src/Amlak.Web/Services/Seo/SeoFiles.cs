@@ -59,7 +59,7 @@ public static class SeoFiles
         urls.AddRange(LandingPaths(published).Select(path =>
             new XElement(ns + "url", new XElement(ns + "loc", baseUrl + path), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8"))));
 
-        foreach (var p in published.Take(MaxSitemapUrls - urls.Count))
+        foreach (var p in published.Take(Math.Max(0, MaxSitemapUrls - urls.Count)))
         {
             var url = new XElement(ns + "url",
                 new XElement(ns + "loc", PropertyUrl(baseUrl, p)),
