@@ -96,11 +96,18 @@ public static class JsonLd
     }
 
     /// <summary>ItemList of the listings shown on a list page; positions continue across pages.</summary>
-    public static object ItemList(IEnumerable<Property> items, string baseUrl, int firstPosition = 1) => Obj(
+    public static object ItemList(IEnumerable<Property> items, string baseUrl, int firstPosition = 1) =>
+        ItemList(items.Select(p => (p.Slug, p.Title)), baseUrl, firstPosition);
+
+    /// <summary>The list pages read cards from the read side (vw_ListingCards).</summary>
+    public static object ItemList(IEnumerable<Read.ListingCard> items, string baseUrl, int firstPosition = 1) =>
+        ItemList(items.Select(c => (c.Slug, c.Title)), baseUrl, firstPosition);
+
+    private static object ItemList(IEnumerable<(string Slug, string Title)> items, string baseUrl, int firstPosition) => Obj(
         ("@context", "https://schema.org"),
         ("@type", "ItemList"),
         ("itemListElement", items.Select((p, i) => Obj(
-            ("@type", "ListItem"), ("position", firstPosition + i), ("url", SeoFiles.PropertyUrl(baseUrl, p)), ("name", p.Title))).ToArray()));
+            ("@type", "ListItem"), ("position", firstPosition + i), ("url", SeoFiles.PropertyUrl(baseUrl, p.Slug)), ("name", p.Title))).ToArray()));
 
     private static object[]? RentSpecification(Property p)
     {
