@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Amlak.Web.Data;
 using Amlak.Web.Domain;
 using Amlak.Web.Pages.Properties;
@@ -49,12 +50,21 @@ public sealed class ListingQueryTests : IDisposable
         return p;
     }
 
+    /// <summary>Runs the page as if requested at its own landing path, so it renders instead of redirecting.</summary>
+    private static async Task Get(IndexModel m)
+    {
+        var http = new DefaultHttpContext();
+        http.Request.Path = m.BasePath;
+        m.PageContext = new PageContext { HttpContext = http };
+        Assert.IsType<PageResult>(await m.OnGetAsync(null, null, null));
+    }
+
     private async Task<List<string>> Query(Action<IndexModel> set)
     {
         await using var db = NewDb();
         var m = new IndexModel(db);
         set(m);
-        await m.OnGetAsync();
+        await Get(m);
         return m.Items.Select(x => x.Slug).ToList();
     }
 
@@ -97,7 +107,7 @@ public sealed class ListingQueryTests : IDisposable
     {
         await using var db = NewDb();
         var m = new IndexModel(db) { Deal = DealType.Sale, P = 99 };
-        await m.OnGetAsync();
+        await Get(m);
         Assert.Equal(4, m.Total);
         Assert.Equal(1, m.Pages);
         Assert.Equal(1, m.P);
@@ -109,7 +119,7 @@ public sealed class ListingQueryTests : IDisposable
     {
         await using var db = NewDb();
         var m = new IndexModel(db);
-        await m.OnGetAsync();
+        await Get(m);
         var card = m.Items.Single(x => x.Slug == "sale-tehran-new");
         Assert.Equal("/u/sale-tehran-new-0.jpg", Assert.Single(card.Photos).Url);
         Assert.Empty(m.Items.Single(x => x.Slug == "sale-karaj").Photos);
