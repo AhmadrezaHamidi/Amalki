@@ -421,6 +421,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .table th,.table td{padding:12px 16px;text-align:start;border-bottom:1px solid var(--line-soft);white-space:nowrap;vertical-align:middle}
 .table tr:last-child td{border-bottom:0}
 .table td.wrap-cell{white-space:normal;min-width:220px}
+.tablewrap .table tbody th{background:none;color:var(--ink);font-weight:700;font-size:.95rem}
 .thumb{width:56px;height:42px;border-radius:8px;background:var(--ph);object-fit:cover;flex:none}
 .cell-title{display:flex;gap:12px;align-items:center}.cell-title small{display:block;color:var(--muted);font-size:.82rem}
 .actions{display:flex;gap:8px;align-items:center}

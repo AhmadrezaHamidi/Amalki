@@ -278,6 +278,11 @@ namespace Amlak.Web.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<long>("SortPrice")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bigint")
+                        .HasComputedColumnSql("ISNULL([Price], ISNULL([Deposit], CAST(0 AS bigint)))", true);
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -296,9 +301,13 @@ namespace Amlak.Web.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
+                    b.HasIndex("Status", "PublishedAtUtc");
+
+                    b.HasIndex("Status", "SortPrice");
+
                     b.HasIndex("Status", "City", "District");
 
-                    b.HasIndex("Status", "Deal", "City");
+                    b.HasIndex("Status", "Deal", "City", "Kind", "PublishedAtUtc");
 
                     b.ToTable("Properties");
                 });
@@ -337,7 +346,9 @@ namespace Amlak.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("PropertyId", "SortOrder");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PropertyId", "SortOrder"), new[] { "Url", "Alt", "Width", "Height", "Variants" });
 
                     b.ToTable("PropertyPhotos");
                 });
@@ -419,6 +430,156 @@ namespace Amlak.Web.Migrations
                     b.HasIndex("TicketId");
 
                     b.ToTable("TicketMessages");
+                });
+
+            modelBuilder.Entity("Amlak.Web.Read.AdminCounters", b =>
+                {
+                    b.Property<int>("AnsweredTickets")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChannelErrors")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Drafts")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewLeads")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OpenTickets")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Published")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_AdminCounters", (string)null);
+                });
+
+            modelBuilder.Entity("Amlak.Web.Read.ListingCard", b =>
+                {
+                    b.Property<int>("AreaM2")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Bedrooms")
+                        .HasColumnType("int");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Convertible")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CoverAlt")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CoverHeight")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoverUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverVariants")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CoverWidth")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Deal")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Deed")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("Deposit")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Floor")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("HasBalcony")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("HasElevator")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("HasStorage")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("MonthlyRent")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("Parking")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PhotoCount")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("Price")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("SortPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("YearBuilt")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_ListingCards", (string)null);
+                });
+
+            modelBuilder.Entity("Amlak.Web.Read.ListingFacet", b =>
+                {
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Deal")
+                        .HasColumnType("int");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<long>("Listings")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SumArea")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SumPrice")
+                        .HasColumnType("bigint");
+
+                    b.ToTable((string)null);
+
+                    b.ToSqlQuery("SELECT Deal, Kind, City, District, Listings, SumPrice, SumArea FROM dbo.vw_ListingFacets WITH (NOEXPAND)");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

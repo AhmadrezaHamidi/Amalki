@@ -29,9 +29,11 @@ public static class SeoFiles
         var paths = new List<string>();
         foreach (var c in Taxonomy.All.Where(c => list.Any(p => Matches(c, p))))
             paths.Add(Taxonomy.EncodedPath(null, c));
+        if (list.Count > 0) paths.Add(Amlak.Web.Pages.Prices.IndexModel.Path(null));
         foreach (var city in list.GroupBy(p => p.City).OrderByDescending(g => g.Count()))
         {
             paths.Add(Taxonomy.EncodedPath(city.Key, null));
+            paths.Add(Amlak.Web.Pages.Prices.IndexModel.Path(city.Key));
             foreach (var c in Taxonomy.All.Where(c => city.Any(p => Matches(c, p))))
             {
                 paths.Add(Taxonomy.EncodedPath(city.Key, c));
