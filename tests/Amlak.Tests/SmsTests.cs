@@ -216,6 +216,21 @@ public sealed class SmsTests : IDisposable
     }
 
     [Fact]
+    public async Task Listing_cards_carry_the_price_display()
+    {
+        using var db = NewDb();
+        await Amlak.Web.Read.ReadViews.CreateSqliteAsync(db);
+        var p = TestData.Listing();
+        p.ShowPriceAs(PriceDisplay.Negotiable, TestData.Now);
+        db.Properties.Add(p);
+        db.SaveChanges();
+
+        var card = await db.ListingCards.SingleAsync();
+        Assert.Equal(PriceDisplay.Negotiable, card.PriceDisplay);
+        Assert.False(card.ShowsPrice);
+    }
+
+    [Fact]
     public void Text_helpers_fill_placeholders_and_count_parts()
     {
         Assert.Equal("سلام سارا {ناشناخته}", SmsText.Render("سلام {نام} {ناشناخته}", new Dictionary<string, string?> { ["نام"] = "سارا" }));

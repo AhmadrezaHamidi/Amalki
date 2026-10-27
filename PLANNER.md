@@ -1,4 +1,4 @@
-# Amlak — Real estate site (sale + rent)
+﻿# Amlak — Real estate site (sale + rent)
 
 ## Current status
 - Design chosen: Option 1 "Modern & Trustworthy" (teal/blue, light, Vazirmatn, RTL). Mockup: `design-options.html`. Design system: `design-system/amlak/MASTER.md`.
@@ -26,6 +26,8 @@
 - Dark mode (2026-10-26): automatic via prefers-color-scheme for site, admin and offline page; dark tokens in site.css, `--on-primary` for text on primary, theme-color per scheme. Checked at 390px and 1440px.
 - UI/UX v4 (2026-10-26): Divar-style redesign (direction A on the design canvas). New tokens, header search box (`q` filter on title/district/city), center post button in tab bar, row listing card, sticky filter bar + full filter panel (full-screen sheet on phones), detail key facts/price table/amenities/safety tip, new home (category grid, busy districts, latest), admin pending count. 55 tests pass. Checked at 390px and 1440px, light and dark. Docs: docs/DESIGN.md section 4.
 - SMS alerts and bulk SMS (2026-10-27, rebuilt from draft PR #3 on the current domain): `/پیگیری` lets a visitor log in with the same SMS code as `/ثبت-آگهی`, save up to 5 searches (deal, kind, city, districts, budget, bedrooms) and cancel them or stop all SMS; `AlertService` runs from the outbox on ListingPublished/ListingChanged and texts a matching listing once when it goes live after the sign-up, then on each drop below the lowest price told (rent compared by full deposit, 3%/month); `/Admin/Sms` bulk campaigns to subscribers or a pasted list, preview with part count, scheduled sends in Tehran time (`CampaignWorker`), «لغو۱۱» footer, opted-out numbers skipped, every text in `SmsLogs`; short link `/p/{id}` for SMS. Price display per listing (full + per m², total only, negotiable) on site, JSON-LD and channel posts. Kavenegar texts use `Sms:Sender`. Migration `SmsAlertsAndPriceDisplay`. 104 tests pass; checked end to end against SQL Server 2022.
+
+- CQRS read side (2026-10-26): public pages and admin counters read from SQL views (`src/Amlak.Web/Read`): `vw_ListingCards` (card + cover photo), `vw_ListingFacets` (indexed view, counts per deal/kind/city/district), `vw_AdminCounters`. Migration `ReadViews` adds stored `SortPrice` and covering indexes. Verified on SQL Server 2022 Express with 20k listings/100k photos (listing pages 2-7x faster). Tests run on SQLite and, with `AMLAK_TEST_SQLSERVER`, on real SQL Server. Not moved yet: sitemap/llms, Admin/Listings (no paging), ticket and lead lists.
 
 ## Next task
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)

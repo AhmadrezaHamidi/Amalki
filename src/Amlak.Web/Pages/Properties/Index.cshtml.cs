@@ -1,13 +1,13 @@
 using System.Globalization;
-using Amlak.Web.Data;
+using Amlak.Web.Read;
 using Amlak.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
-using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Properties;
 
+// Same order as ListingSort; the page keeps its own name so links and views stay unchanged.
 public enum SortOrder { Newest, Cheapest, Priciest, Largest }
 
 /// <summary>
@@ -15,7 +15,7 @@ public enum SortOrder { Newest, Cheapest, Priciest, Largest }
 /// City, deal, kind and district live in the path; every other filter stays in the query string.
 /// </summary>
 [OutputCache(PolicyName = SiteCache.Listings)]
-public class IndexModel(AppDbContext db) : PageModel
+public class IndexModel(ListingQueries listings) : PageModel
 {
     private const int PageSize = 12;
 
@@ -45,7 +45,7 @@ public class IndexModel(AppDbContext db) : PageModel
     [BindProperty(SupportsGet = true)] public SortOrder Sort { get; set; }
     [BindProperty(SupportsGet = true)] public int P { get; set; } = 1;
 
-    public List<Property> Items { get; private set; } = [];
+    public List<ListingCard> Items { get; private set; } = [];
     public int Total { get; private set; }
     public int Pages => (int)Math.Ceiling(Total / (double)PageSize);
     public Category? Category => Taxonomy.For(Deal, Kind);
@@ -82,10 +82,8 @@ public class IndexModel(AppDbContext db) : PageModel
             if (!query.ContainsKey("kind")) Kind = category.Kind;
         }
 
-        var places = await db.Properties.AsNoTracking().Where(p => p.Status == ListingStatus.Published)
-            .GroupBy(p => new { p.City, p.District, p.Deal, p.Kind })
-            .Select(g => new { g.Key.City, g.Key.District, g.Key.Deal, g.Key.Kind, Count = g.Count() })
-            .ToListAsync();
+        // Pre-aggregated per (deal, kind, city, district) in the facets view.
+        var places = await listings.PlacesAsync();
         if (citySlug is not null && citySlug != Taxonomy.AllCities && !query.ContainsKey("city"))
         {
             var slug = Taxonomy.Slug(citySlug);
@@ -118,67 +116,28 @@ public class IndexModel(AppDbContext db) : PageModel
         // Only link places that have listings in this category, with their counts.
         var inCategory = places.Where(x => (Deal == null || x.Deal == Deal) && (Kind == null || x.Kind == Kind)).ToList();
         Districts = City is null ? [] : inCategory.Where(x => x.City == City).GroupBy(x => x.District)
-            .Select(g => (g.Key, g.Sum(x => x.Count))).OrderByDescending(x => x.Item2).ToList();
-        Cities = inCategory.GroupBy(x => x.City).Select(g => (g.Key, g.Sum(x => x.Count))).OrderByDescending(x => x.Item2).ToList();
+            .Select(g => (g.Key, (int)g.Sum(x => x.Listings))).OrderByDescending(x => x.Item2).ToList();
+        Cities = inCategory.GroupBy(x => x.City).Select(g => (g.Key, (int)g.Sum(x => x.Listings))).OrderByDescending(x => x.Item2).ToList();
 
-        var q = Apply(db.Properties.AsNoTracking().Where(p => p.Status == ListingStatus.Published));
-        Total = await q.CountAsync();
-        P = Math.Clamp(P, 1, Math.Max(1, Pages));
-        q = Sort switch
-        {
-            SortOrder.Cheapest => q.OrderBy(p => p.Price ?? p.Deposit ?? 0),
-            SortOrder.Priciest => q.OrderByDescending(p => p.Price ?? p.Deposit ?? 0),
-            SortOrder.Largest => q.OrderByDescending(p => p.AreaM2),
-            _ => q.OrderByDescending(p => p.PublishedAtUtc),
-        };
-        Items = await q.Include(p => p.Photos.OrderBy(x => x.SortOrder).Take(1))
-            .Skip((P - 1) * PageSize).Take(PageSize).ToListAsync();
+        var page = await listings.SearchAsync(Filter(), P, PageSize);
+        (Items, Total, P) = (page.Items, page.Total, page.Page);
 
         if (Deal != DealType.Rent && City is not null)
-        {
-            var sales = await db.Properties.AsNoTracking()
-                .Where(p => p.Status == ListingStatus.Published && p.Deal == DealType.Sale && p.City == City
-                            && (District == null || p.District == District) && (Areas.Count == 0 || Areas.Contains(p.District))
-                            && (Kind == null || p.Kind == Kind)
-                            && p.Price > 0 && p.AreaM2 > 0)
-                .Select(p => new { p.Price, p.AreaM2 }).ToListAsync();
-            if (sales.Count > 0) AvgPricePerM2 = (long)sales.Average(s => (double)s.Price!.Value / s.AreaM2);
-        }
+            AvgPricePerM2 = await listings.AvgSalePricePerM2Async(City, District, Kind, Areas);
         return Page();
     }
 
-    /// <summary>All listing filters in one place, so the query can move to a read model unchanged.</summary>
-    public IQueryable<Property> Apply(IQueryable<Property> q)
+    /// <summary>All listing filters in one place; the read side (ListingQueries) applies them to the card view.</summary>
+    public ListingFilter Filter() => new()
     {
-        if (!string.IsNullOrWhiteSpace(Q))
-        {
-            var text = Q.Trim();
-            q = q.Where(p => p.Title.Contains(text) || p.District.Contains(text) || p.City.Contains(text));
-        }
-        if (Deal is { } d) q = q.Where(p => p.Deal == d);
-        if (Kind is { } k) q = q.Where(p => p.Kind == k);
-        if (City is { } city) q = q.Where(p => p.City == city);
-        if (District is { } district) q = q.Where(p => p.District == district);
-        if (Areas.Count > 0) q = q.Where(p => Areas.Contains(p.District));
+        Deal = Deal, Kind = Kind, City = City, District = District, Areas = Areas, Text = Q,
         // Sale is filtered by price, rent by deposit (rahn), which is what renters budget by.
-        if (MinPriceValue is { } min) q = q.Where(p => (p.Price ?? p.Deposit ?? 0) >= min);
-        if (MaxPriceValue is { } max) q = q.Where(p => (p.Price ?? p.Deposit ?? 0) <= max);
-        if (MaxRentValue is { } rent) q = q.Where(p => (p.MonthlyRent ?? 0) <= rent);
-        if (MinAreaValue is { } a) q = q.Where(p => p.AreaM2 >= a);
-        if (MaxAreaValue is { } b) q = q.Where(p => p.AreaM2 <= b);
-        if (Beds is { } beds and > 0) q = q.Where(p => p.Bedrooms >= beds);
-        if (Age is { } age and >= 0)
-        {
-            var since = new PersianCalendar().GetYear(DateTime.Now) - age;
-            q = q.Where(p => p.YearBuilt >= since);
-        }
-        if (Elevator) q = q.Where(p => p.HasElevator == true);
-        if (Parking) q = q.Where(p => p.Parking > 0);
-        if (Storage) q = q.Where(p => p.HasStorage == true);
-        if (Photo) q = q.Where(p => p.Photos.Any());
-        if (Convertible) q = q.Where(p => p.Convertible);
-        return q;
-    }
+        MinPrice = MinPriceValue, MaxPrice = MaxPriceValue, MaxRent = MaxRentValue,
+        MinArea = MinAreaValue, MaxArea = MaxAreaValue, MinBeds = Beds,
+        MinYearBuilt = Age is { } age and >= 0 ? new PersianCalendar().GetYear(DateTime.Now) - age : null,
+        Elevator = Elevator, Parking = Parking, Storage = Storage, HasPhoto = Photo, Convertible = Convertible,
+        Sort = (ListingSort)Sort,
+    };
 
     /// <summary>Filters that stay in the query string (everything the path does not encode).</summary>
     public Dictionary<string, object?> QueryFilters() => new()

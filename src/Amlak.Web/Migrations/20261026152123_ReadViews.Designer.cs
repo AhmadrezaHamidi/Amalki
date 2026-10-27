@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Amlak.Web.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261027045326_SmsAlertsAndPriceDisplay")]
-    partial class SmsAlertsAndPriceDisplay
+    [Migration("20261026152123_ReadViews")]
+    partial class ReadViews
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,82 +24,6 @@ namespace Amlak.Web.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Amlak.Web.Data.OutboxMessage", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("AggregateId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Error")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("NextAttemptAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("OccurredAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Payload")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ProcessedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("RefId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProcessedAtUtc", "NextAttemptAtUtc");
-
-                    b.ToTable("OutboxMessages");
-                });
-
-            modelBuilder.Entity("Amlak.Web.Domain.AlertSent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("int");
-
-                    b.Property<long>("Price")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("PropertyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SavedSearchId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SentAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PropertyId", "SavedSearchId", "Kind", "Price")
-                        .IsUnique();
-
-                    b.ToTable("AlertsSent");
-                });
 
             modelBuilder.Entity("Amlak.Web.Domain.ChannelPost", b =>
                 {
@@ -183,43 +107,6 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Leads");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.PhoneCode", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<bool>("Used")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Phone", "CreatedAtUtc");
-
-                    b.ToTable("PhoneCodes");
-                });
-
             modelBuilder.Entity("Amlak.Web.Domain.Property", b =>
                 {
                     b.Property<int>("Id")
@@ -290,22 +177,11 @@ namespace Amlak.Web.Migrations
                     b.Property<long?>("MonthlyRent")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("OwnerName")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("OwnerPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<int?>("Parking")
                         .HasColumnType("int");
 
                     b.Property<long?>("Price")
                         .HasColumnType("bigint");
-
-                    b.Property<int>("PriceDisplay")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("PublishedAtUtc")
                         .HasColumnType("datetime2");
@@ -314,6 +190,11 @@ namespace Amlak.Web.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("SortPrice")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bigint")
+                        .HasComputedColumnSql("ISNULL([Price], ISNULL([Deposit], CAST(0 AS bigint)))", true);
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -328,14 +209,16 @@ namespace Amlak.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerPhone");
-
                     b.HasIndex("Slug")
                         .IsUnique();
 
+                    b.HasIndex("Status", "PublishedAtUtc");
+
+                    b.HasIndex("Status", "SortPrice");
+
                     b.HasIndex("Status", "City", "District");
 
-                    b.HasIndex("Status", "Deal", "City");
+                    b.HasIndex("Status", "Deal", "City", "Kind", "PublishedAtUtc");
 
                     b.ToTable("Properties");
                 });
@@ -374,180 +257,11 @@ namespace Amlak.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("PropertyId", "SortOrder");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PropertyId", "SortOrder"), new[] { "Url", "Alt", "Width", "Height", "Variants" });
 
                     b.ToTable("PropertyPhotos");
-                });
-
-            modelBuilder.Entity("Amlak.Web.Domain.SavedSearch", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Deal")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Districts")
-                        .IsRequired()
-                        .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)");
-
-                    b.Property<int?>("Kind")
-                        .HasColumnType("int");
-
-                    b.Property<long?>("MaxBudget")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("MinBedrooms")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<bool>("NotifyNew")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("NotifyPriceDrop")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Phone");
-
-                    b.HasIndex("Active", "Deal", "City");
-
-                    b.ToTable("SavedSearches");
-                });
-
-            modelBuilder.Entity("Amlak.Web.Domain.SmsCampaign", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Audience")
-                        .HasColumnType("int");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("Deal")
-                        .HasColumnType("int");
-
-                    b.Property<string>("District")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<int>("Failed")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int?>("PropertyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Recipients")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ScheduledAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Sent")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Template")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("UploadedPhones")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Status", "ScheduledAtUtc");
-
-                    b.ToTable("SmsCampaigns");
-                });
-
-            modelBuilder.Entity("Amlak.Web.Domain.SmsLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CampaignId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("Ok")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("SentAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CampaignId");
-
-                    b.ToTable("SmsLogs");
-                });
-
-            modelBuilder.Entity("Amlak.Web.Domain.SmsOptOut", b =>
-                {
-                    b.Property<string>("Phone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("AtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Phone");
-
-                    b.ToTable("SmsOptOuts");
                 });
 
             modelBuilder.Entity("Amlak.Web.Domain.Ticket", b =>
@@ -627,6 +341,156 @@ namespace Amlak.Web.Migrations
                     b.HasIndex("TicketId");
 
                     b.ToTable("TicketMessages");
+                });
+
+            modelBuilder.Entity("Amlak.Web.Read.AdminCounters", b =>
+                {
+                    b.Property<int>("AnsweredTickets")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChannelErrors")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Drafts")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewLeads")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OpenTickets")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Published")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_AdminCounters", (string)null);
+                });
+
+            modelBuilder.Entity("Amlak.Web.Read.ListingCard", b =>
+                {
+                    b.Property<int>("AreaM2")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Bedrooms")
+                        .HasColumnType("int");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Convertible")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CoverAlt")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CoverHeight")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoverUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverVariants")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CoverWidth")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Deal")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Deed")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("Deposit")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Floor")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("HasBalcony")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("HasElevator")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("HasStorage")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("MonthlyRent")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("Parking")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PhotoCount")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("Price")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("SortPrice")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("YearBuilt")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_ListingCards", (string)null);
+                });
+
+            modelBuilder.Entity("Amlak.Web.Read.ListingFacet", b =>
+                {
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Deal")
+                        .HasColumnType("int");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<long>("Listings")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SumArea")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SumPrice")
+                        .HasColumnType("bigint");
+
+                    b.ToTable((string)null);
+
+                    b.ToSqlQuery("SELECT Deal, Kind, City, District, Listings, SumPrice, SumArea FROM dbo.vw_ListingFacets WITH (NOEXPAND)");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

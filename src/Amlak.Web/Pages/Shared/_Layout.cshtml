@@ -1,5 +1,4 @@
 ﻿@inject IConfiguration Cfg
-@using Microsoft.EntityFrameworkCore
 @{
     var title = ViewData["Title"] as string;
     var desc = ViewData["Description"] as string ?? "خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا و ملک تجاری با آگهی‌های بررسی‌شده.";
@@ -54,11 +53,11 @@
 <a class="skip" href="#main">رفتن به محتوا</a>
 @if (isAdmin && User.IsInRole("Admin"))
 {
-    // Badge counts for the sidebar; only admin pages pay for these queries.
-    var db = Context.RequestServices.GetRequiredService<Amlak.Web.Data.AppDbContext>();
-    var newLeads = await db.Leads.CountAsync(l => !l.Handled);
-    var openTickets = await db.Tickets.CountAsync(t => t.Status == TicketStatus.Open);
-    var pendingListings = await db.Properties.CountAsync(p => p.Status == ListingStatus.Pending);
+    // Badge counts for the sidebar; only admin pages pay for this one-row view read.
+    var counters = await Context.RequestServices.GetRequiredService<Amlak.Web.Read.AdminQueries>().CountersAsync();
+    var newLeads = counters.NewLeads;
+    var openTickets = counters.OpenTickets;
+    var pendingListings = counters.PendingListings;
     bool On(string p) => p == "/Admin" ? path.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || path.Equals("/Admin/Index", StringComparison.OrdinalIgnoreCase)
         : path.StartsWith(p, StringComparison.OrdinalIgnoreCase);
     @Html.Raw("<div class=\"admin-shell\">")

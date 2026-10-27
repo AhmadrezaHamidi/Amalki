@@ -139,11 +139,38 @@ namespace Amlak.Web.Migrations
                 name: "IX_SmsLogs_CampaignId",
                 table: "SmsLogs",
                 column: "CampaignId");
+
+            // Cards need the price display so a "توافقی" listing shows no amount.
+            migrationBuilder.Sql("""
+                CREATE OR ALTER VIEW dbo.vw_ListingCards AS
+                SELECT p.Id, p.Slug, p.Title, p.Deal, p.Kind, p.City, p.District, p.AreaM2, p.Bedrooms, p.Floor, p.Parking,
+                       p.YearBuilt, p.HasElevator, p.HasStorage, p.HasBalcony, p.Deed, p.Convertible,
+                       p.Price, p.Deposit, p.MonthlyRent, p.PriceDisplay, p.SortPrice, p.PublishedAtUtc,
+                       c.Url AS CoverUrl, c.Alt AS CoverAlt, c.Width AS CoverWidth, c.Height AS CoverHeight, c.Variants AS CoverVariants,
+                       (SELECT COUNT(*) FROM dbo.PropertyPhotos x WHERE x.PropertyId = p.Id) AS PhotoCount
+                FROM dbo.Properties p
+                OUTER APPLY (SELECT TOP (1) f.Url, f.Alt, f.Width, f.Height, f.Variants FROM dbo.PropertyPhotos f
+                             WHERE f.PropertyId = p.Id ORDER BY f.SortOrder, f.Id) c
+                WHERE p.Status = 1;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                CREATE OR ALTER VIEW dbo.vw_ListingCards AS
+                SELECT p.Id, p.Slug, p.Title, p.Deal, p.Kind, p.City, p.District, p.AreaM2, p.Bedrooms, p.Floor, p.Parking,
+                       p.YearBuilt, p.HasElevator, p.HasStorage, p.HasBalcony, p.Deed, p.Convertible,
+                       p.Price, p.Deposit, p.MonthlyRent, p.SortPrice, p.PublishedAtUtc,
+                       c.Url AS CoverUrl, c.Alt AS CoverAlt, c.Width AS CoverWidth, c.Height AS CoverHeight, c.Variants AS CoverVariants,
+                       (SELECT COUNT(*) FROM dbo.PropertyPhotos x WHERE x.PropertyId = p.Id) AS PhotoCount
+                FROM dbo.Properties p
+                OUTER APPLY (SELECT TOP (1) f.Url, f.Alt, f.Width, f.Height, f.Variants FROM dbo.PropertyPhotos f
+                             WHERE f.PropertyId = p.Id ORDER BY f.SortOrder, f.Id) c
+                WHERE p.Status = 1;
+                """);
+
             migrationBuilder.DropTable(
                 name: "AlertsSent");
 

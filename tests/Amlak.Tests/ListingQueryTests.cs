@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Http;
-using Amlak.Web.Data;
+﻿using Amlak.Web.Data;
 using Amlak.Web.Domain;
 using Amlak.Web.Pages.Properties;
+using Amlak.Web.Read;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.Sqlite;
@@ -23,6 +24,7 @@ public sealed class ListingQueryTests : IDisposable
         _conn.Open();
         using var db = NewDb();
         db.Database.EnsureCreated();
+        ReadViews.CreateSqliteAsync(db).GetAwaiter().GetResult();
         db.Properties.AddRange(
             Make("sale-tehran-new", DealType.Sale, PropertyKind.Apartment, "تهران", 120, 3, price: 12_000_000_000, ageDays: 1, photos: 3),
             Make("sale-tehran-old", DealType.Sale, PropertyKind.Apartment, "تهران", 80, 2, price: 6_000_000_000, ageDays: 5, photos: 1),
@@ -50,22 +52,21 @@ public sealed class ListingQueryTests : IDisposable
         return p;
     }
 
-    /// <summary>Runs the page as if requested at its own landing path, so it renders instead of redirecting.</summary>
-    private static async Task Get(IndexModel m)
-    {
-        var http = new DefaultHttpContext();
-        http.Request.Path = m.BasePath;
-        m.PageContext = new PageContext { HttpContext = http };
-        Assert.IsType<PageResult>(await m.OnGetAsync(null, null, null));
-    }
-
     private async Task<List<string>> Query(Action<IndexModel> set)
     {
         await using var db = NewDb();
-        var m = new IndexModel(db);
+        var m = new IndexModel(new ListingQueries(db));
         set(m);
-        await Get(m);
+        await Run(m);
         return m.Items.Select(x => x.Slug).ToList();
+    }
+
+    /// <summary>Runs the list page as if requested at its own canonical path, so it renders instead of redirecting.</summary>
+    private static async Task Run(IndexModel m)
+    {
+        m.City = m.City?.Trim();
+        m.PageContext = new PageContext { HttpContext = new DefaultHttpContext { Request = { Path = m.BasePath } } };
+        Assert.IsType<PageResult>(await m.OnGetAsync(null, null, null));
     }
 
     [Fact]
@@ -106,8 +107,8 @@ public sealed class ListingQueryTests : IDisposable
     public async Task List_counts_all_matches_and_clamps_the_page()
     {
         await using var db = NewDb();
-        var m = new IndexModel(db) { Deal = DealType.Sale, P = 99 };
-        await Get(m);
+        var m = new IndexModel(new ListingQueries(db)) { Deal = DealType.Sale, P = 99 };
+        await Run(m);
         Assert.Equal(4, m.Total);
         Assert.Equal(1, m.Pages);
         Assert.Equal(1, m.P);
@@ -118,41 +119,42 @@ public sealed class ListingQueryTests : IDisposable
     public async Task Cards_carry_only_the_cover_photo()
     {
         await using var db = NewDb();
-        var m = new IndexModel(db);
-        await Get(m);
+        var m = new IndexModel(new ListingQueries(db));
+        await Run(m);
         var card = m.Items.Single(x => x.Slug == "sale-tehran-new");
-        Assert.Equal("/u/sale-tehran-new-0.jpg", Assert.Single(card.Photos).Url);
-        Assert.Empty(m.Items.Single(x => x.Slug == "sale-karaj").Photos);
+        Assert.Equal("/u/sale-tehran-new-0.jpg", card.CoverUrl);
+        Assert.Equal(3, card.PhotoCount);
+        Assert.Null(m.Items.Single(x => x.Slug == "sale-karaj").CoverUrl);
     }
 
     [Fact]
     public async Task Detail_loads_every_photo_in_order_and_hides_drafts()
     {
         await using var db = NewDb();
-        var m = new DetailsModel(db);
+        var m = new DetailsModel(new ListingQueries(db));
         Assert.IsType<PageResult>(await m.OnGetAsync("sale-tehran-new"));
         Assert.Equal([0, 1, 2], m.Item.Photos.Select(x => x.SortOrder));
 
-        Assert.IsType<NotFoundResult>(await new DetailsModel(db).OnGetAsync("draft-tehran"));
-        Assert.IsType<NotFoundResult>(await new DetailsModel(db).OnGetAsync("missing"));
+        Assert.IsType<NotFoundResult>(await new DetailsModel(new ListingQueries(db)).OnGetAsync("draft-tehran"));
+        Assert.IsType<NotFoundResult>(await new DetailsModel(new ListingQueries(db)).OnGetAsync("missing"));
     }
 
     [Fact]
     public async Task Similar_is_same_deal_and_city_same_kind_first_at_most_three()
     {
         await using var db = NewDb();
-        var m = new DetailsModel(db);
+        var m = new DetailsModel(new ListingQueries(db));
         await m.OnGetAsync("sale-tehran-old");
         // Other Tehran sales: apartment first, then villa; never itself, Karaj, rentals or drafts.
         Assert.Equal(["sale-tehran-new", "sale-tehran-villa"], m.Similar.Select(x => x.Slug));
-        Assert.All(m.Similar, s => Assert.True(s.Photos.Count <= 1));
+        Assert.Equal("/u/sale-tehran-new-0.jpg", m.Similar[0].CoverUrl); // cards carry the cover only
     }
 
     [Fact]
     public async Task Home_shows_latest_and_counts_published_by_kind()
     {
         await using var db = NewDb();
-        var m = new Amlak.Web.Pages.IndexModel(db);
+        var m = new Amlak.Web.Pages.IndexModel(new ListingQueries(db));
         await m.OnGetAsync();
         Assert.Equal(6, m.Latest.Count);
         Assert.Equal("sale-tehran-new", m.Latest[0].Slug);
