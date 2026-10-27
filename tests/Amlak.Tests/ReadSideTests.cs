@@ -79,6 +79,21 @@ public abstract class ReadSideTests : IAsyncLifetime
         Listings.SearchAsync(f, 1, 50).ContinueWith(t => t.Result.Items.Select(c => c.Slug).ToList());
 
     [SkippableFact]
+    public async Task Place_prices_weight_sale_price_by_area_and_average_deposits()
+    {
+        var tehran = await Listings.PlacePricesAsync("تهران");
+        var vanak = Assert.Single(tehran, r => r.Name == "ونک");
+        Assert.Equal((1, 100_000_000L, 1, 400_000_000L), (vanak.SaleListings, vanak.SalePricePerM2!.Value, vanak.RentListings, vanak.AvgDeposit!.Value));
+        var saadat = Assert.Single(tehran, r => r.Name == "سعادت‌آباد");
+        Assert.Null(saadat.AvgDeposit);
+        Assert.Equal("ونک", tehran[0].Name); // busiest first
+
+        var cities = await Listings.PlacePricesAsync(null);
+        Assert.Equal(100_000_000, cities.Single(r => r.Name == "تهران").SalePricePerM2); // 22 billion / 220 m²
+        Assert.Equal(56_000_000, cities.Single(r => r.Name == "کرج").SalePricePerM2);
+    }
+
+    [SkippableFact]
     public async Task Cards_hold_only_published_listings_with_the_first_photo_as_cover()
     {
         var cards = await Db.ListingCards.ToListAsync();
