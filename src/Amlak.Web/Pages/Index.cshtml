@@ -3,9 +3,9 @@
 @using Amlak.Web.Services.Seo
 @{
     ViewData["Title"] = "خرید، فروش و اجارهٔ ملک";
+    ViewData["BodyClass"] = "home";
     var cfg = Model.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
     var site = (cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
-    var featured = Model.Latest.FirstOrDefault(p => p.Photos.Count > 0) ?? Model.Latest.FirstOrDefault();
     var faq = new (string Q, string A)[]
     {
         ("آگهی‌ها چطور بررسی می‌شوند؟", "هر آگهی پیش از انتشار توسط تیم ما بررسی می‌شود و عکس‌ها از خود ملک است."),
@@ -32,87 +32,62 @@
     @Html.Raw(JsonLd.Script(faqLd))
 }
 
-<section class="hero">
+<section class="home-hero">
     <div class="wrap">
-        <div class="hero-copy">
-            <span class="badge soft" style="align-self:flex-start">آگهی‌های بررسی‌شده با عکس واقعی</span>
-            <h1>خانهٔ بعدی‌ات را<br />مطمئن و بی‌دردسر پیدا کن</h1>
-            <p class="lead">خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا، زمین و ملک تجاری. هر آگهی پیش از انتشار بررسی می‌شود و یک مشاور تا آخر کار کنارت است.</p>
-
-            <form class="search-card" method="get" action="/املاک" role="search" aria-label="جست‌وجوی ملک">
-                <fieldset class="tabs" style="border:0;margin:0">
-                    <legend class="sr-only">نوع معامله</legend>
-                    <label><input type="radio" name="deal" value="Sale" checked data-deal /><span>خرید</span></label>
-                    <label><input type="radio" name="deal" value="Rent" data-deal /><span>اجاره و رهن</span></label>
-                </fieldset>
-                <div class="search-row">
-                    <label class="sfield">شهر<input name="city" placeholder="مثلاً تهران" autocomplete="address-level2" /></label>
-                    <label class="sfield">نوع ملک
-                        <select name="kind">
-                            <option value="">همهٔ انواع</option>
-                            @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k">@Labels.Kind(k)</option> }
-                        </select>
-                    </label>
-                    <label class="sfield"><span data-budget-label>سقف قیمت</span>
-                        <select name="maxPrice" data-budget>
-                            <option value="">بدون محدودیت</option>
-                            <option value="5000000000" data-sale>تا ۵ میلیارد</option>
-                            <option value="10000000000" data-sale>تا ۱۰ میلیارد</option>
-                            <option value="20000000000" data-sale>تا ۲۰ میلیارد</option>
-                            <option value="50000000000" data-sale>تا ۵۰ میلیارد</option>
-                            <option value="300000000" data-rent hidden disabled>رهن تا ۳۰۰ میلیون</option>
-                            <option value="700000000" data-rent hidden disabled>رهن تا ۷۰۰ میلیون</option>
-                            <option value="1500000000" data-rent hidden disabled>رهن تا ۱٫۵ میلیارد</option>
-                        </select>
-                    </label>
-                    <button class="btn">@Icons.Get("search") جست‌وجو</button>
-                </div>
-            </form>
-
-            <div class="trust">
-                <span>@Icons.Get("shield") بررسی پیش از انتشار</span>
-                <span>@Icons.Get("photo") عکس واقعی از خود ملک</span>
-                <span>@Icons.Get("user") مشاور اختصاصی</span>
+        <h1>خرید، رهن و اجارهٔ ملک<br /><span>با آگهی‌های بررسی‌شده و عکس واقعی</span></h1>
+        <form class="home-search" method="get" action="@Taxonomy.Root" role="search" aria-label="جست‌وجوی ملک">
+            <fieldset class="tabs">
+                <legend class="sr-only">نوع معامله</legend>
+                <label><input type="radio" name="deal" value="Sale" checked /><span>خرید</span></label>
+                <label><input type="radio" name="deal" value="Rent" /><span>رهن و اجاره</span></label>
+                <label><input type="radio" name="deal" value="ShortTerm" /><span>روزانه</span></label>
+            </fieldset>
+            <div class="home-search-row">
+                <label class="home-q">@Icons.Get("search", 20)<span class="sr-only">محله، شهر یا عنوان</span>
+                    <input name="q" placeholder="محله، شهر یا عنوان آگهی" autocomplete="off" enterkeyhint="search" /></label>
+                <button class="btn lg">جست‌وجو</button>
             </div>
-        </div>
-
-        <div class="hero-media">
-            <div class="hero-photo">
-                @if (featured?.Photos.FirstOrDefault() is { } hp) { <img src="@hp.Url" alt="@hp.Alt" width="900" height="660" fetchpriority="high" /> }
-                else { @Icons.Get("home", 72) }
-            </div>
-            @if (featured is not null)
-            {
-                <a class="hero-float" asp-page="/Properties/Details" asp-route-slug="@featured.Slug">
-                    <small>تازه منتشر شد · @featured.District، @featured.City</small>
-                    <strong>@featured.Title</strong>
-                    <span class="price @(featured.Deal == DealType.Rent ? "rent" : "")">@(featured.Deal == DealType.Sale ? Fa.Money(featured.Price) : "رهن " + Fa.Money(featured.Deposit)) <small>تومان</small></span>
-                </a>
-            }
+        </form>
+        <div class="trust">
+            <span>@Icons.Get("shield", 18) بررسی پیش از انتشار</span>
+            <span>@Icons.Get("photo", 18) عکس واقعی</span>
+            <span>@Icons.Get("user", 18) مشاور اختصاصی</span>
         </div>
     </div>
 </section>
 
 <div class="wrap">
-    <section class="section" aria-labelledby="kinds-title">
-        <div class="section-head"><h2 id="kinds-title">دنبال چه ملکی هستی؟</h2></div>
-        <div class="kinds">
-            @foreach (var k in Enum.GetValues<PropertyKind>())
+    <section class="section first" aria-labelledby="cats-title">
+        <h2 id="cats-title" class="sr-only">دسته‌بندی‌ها</h2>
+        <nav class="cats" aria-label="دسته‌بندی آگهی‌ها">
+            @foreach (var (slug, label, icon) in new[] {
+                ("خرید-آپارتمان", "خرید آپارتمان", "apartment"), ("اجاره-آپارتمان", "اجارهٔ آپارتمان", "key"),
+                ("خرید-ویلا", "خانه و ویلا", "villa"), ("اجاره-کوتاه-مدت", "اجارهٔ روزانه", "clock"),
+                ("خرید-زمین", "زمین و کلنگی", "land"), ("خرید-مغازه", "مغازه و تجاری", "commercial"),
+                ("خرید-دفتر-اداری", "دفتر اداری", "office"), ("رهن-و-اجاره", "همهٔ اجاره‌ها", "home") })
             {
-                var n = Model.CountByKind.GetValueOrDefault(k);
-                <a class="kind" href="/املاک?kind=@k">
-                    <span class="kind-ico">@Icons.Kind(k)</span>
-                    <strong>@Labels.Kind(k)</strong>
-                    <small>@(n > 0 ? Fa.Digits(n.ToString()) + " آگهی فعال" : "به‌زودی")</small>
-                </a>
+                <a class="cat" href="@Taxonomy.EncodedPath(null, Taxonomy.Find(slug))"><span class="cat-ico">@Icons.Get(icon, 26)</span>@label</a>
             }
-        </div>
+        </nav>
     </section>
+
+    @if (Model.TopAreas.Count > 0)
+    {
+        <section class="section" aria-labelledby="areas-title">
+            <div class="section-head"><h2 id="areas-title">محله‌های پرآگهی</h2></div>
+            <div class="area-chips">
+                @foreach (var a in Model.TopAreas)
+                {
+                    <a class="chip" href="@Taxonomy.EncodedPath(a.City, Taxonomy.Find("خرید"), a.District)">@Icons.Get("map", 16) @a.District <small>@Fa.Digits(a.Count.ToString())</small></a>
+                }
+            </div>
+        </section>
+    }
 
     <section class="section" aria-labelledby="latest-title">
         <div class="section-head">
-            <div><h2 id="latest-title">جدیدترین آگهی‌ها</h2><p>هر روز آگهی تازه، با قیمت شفاف</p></div>
-            <a class="more" href="/املاک">مشاهدهٔ همه @Icons.Get("chev-left", 18)</a>
+            <h2 id="latest-title">تازه‌ترین آگهی‌ها</h2>
+            <a class="more" href="@Taxonomy.Root">همهٔ آگهی‌ها @Icons.Get("chev-left", 18)</a>
         </div>
         @if (Model.Latest.Count == 0)
         {
@@ -120,11 +95,11 @@
         }
         else
         {
-            <div class="grid">@foreach (var p in Model.Latest) { <partial name="_PropertyCard" model="p" /> }</div>
+            <div class="listings">@foreach (var p in Model.Latest) { <partial name="_PropertyCard" model="p" /> }</div>
         }
     </section>
 
-    <section class="section" aria-labelledby="how-title">
+<section class="section" aria-labelledby="how-title">
         <h2 id="how-title" class="title sr-only">چطور کار می‌کند</h2>
         <div class="steps">
             <div class="step"><span class="step-n">۱</span><h3>جست‌وجو کن</h3><p>با فیلتر شهر، نوع ملک، بودجه و تعداد خواب، فقط آگهی‌های مرتبط را ببین.</p></div>

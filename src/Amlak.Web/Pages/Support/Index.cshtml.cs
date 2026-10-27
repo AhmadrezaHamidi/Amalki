@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
-using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>Public support desk: open a ticket, or look one up by tracking code + mobile.</summary>
-public class IndexModel(AppDbContext db, AdminNotifier notifier) : PageModel
+public class IndexModel(AppDbContext db, TimeProvider clock, TicketAccess access) : PageModel
 {
     /// <summary>Route prefix of the support pages; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/پشتیبانی";
@@ -35,28 +34,36 @@ public class IndexModel(AppDbContext db, AdminNotifier notifier) : PageModel
     [BindProperty] public TrackInput Track { get; set; } = new();
     public string? TrackError { get; private set; }
 
-    public void OnGet() { }
+    /// <param name="code">Prefills the tracking form, e.g. when a ticket link was opened in another browser.</param>
+    public void OnGet(string? code)
+    {
+        if (!string.IsNullOrWhiteSpace(code)) Track.Code = TicketCodes.Pretty(TicketCodes.Normalize(code));
+    }
 
     public async Task<IActionResult> OnPostNewAsync()
     {
         ModelState.Clear();
         if (!TryValidateModel(New, nameof(New))) return Page();
         if (!string.IsNullOrEmpty(New.Website)) return RedirectToPage(); // pretend success to the bot
-        var phone = Fa.Mobile(New.Phone);
-        if (phone is null)
+        if (!PhoneNumber.TryParse(New.Phone, out var phone))
         {
             ModelState.AddModelError("New.Phone", "شمارهٔ موبایل معتبر نیست (مثل ۰۹۱۲۱۲۳۴۵۶۷)");
             return Page();
         }
 
-        var ticket = new Ticket
+        Ticket ticket;
+        try
         {
-            Code = await UniqueCodeAsync(), Name = New.Name.Trim(), Phone = phone, Subject = New.Subject.Trim(), Category = New.Category,
-        };
-        ticket.Messages.Add(new TicketMessage { Body = New.Message.Trim() });
+            ticket = Ticket.Open(await UniqueCodeAsync(), New.Name, phone, New.Subject, New.Category, New.Message, clock.GetUtcNow().UtcDateTime);
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return Page();
+        }
         db.Tickets.Add(ticket);
         await db.SaveChangesAsync();
-        await notifier.NotifyTicketAsync(ticket, ticket.Messages[0].Body, isNew: true);
+        access.Grant(HttpContext, ticket.Code);
         return Redirect(TicketModel.Url(ticket.Code, created: true));
     }
 
@@ -66,7 +73,11 @@ public class IndexModel(AppDbContext db, AdminNotifier notifier) : PageModel
         var code = TicketCodes.Normalize(Track.Code);
         var phone = Fa.Mobile(Track.Phone);
         var found = code.Length > 0 && phone is not null && await db.Tickets.AnyAsync(t => t.Code == code && t.Phone == phone);
-        if (found) return Redirect(TicketModel.Url(code));
+        if (found)
+        {
+            access.Grant(HttpContext, code);
+            return Redirect(TicketModel.Url(code));
+        }
         // Same message whether the code or the phone is wrong, so the form can't be used to probe codes.
         TrackError = "تیکتی با این کد پیگیری و شمارهٔ موبایل پیدا نشد.";
         return Page();

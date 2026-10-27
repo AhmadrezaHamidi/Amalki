@@ -10,8 +10,10 @@ using System.Text.Unicode;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddSiteCache();
+builder.Services.AddDbContext<AppDbContext>((sp, o) => o
+    .UseSqlServer(builder.Configuration.GetConnectionString("Default"))
+    .AddInterceptors(sp.GetRequiredService<ListingCacheInterceptor>()));
 builder.Services.AddDefaultIdentity<IdentityUser>(o =>
     {
         o.Password.RequiredLength = 10;
@@ -42,6 +44,12 @@ else
 {
     builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(sp => sp.GetRequiredService<Amlak.Web.Services.Storage.LocalFileStore>());
 }
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TicketAccess>();
+// /healthz for the load balancer or uptime monitor: 200 when the app can reach SQL Server, 503 otherwise.
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
+builder.Services.AddProxySupport(builder.Configuration);
+
 // Emit Persian text as-is instead of &#x...; entities: smaller HTML that crawlers and AI engines read directly.
 // HTML-sensitive characters (<, >, &, quotes) are still encoded.
 builder.Services.AddSingleton(HtmlEncoder.Create(UnicodeRanges.All));
@@ -50,6 +58,27 @@ builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
 builder.Services.AddScoped<AdminNotifier>();
+// Domain events saved with each change are handled here, outside the request (channel posts, admin alerts, file cleanup).
+builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
+builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
+
+// SMS one-time codes for visitor listings: "Kavenegar" (Sms:ApiKey, Sms:Template) or "Log" (development).
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<Amlak.Web.Services.Sms.PhoneVerification>();
+if (string.Equals(builder.Configuration["Sms:Provider"], "Kavenegar", StringComparison.OrdinalIgnoreCase))
+{
+    var key = builder.Configuration["Sms:ApiKey"];
+    var template = builder.Configuration["Sms:Template"];
+    if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(template))
+        throw new InvalidOperationException("Sms:Provider is Kavenegar but Sms:ApiKey/Sms:Template are not set.");
+    builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender>(sp => new Amlak.Web.Services.Sms.KavenegarSmsSender(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient("bots"), key, template,
+        sp.GetRequiredService<ILogger<Amlak.Web.Services.Sms.KavenegarSmsSender>>()));
+}
+else
+{
+    builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender, Amlak.Web.Services.Sms.LogSmsSender>();
+}
 
 // Public forms, per IP per 10 minutes (NFR-09): contact form 5 posts, support tickets 10 (new ticket,
 // tracking lookup and replies share one allowance). Every other request is unlimited.
@@ -64,6 +93,8 @@ builder.Services.AddRateLimiter(o =>
         var (bucket, limit) =
             path.Equals(Amlak.Web.Pages.ContactModel.Path) ? ("contact", 5)
             : path.StartsWithSegments(Amlak.Web.Pages.Support.IndexModel.Path) ? ("support", 10)
+            // Code requests, code checks and submissions share one allowance; codes are also limited per phone.
+            : path.Equals(Amlak.Web.Pages.SubmitModel.Path) ? ("submit", 10)
             : ("", 0);
         return limit == 0
             ? RateLimitPartition.GetNoLimiter("")
@@ -79,6 +110,9 @@ builder.Services.AddRateLimiter(o =>
 builder.Services.AddRazorPages(o => o.Conventions.AuthorizeFolder("/Admin", "Admin"));
 
 var app = builder.Build();
+
+// First, so the real client IP and scheme reach HTTPS redirection, the rate limiter and the logs.
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
@@ -98,13 +132,25 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // serves runtime uploads in wwwroot/uploads
+if (!app.Environment.IsDevelopment()) app.UseCanonicalHost(builder.Configuration);
+app.UseSecurityHeaders();
+// Serves runtime uploads in wwwroot/uploads. Names are random GUIDs and never reused, so browsers may keep them for a year.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    },
+});
 app.UseStatusCodePagesWithReExecute("/Error", "?code={0}");
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseOutputCache(); // after auth, so the default policy can see signed-in admins and skip them
 
+app.MapHealthChecks("/healthz").DisableHttpMetrics();
 app.MapSeo();
 app.MapStaticAssets();
 app.MapRazorPages()

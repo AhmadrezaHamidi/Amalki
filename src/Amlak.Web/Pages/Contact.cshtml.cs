@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
-using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages;
 
 /// <summary>Contact / visit request (PUB-06). Posted from a listing page or used on its own for a general consultation.</summary>
-public class ContactModel(AppDbContext db, AdminNotifier notifier) : PageModel
+public class ContactModel(AppDbContext db, TimeProvider clock) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/تماس";
@@ -40,19 +39,22 @@ public class ContactModel(AppDbContext db, AdminNotifier notifier) : PageModel
         Property = await FindAsync(Input.PropertyId);
         if (!string.IsNullOrEmpty(Input.Website)) return Done(); // pretend success to the bot
 
-        var phone = Fa.Mobile(Input.Phone);
-        if (phone is null && !string.IsNullOrWhiteSpace(Input.Phone))
+        if (!PhoneNumber.TryParse(Input.Phone, out var phone) && !string.IsNullOrWhiteSpace(Input.Phone))
             ModelState.AddModelError("Input.Phone", "شمارهٔ موبایل معتبر نیست (مثل ۰۹۱۲۱۲۳۴۵۶۷)");
         if (!ModelState.IsValid) return Page();
 
-        var lead = new Lead
+        Lead lead;
+        try
         {
-            Name = Input.Name.Trim(), Phone = phone!, Message = string.IsNullOrWhiteSpace(Input.Message) ? null : Input.Message.Trim(),
-            PropertyId = Property?.Id,
-        };
+            lead = Lead.Submit(Input.Name, phone, Input.Message, Property?.Id, clock.GetUtcNow().UtcDateTime);
+        }
+        catch (DomainException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return Page();
+        }
         db.Leads.Add(lead);
         await db.SaveChangesAsync();
-        await notifier.NotifyAsync(lead, Property);
         return Done();
     }
 

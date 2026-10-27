@@ -6,37 +6,48 @@
 @{
     var p = Model.Item;
     var rent = p.Deal == DealType.Rent;
-    var site = SeoEndpoints.BaseUrl(Cfg, Model.Request);
+    var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var url = SeoFiles.PropertyUrl(site, p);
+    var shortTerm = p.Deal == DealType.ShortTerm;
+    var dealLabel = rent ? "اجارهٔ" : shortTerm ? "اجارهٔ کوتاه‌مدت" : "فروش";
+    ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
+    // One factual sentence (what, where, size, price): shown at the top and used as the meta description.
     var summary = SeoText.Summary(p);
-    ViewData["Title"] = $"{p.Title} | {Labels.Deal(p.Deal)} در {SeoText.Location(p)}";
     ViewData["Description"] = summary;
     ViewData["Canonical"] = url;
     ViewData["BodyClass"] = "has-mobile-cta";
+    // Crawlers and link previews need absolute image URLs; MinIO URLs already are.
     if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = SeoFiles.Absolute(site, first.Url);
-    var crumbs = new List<(string Name, string Url)> { ("خانه", site + "/"), (rent ? "اجاره" : "خرید", SeoFiles.ListUrl(site, p.Deal)) };
-    if (!string.IsNullOrWhiteSpace(p.City)) crumbs.Add((p.City, SeoFiles.ListUrl(site, p.Deal, p.City)));
-    crumbs.Add((p.Title, url));
+    // خانه / تهران / خرید آپارتمان / سعادت‌آباد / آگهی, each a landing page.
+    var cat = Taxonomy.For(p.Deal, p.Kind)!;
+    var crumbs = new (string Name, string Path)[]
+    {
+        (p.City, Taxonomy.EncodedPath(p.City, null)),
+        (cat.Name, Taxonomy.EncodedPath(p.City, cat)),
+        (p.District, Taxonomy.EncodedPath(p.City, cat, p.District)),
+    };
+    var crumbLd = JsonLd.Breadcrumbs(
+        [("خانه", site + "/"), .. crumbs.Select(c => (c.Name, site + c.Path)), (p.Title, SeoFiles.PropertyUrl(site, p))]);
     var phone = Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
-    var perMeter = !rent && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
+    var perMeter = p.Deal == DealType.Sale && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
     string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 }
 @section Head {
     @Html.Raw(JsonLd.Script(JsonLd.Listing(p, site)))
-    @Html.Raw(JsonLd.Script(JsonLd.Breadcrumbs(crumbs.ToArray())))
+    @Html.Raw(JsonLd.Script(crumbLd))
 }
-<div class="wrap page-pad">
-    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / <a href="@SeoFiles.ListUrl("", p.Deal)">@(rent ? "اجاره" : "خرید")</a> / <a href="@SeoFiles.ListUrl("", p.Deal, p.City)">@p.City</a></nav>
+<div class="wrap page-pad detail-page">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a>@foreach (var c in crumbs) { <text> / </text><a href="@c.Path">@c.Name</a> }</nav>
 
+    <div class="detail-top">
     <div class="detail-head">
         <div>
             <div class="tags"><span class="badge @(rent ? "rent" : "")">@Labels.Deal(p.Deal)</span><span class="badge soft">@Labels.Kind(p.Kind)</span></div>
             <h1>@p.Title</h1>
-            <span class="loc">@Icons.Get("pin", 18) @SeoText.Location(p) · کد آگهی @Fa.Digits(p.Id.ToString())
-                @if (p.PublishedAtUtc is { } at) { <text>· منتشرشده در </text><time datetime="@at.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@Fa.Date(at)</time> }
-            </span>
+            <span class="loc">@Icons.Get("pin", 18) @p.District، @p.City · کد آگهی @Fa.Digits(p.Id.ToString())</span>
+            @if (p.PublishedAtUtc is { } pub) { <span class="posted"><time datetime="@pub.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" title="@Fa.Date(pub)">@Fa.Ago(pub)</time> در @p.District</span> }
             <p class="lead">@summary</p>
         </div>
         <div class="row-actions">
@@ -56,7 +67,7 @@
             {
                 var f = shown[i];
                 <button type="button" class="@(i == 0 ? "main" : "")" data-index="@i" aria-label="بزرگ‌نمایی عکس @Fa.Digits((i + 1).ToString())">
-                    <img src="@f.Url" alt="@f.Alt" loading="@(i == 0 ? "eager" : "lazy")" fetchpriority="@(i == 0 ? "high" : null)" width="1200" height="900" />
+                    @PhotoVariants.Img(f, i == 0 || shown.Count <= 2 ? (shown.Count == 1 ? "(max-width: 900px) 88vw, 1200px" : "(max-width: 900px) 88vw, 600px") : "(max-width: 900px) 88vw, 300px", 1200, 900, eager: i == 0)
                     @if (i == shown.Count - 1 && photos.Count > 1) { <span class="all">نمایش همهٔ @Fa.Digits(photos.Count.ToString()) عکس</span> }
                 </button>
             }
@@ -71,23 +82,52 @@
                 <img data-lb-img alt="" />
                 <button class="lb-btn next" type="button" data-lb-next aria-label="عکس بعدی">@Icons.Get("chev-left")</button>
             </div>
-            <script type="application/json" data-lb-photos>@Html.Raw(JsonLd.Serialize(photos.Select(x => new { src = x.Url, alt = x.Alt })))</script>
+            <script type="application/json" data-lb-photos>@Html.Raw(JsonLd.Serialize(photos.Select(x => new { src = PhotoVariants.Largest(x), alt = x.Alt })))</script>
         </dialog>
     }
+    </div>
 
     <div class="detail-layout">
         <div class="detail-main">
             <section aria-labelledby="facts-title">
                 <h2 id="facts-title" class="sr-only">مشخصات</h2>
-                <ul class="facts">
-                    <li><span>متراژ</span><strong>@Fa.Digits(p.AreaM2.ToString()) متر</strong></li>
-                    @if (p.Bedrooms is { } b) { <li><span>خواب</span><strong>@Fa.Digits(b.ToString())</strong></li> }
-                    @if (p.Floor is { } fl) { <li><span>طبقه</span><strong>@(fl == 0 ? "همکف" : Fa.Digits(fl.ToString()))</strong></li> }
-                    @if (p.Parking is { } pk) { <li><span>پارکینگ</span><strong>@(pk == 0 ? "ندارد" : Fa.Digits(pk.ToString()))</strong></li> }
-                    @if (p.YearBuilt is { } y) { <li><span>سال ساخت</span><strong>@Fa.Digits(y.ToString())</strong></li> }
-                    <li><span>نوع ملک</span><strong>@Labels.Kind(p.Kind)</strong></li>
+                <ul class="keyfacts">
+                    <li><span>متراژ</span><strong>@Fa.Digits(p.AreaM2.ToString())</strong></li>
+                    <li><span>اتاق</span><strong>@(p.Bedrooms is { } b ? (b == 0 ? "ندارد" : Fa.Digits(b.ToString())) : "—")</strong></li>
+                    <li><span>ساخت</span><strong>@(p.YearBuilt is { } y ? Fa.Digits(y.ToString()) : "—")</strong></li>
+                    <li><span>طبقه</span><strong>@(p.Floor is { } fl ? (fl == 0 ? "همکف" : Fa.Digits(fl.ToString())) : "—")</strong></li>
                 </ul>
+                <dl class="rows">
+                    @if (rent)
+                    {
+                        <div><dt>ودیعه (رهن)</dt><dd>@Fa.Money(p.Deposit) تومان</dd></div>
+                        <div><dt>اجارهٔ ماهانه</dt><dd>@Fa.Money(p.MonthlyRent) تومان</dd></div>
+                        <div><dt>رهن و اجاره</dt><dd>@(p.Convertible ? "قابل تبدیل" : "غیرقابل تبدیل")</dd></div>
+                    }
+                    else
+                    {
+                        <div><dt>@(shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</dt><dd>@Fa.Money(p.Price) تومان</dd></div>
+                        @if (perMeter is { } ppm) { <div><dt>قیمت هر متر</dt><dd>@Fa.Money(ppm) تومان</dd></div> }
+                    }
+                    <div><dt>نوع ملک</dt><dd>@Labels.Kind(p.Kind)</dd></div>
+                    @if (p.Parking is { } pk) { <div><dt>پارکینگ</dt><dd>@(pk == 0 ? "ندارد" : Fa.Digits(pk.ToString()) + " واحد")</dd></div> }
+                    @if (p.Deed is { } deed) { <div><dt>سند</dt><dd>@Labels.Deed(deed)</dd></div> }
+                </dl>
+                @if (p.HasElevator is not null || p.Parking is not null || p.HasStorage is not null || p.HasBalcony is not null)
+                {
+                    // Divar's three-up "has / has not" row, plus balcony.
+                    var amenities = new (string Name, bool? Has)[] { ("آسانسور", p.HasElevator), ("پارکینگ", p.Parking is null ? null : p.Parking > 0), ("انباری", p.HasStorage), ("بالکن", p.HasBalcony) };
+                    <h2 class="sub">امکانات</h2>
+                    <ul class="amenities" aria-label="امکانات">
+                        @foreach (var (name, has) in amenities.Where(x => x.Has is not null))
+                        {
+                            <li class="@(has == true ? "" : "no")">@Icons.Get(has == true ? "check" : "close", 18)@name<span class="sr-only">@(has == true ? "دارد" : "ندارد")</span></li>
+                        }
+                    </ul>
+                }
             </section>
+
+            <p class="safety">@Icons.Get("warn", 20)<span>پیش از دیدن ملک و سند، هیچ مبلغی به‌عنوان بیعانه واریز نکنید. قرارداد را با حضور مشاور آشیانه ببندید.</span></p>
 
             <section aria-labelledby="desc-title">
                 <h2 id="desc-title">توضیحات</h2>
@@ -111,13 +151,14 @@
             {
                 <section aria-labelledby="similar-title">
                     <h2 id="similar-title">آگهی‌های مشابه در @p.City</h2>
-                    <div class="grid cols-3">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
+                    <p><a href="@Taxonomy.EncodedPath(p.City, cat, p.District)">همهٔ آگهی‌های @cat.Name در @p.District</a></p>
+                    <div class="listings">@foreach (var s in Model.Similar) { <partial name="_PropertyCard" model="s" /> }</div>
                 </section>
             }
         </div>
 
         <aside class="panel" id="contact" aria-labelledby="price-title">
-            <span class="hint" id="price-title">@(rent ? "رهن" : "قیمت کل")</span>
+            <span class="hint" id="price-title">@(rent ? "رهن" : shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</span>
             @if (!rent)
             {
                 <strong class="big">@Fa.Money(p.Price) <small>تومان</small></strong>
@@ -136,8 +177,8 @@
             }
             else
             {
-                <form method="post" action="/تماس">
-                    @Html.AntiForgeryToken()
+                @* This page is output-cached, so the per-visitor antiforgery token is fetched by site.js on submit. *@
+                <form method="post" action="/تماس" class="js-only" data-csrf>
                     <input type="hidden" name="Input.PropertyId" value="@p.Id" />
                     <label class="field">نام<input name="Input.Name" required maxlength="80" autocomplete="name" /></label>
                     <label class="field">شمارهٔ موبایل<input name="Input.Phone" required inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
@@ -146,6 +187,7 @@
                     <button class="btn lg block">ثبت درخواست تماس</button>
                     <span class="hint">شماره‌تان فقط برای هماهنگی همین ملک استفاده می‌شود.</span>
                 </form>
+                <a class="btn lg block no-js-only" href="/تماس?propertyId=@p.Id">ثبت درخواست تماس</a>
             }
             @if (!string.IsNullOrWhiteSpace(phone))
             {
@@ -156,7 +198,7 @@
 </div>
 
 <div class="mobile-cta">
-    <div class="p"><small>@(rent ? "رهن" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
+    <div class="p"><small>@(rent ? "رهن" : shortTerm ? "هر شب" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
     @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس تلفنی">@Icons.Get("phone")</a> }
     <a class="btn" href="#contact">درخواست بازدید</a>
 </div>

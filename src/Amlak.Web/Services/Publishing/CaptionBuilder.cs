@@ -4,7 +4,7 @@ public static class CaptionBuilder
 {
     public static string Build(Property p, string baseUrl)
     {
-        var deal = p.Deal == DealType.Sale ? "فروش" : "اجاره";
+        var deal = p.Deal == DealType.ShortTerm ? "اجاره_روزانه" : Tag(Labels.Deal(p.Deal));
         var lines = new List<string>
         {
             $"🏠 {p.Title}",
@@ -14,6 +14,8 @@ public static class CaptionBuilder
 
         if (p.Deal == DealType.Sale)
             lines.Add($"💰 قیمت: {Fa.Money(p.Price)} تومان");
+        else if (p.Deal == DealType.ShortTerm)
+            lines.Add($"💰 هر شب: {Fa.Money(p.Price)} تومان");
         else
         {
             lines.Add($"💰 رهن: {Fa.Money(p.Deposit)} تومان");
@@ -35,6 +37,12 @@ public static class CaptionBuilder
         if (!string.IsNullOrWhiteSpace(lead.Message)) lines.Add($"💬 {lead.Message}");
         return string.Join("\n", lines);
     }
+
+    public static string Submitted(Property p, string baseUrl) => string.Join("\n",
+        "📝 آگهی جدید در انتظار بررسی",
+        $"🏠 {p.Title} ({Labels.Deal(p.Deal)} {Labels.Kind(p.Kind)}، {p.District} {p.City})",
+        $"👤 {p.OwnerName} — 📞 {p.OwnerPhone}",
+        $"🔗 {baseUrl.TrimEnd('/')}/Admin/Edit/{p.Id}");
 
     public static string Ticket(Ticket t, string message, bool isNew, string baseUrl)
     {

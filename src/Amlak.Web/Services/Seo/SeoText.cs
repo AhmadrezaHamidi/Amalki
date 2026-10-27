@@ -10,9 +10,12 @@ public static class SeoText
     public static string Summary(Property p)
     {
         var text = $"{KindPhrase(p.Kind)} {Fa.Digits(p.AreaM2.ToString())} متری در {Location(p)}"
-            + (p.Deal == DealType.Sale
-                ? $" برای فروش به قیمت {Money(p.Price)}"
-                : $" برای رهن و اجاره با رهن {Money(p.Deposit)} و اجارهٔ ماهانهٔ {Money(p.MonthlyRent)}");
+            + p.Deal switch
+            {
+                DealType.Sale => $" برای فروش به قیمت {Money(p.Price)}",
+                DealType.ShortTerm => $" برای اجارهٔ کوتاه‌مدت، هر شب {Money(p.Price)}",
+                _ => $" برای رهن و اجاره با رهن {Money(p.Deposit)} و اجارهٔ ماهانهٔ {Money(p.MonthlyRent)}",
+            };
 
         var specs = new List<string>();
         if (p.Bedrooms is { } b) specs.Add($"{Fa.Digits(b.ToString())} خواب");
@@ -29,7 +32,7 @@ public static class SeoText
         var text = $"در حال حاضر {Fa.Digits(total.ToString())} آگهی {label}{In(city)} در {siteName} منتشر شده است";
         if (deal is not null && minPrice is > 0 && maxPrice is > 0)
         {
-            var what = deal == DealType.Sale ? "قیمت‌ها" : "اجارهٔ ماهانه";
+            var what = deal switch { DealType.Sale => "قیمت‌ها", DealType.ShortTerm => "اجارهٔ هر شب", _ => "اجارهٔ ماهانه" };
             text += minPrice == maxPrice
                 ? $"؛ {what} {Money(minPrice)} است"
                 : $"؛ {what} از {Money(minPrice)} تا {Money(maxPrice)} است";

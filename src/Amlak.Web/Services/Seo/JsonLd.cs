@@ -70,13 +70,14 @@ public static class JsonLd
             ("address", Obj(("@type", "PostalAddress"), ("addressLocality", p.City), ("addressCountry", "IR"))),
             ("containedInPlace", string.IsNullOrWhiteSpace(p.District) ? null : Obj(("@type", "Place"), ("name", p.District))));
 
-        var price = Rial(sale ? p.Price : p.MonthlyRent);
+        var rent = p.Deal == DealType.Rent;
+        var price = Rial(rent ? p.MonthlyRent : p.Price);
         var offer = Obj(
             ("@type", "Offer"),
             ("businessFunction", sale ? "http://purl.org/goodrelations/v1#Sell" : "http://purl.org/goodrelations/v1#LeaseOut"),
             ("price", price),
             ("priceCurrency", price is null ? null : "IRR"),
-            ("priceSpecification", sale ? null : RentSpecification(p)),
+            ("priceSpecification", p.Deal switch { DealType.Rent => RentSpecification(p), DealType.ShortTerm => NightSpecification(p), _ => null }),
             ("availability", "https://schema.org/InStock"),
             ("url", url),
             ("itemOffered", place));
@@ -110,6 +111,10 @@ public static class JsonLd
             specs.Add(Obj(("@type", "PriceSpecification"), ("name", "رهن (ودیعه)"), ("price", deposit), ("priceCurrency", "IRR")));
         return specs.Count == 0 ? null : specs.ToArray();
     }
+
+    private static object[]? NightSpecification(Property p) => Rial(p.Price) is { } night
+        ? [Obj(("@type", "UnitPriceSpecification"), ("name", "اجارهٔ هر شب"), ("price", night), ("priceCurrency", "IRR"), ("unitCode", "DAY"))]
+        : null;
 
     private static long? Rial(long? toman) => toman is null or <= 0 ? null : toman * 10;
 

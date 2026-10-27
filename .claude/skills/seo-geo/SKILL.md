@@ -15,7 +15,7 @@ a model can lift verbatim. Background and the status table live in `docs/SEO-GEO
 |---|---|
 | `<title>`, description, canonical, robots, OG/Twitter tags | `Pages/Shared/_Layout.cshtml` reads `ViewData["Title" / "Description" / "Canonical" / "Robots" / "OgImage"]` |
 | Public base URL | `SeoEndpoints.BaseUrl(cfg, req)` — reads `Site:BaseUrl`, never trust the Host header |
-| Absolute/encoded URLs | `SeoFiles.ListUrl`, `SeoFiles.PropertyUrl`, `SeoFiles.Absolute` |
+| Absolute/encoded URLs | `Taxonomy.EncodedPath` (landing pages), `SeoFiles.PropertyUrl`, `SeoFiles.Absolute` |
 | JSON-LD builders | `Services/Seo/JsonLd.cs` (pure, unit-tested) |
 | Quotable listing text | `Services/Seo/SeoText.cs` |
 | sitemap / robots / llms.txt | `Services/Seo/SeoFiles.cs`, mapped in `SeoEndpoints.MapSeo` |
@@ -26,15 +26,16 @@ a model can lift verbatim. Background and the status table live in `docs/SEO-GEO
 1. **Absolute URLs from `Site:BaseUrl`** for canonical, `og:url`, `og:image`, every JSON-LD `url`/`item`/`image`.
    Build them with `SeoFiles` helpers so Persian path segments are percent-encoded the same way everywhere
    (canonical, sitemap and breadcrumbs must match byte for byte).
-2. **One canonical per indexable page.** List page: canonical keeps `deal`, `city` and `p`; other filters
-   (`kind`, `maxPrice`) collapse to that. Page 2+ is self-canonical (never canonical to page 1).
+2. **One canonical per indexable page.** List pages are Divar-style landing pages `/املاک/{city}/{category}/{district}`;
+   the canonical is that path, plus `?p=N` on page 2+ (never canonical to page 1). Query filters and sort orders collapse to it.
    Empty result pages get `noindex, follow`. Admin/Account pages are `noindex`.
 3. **Unique title and description.** Include the facts people search for: deal type, kind, district/city,
    size, price; add "صفحهٔ N" on paginated pages. Descriptions ~120–160 chars, no keyword stuffing.
 4. **JSON-LD must be valid schema.org and honest.**
-   - Serialize only through `JsonLd.Serialize` (escapes `</`). Drop null fields; never emit `null`.
+   - Render the tag with `@Html.Raw(JsonLd.Script(...))` (a literal Razor `<script type="application/ld+json">` comes out as `ld&#x2B;json`); it serializes through `JsonLd.Serialize` (escapes `</`). Drop null fields; never emit `null`.
    - Prices: schema.org needs ISO 4217. Toman is not a currency code — store Toman, emit **IRR = Toman × 10**.
    - Rent: monthly rent as `UnitPriceSpecification` with `unitCode: "MON"`, deposit (رهن) as a separate `PriceSpecification`.
+   - Short-term rent: `Price` is per night, emitted as `UnitPriceSpecification` with `unitCode: "DAY"`.
    - Use only facts we have. No invented phone, address, rating, review or "best price" claims.
    - Do not publish the exact street address or coordinates of a listing (privacy); city + district only.
    - Dates in `yyyy-MM-dd` with `CultureInfo.InvariantCulture` (fa-IR culture would print a Persian-calendar year).
@@ -44,7 +45,7 @@ a model can lift verbatim. Background and the status table live in `docs/SEO-GEO
    - Specs as a labelled `<dl>` with fixed labels (متراژ، خواب، طبقه، پارکینگ، سال ساخت), not free text.
    - Show publish date in a `<time datetime="...">` element (trust signal).
    - List pages open with a factual stats sentence from our own data (count, price range).
-7. **Internal links.** Detail → same-city list and similar listings; breadcrumbs link to deal and city lists.
+7. **Internal links.** Detail → its city/category/district landing pages and similar listings; breadcrumbs link to the landing pages.
 8. **Images.** Every `<img>` has meaningful `alt`. The first/LCP image is `loading="eager" fetchpriority="high"`;
    the rest `loading="lazy"`. Give width/height when known to avoid CLS.
 9. **Discovery files.** New public URL types go into `sitemap.xml` (and `llms.txt` if useful). Keep AI crawlers allowed in

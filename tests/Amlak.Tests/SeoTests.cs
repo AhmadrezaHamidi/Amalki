@@ -9,12 +9,21 @@ public class SeoTests
 {
     private const string Base = "https://example.ir";
 
-    private static Property Sample(string slug = "آپارتمان-تست") => new()
+    private static Property Sample(string slug = "آپارتمان-تست")
     {
-        Title = "آپارتمان تست", Slug = slug, Deal = DealType.Sale, Kind = PropertyKind.Apartment, City = "تهران", District = "ونک", AreaM2 = 90,
-        Price = 5_000_000_000, Status = ListingStatus.Published, PublishedAtUtc = new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc),
-        Photos = { new PropertyPhoto { Url = "/uploads/a.jpg", SortOrder = 0 } },
-    };
+        var p = TestData.Listing(slug: slug);
+        p.AddPhoto("/uploads/a.jpg", TestData.Now);
+        return p;
+    }
+
+    /// <summary>Published listing with photo and specs, for the JSON-LD and summary tests.</summary>
+    private static Property Detailed(Pricing pricing, int? bedrooms = 2, int? floor = null)
+    {
+        var p = Property.Create("آپارتمان-تست", ListingDetails.Of("آپارتمان تست", "d", PropertyKind.Apartment, 90, "تهران", "ونک", bedrooms, floor), pricing, TestData.Now);
+        p.Publish(TestData.Now);
+        p.AddPhoto("/uploads/a.jpg", TestData.Now);
+        return p;
+    }
 
     [Fact]
     public void Sitemap_is_valid_xml_with_encoded_absolute_urls_lastmod_and_images()
@@ -79,9 +88,7 @@ public class SeoTests
     [Fact]
     public void Listing_jsonld_uses_iso_currency_absolute_images_and_no_nulls()
     {
-        var p = Sample();
-        p.Bedrooms = 2;
-        var json = JsonLd.Serialize(JsonLd.Listing(p, Base));
+        var json = JsonLd.Serialize(JsonLd.Listing(Detailed(Pricing.ForSale(5_000_000_000)), Base));
 
         Assert.Contains("\"@type\":\"RealEstateListing\"", json);
         Assert.Contains("\"priceCurrency\":\"IRR\"", json);
@@ -96,14 +103,23 @@ public class SeoTests
     [Fact]
     public void Rent_listing_has_monthly_rent_and_deposit_specs()
     {
-        var p = Sample();
-        p.Deal = DealType.Rent; p.Price = null; p.Deposit = 300_000_000; p.MonthlyRent = 20_000_000;
-        var json = JsonLd.Serialize(JsonLd.Listing(p, Base));
+        var json = JsonLd.Serialize(JsonLd.Listing(Detailed(Pricing.ForRent(300_000_000, 20_000_000)), Base));
 
         Assert.Contains("LeaseOut", json);
         Assert.Contains("\"unitCode\":\"MON\"", json);
         Assert.Contains("\"price\":200000000", json);
         Assert.Contains("\"price\":3000000000", json);
+    }
+
+    [Fact]
+    public void Short_term_listing_has_nightly_price()
+    {
+        var p = Detailed(Pricing.ForNightly(2_000_000));
+        var json = JsonLd.Serialize(JsonLd.Listing(p, Base));
+
+        Assert.Contains("\"unitCode\":\"DAY\"", json);
+        Assert.Contains("\"price\":20000000", json);
+        Assert.Contains("هر شب ۲ میلیون تومان", SeoText.Summary(p));
     }
 
     [Fact]
@@ -118,8 +134,7 @@ public class SeoTests
     [Fact]
     public void Summary_states_kind_size_place_and_price()
     {
-        var p = Sample();
-        p.Bedrooms = 2; p.Floor = 3;
+        var p = Detailed(Pricing.ForSale(5_000_000_000), bedrooms: 2, floor: 3);
         Assert.Equal("آپارتمان ۹۰ متری در ونک، تهران برای فروش به قیمت ۵ میلیارد تومان؛ ۲ خواب، طبقهٔ ۳.", SeoText.Summary(p));
     }
 
@@ -128,21 +143,6 @@ public class SeoTests
     {
         var txt = SeoText.ListIntro("آشیانه", "خرید ملک", "تهران", 12, 4_000_000_000, 9_500_000_000, DealType.Sale);
         Assert.Equal("در حال حاضر ۱۲ آگهی خرید ملک در تهران در آشیانه منتشر شده است؛ قیمت‌ها از ۴ میلیارد تومان تا ۹٫۵ میلیارد تومان است.", txt);
-    }
-
-    [Fact]
-    public void ListUrl_keeps_only_indexable_parameters_in_fixed_order()
-    {
-        Assert.Equal(Base + "/%D8%A7%D9%85%D9%84%D8%A7%DA%A9", SeoFiles.ListUrl(Base, null));
-        Assert.Equal(Base + "/%D8%A7%D9%85%D9%84%D8%A7%DA%A9?deal=Rent&city=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&p=2", SeoFiles.ListUrl(Base, DealType.Rent, " تهران ", 2));
-    }
-
-    [Fact]
-    public void Sitemap_includes_city_list_pages_once()
-    {
-        var xml = SeoFiles.Sitemap([Sample("a"), Sample("b")], Base);
-        var cityUrl = SeoFiles.ListUrl(Base, DealType.Sale, "تهران");
-        Assert.Equal(1, xml.Split("<loc>" + cityUrl.Replace("&", "&amp;") + "</loc>").Length - 1);
     }
 
     [Fact]

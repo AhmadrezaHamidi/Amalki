@@ -13,41 +13,51 @@ public static class SeoFiles
 
     public static string ListUrl(string baseUrl) => $"{baseUrl}/{Uri.EscapeDataString("املاک")}";
 
-    /// <summary>List URL with only the parameters that define an indexable page (deal, city, page), in a fixed order.</summary>
-    public static string ListUrl(string baseUrl, DealType? deal, string? city = null, int page = 1)
-    {
-        var q = new List<string>();
-        if (deal is { } d) q.Add("deal=" + d);
-        if (!string.IsNullOrWhiteSpace(city)) q.Add("city=" + Uri.EscapeDataString(city.Trim()));
-        if (page > 1) q.Add("p=" + page);
-        return ListUrl(baseUrl) + (q.Count == 0 ? "" : "?" + string.Join("&", q));
-    }
-
     public static string PropertyUrl(string baseUrl, Property p) =>
         $"{baseUrl}/{Uri.EscapeDataString("ملک")}/{Uri.EscapeDataString(p.Slug)}";
 
     public static string Absolute(string baseUrl, string url) =>
         url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : baseUrl + (url.StartsWith('/') ? url : "/" + url);
 
+    /// <summary>
+    /// Divar-style landing pages that have at least one published listing: every city, every
+    /// city + category, and every city + category + district, plus the all-cities category pages.
+    /// </summary>
+    public static List<string> LandingPaths(IEnumerable<Property> published)
+    {
+        var list = published.ToList();
+        var paths = new List<string>();
+        foreach (var c in Taxonomy.All.Where(c => list.Any(p => Matches(c, p))))
+            paths.Add(Taxonomy.EncodedPath(null, c));
+        foreach (var city in list.GroupBy(p => p.City).OrderByDescending(g => g.Count()))
+        {
+            paths.Add(Taxonomy.EncodedPath(city.Key, null));
+            foreach (var c in Taxonomy.All.Where(c => city.Any(p => Matches(c, p))))
+            {
+                paths.Add(Taxonomy.EncodedPath(city.Key, c));
+                foreach (var district in city.Where(p => Matches(c, p)).Select(p => p.District).Distinct())
+                    paths.Add(Taxonomy.EncodedPath(city.Key, c, district));
+            }
+        }
+        return paths;
+    }
+
+    private static bool Matches(Category c, Property p) => p.Deal == c.Deal && (c.Kind is null || p.Kind == c.Kind);
+
     public static string Sitemap(IEnumerable<Property> published, string baseUrl)
     {
+        published = published.ToList();
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         XNamespace img = "http://www.google.com/schemas/sitemap-image/1.1";
         var urls = new List<XElement>
         {
             new(ns + "url", new XElement(ns + "loc", baseUrl + "/"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "1.0")),
             new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl)), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.9")),
-            new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl) + "?deal=Sale"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")),
-            new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl) + "?deal=Rent"), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")),
         };
+        urls.AddRange(LandingPaths(published).Select(path =>
+            new XElement(ns + "url", new XElement(ns + "loc", baseUrl + path), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8"))));
 
-        var list = published.ToList();
-        // City list pages (per deal type) act as landing pages for "خرید/اجاره ملک در {شهر}".
-        foreach (var (deal, city) in list.Where(p => !string.IsNullOrWhiteSpace(p.City))
-                     .Select(p => (p.Deal, City: p.City.Trim())).Distinct().OrderBy(x => x.Deal).ThenBy(x => x.City, StringComparer.Ordinal))
-            urls.Add(new(ns + "url", new XElement(ns + "loc", ListUrl(baseUrl, deal, city)), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8")));
-
-        foreach (var p in list.Take(Math.Max(0, MaxSitemapUrls - urls.Count)))
+        foreach (var p in published.Take(Math.Max(0, MaxSitemapUrls - urls.Count)))
         {
             var url = new XElement(ns + "url",
                 new XElement(ns + "loc", PropertyUrl(baseUrl, p)),
@@ -89,15 +99,16 @@ public static class SeoFiles
         sb.AppendLine();
         sb.AppendLine("## صفحه‌های اصلی");
         sb.AppendLine($"- [همهٔ آگهی‌ها]({ListUrl(baseUrl)}): فهرست کامل با فیلتر شهر، نوع ملک و قیمت");
-        sb.AppendLine($"- [خرید ملک]({ListUrl(baseUrl)}?deal=Sale): آگهی‌های فروش");
-        sb.AppendLine($"- [اجاره و رهن]({ListUrl(baseUrl)}?deal=Rent): آگهی‌های رهن و اجاره");
+        sb.AppendLine($"- [خرید ملک]({baseUrl}{Taxonomy.EncodedPath(null, Taxonomy.Find("خرید"))}): آگهی‌های فروش");
+        sb.AppendLine($"- [رهن و اجاره]({baseUrl}{Taxonomy.EncodedPath(null, Taxonomy.Find("رهن-و-اجاره"))}): آگهی‌های رهن و اجاره");
+        sb.AppendLine($"- آدرس صفحه‌ها: {baseUrl}/املاک/{{شهر}}/{{دسته}}/{{محله}}، مثلاً /املاک/تهران/خرید-آپارتمان/سعادت-آباد. دسته‌ها: {string.Join("، ", Taxonomy.All.Select(c => c.Slug))}");
         sb.AppendLine();
         sb.AppendLine("## جدیدترین آگهی‌ها");
         foreach (var p in latest)
         {
-            var deal = p.Deal == DealType.Sale ? "فروش" : "اجاره";
-            var price = p.Deal == DealType.Sale
-                ? $"قیمت {Fa.Money(p.Price)} تومان"
+            var deal = Labels.Deal(p.Deal);
+            var price = p.Deal == DealType.Sale ? $"قیمت {Fa.Money(p.Price)} تومان"
+                : p.Deal == DealType.ShortTerm ? $"هر شب {Fa.Money(p.Price)} تومان"
                 : $"رهن {Fa.Money(p.Deposit)} و اجاره {Fa.Money(p.MonthlyRent)} تومان";
             sb.AppendLine($"- [{p.Title}]({PropertyUrl(baseUrl, p)}): {deal}، {Fa.Digits(p.AreaM2.ToString())} متر، {p.District} {p.City}، {price}");
         }

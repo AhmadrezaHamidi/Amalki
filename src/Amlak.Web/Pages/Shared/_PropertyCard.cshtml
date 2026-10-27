@@ -1,23 +1,30 @@
 @model Property
-@{ var rent = Model.Deal == DealType.Rent; }
-<article class="card">
+@{
+    var rent = Model.Deal == DealType.Rent;
+    var shortTerm = Model.Deal == DealType.ShortTerm;
+    // "tall" = photo on top (home page highlights); default = classifieds row, photo beside the text.
+    var tall = ViewData["CardStyle"] as string == "tall";
+}
+<article class="card @(tall ? "tall" : "")">
     <div class="ph">
-        @if (Model.Photos.FirstOrDefault() is { } p) { <img src="@p.Url" alt="@p.Alt" loading="lazy" width="640" height="480" /> }
-        else { @Icons.Get("photo", 36) }
-        <span class="badge @(rent ? "rent" : "")">@Labels.Deal(Model.Deal)</span>
+        @if (Model.Photos.FirstOrDefault() is { } p) { @PhotoVariants.Img(p, tall ? "(max-width: 700px) 78vw, 300px" : "(max-width: 900px) 116px, 148px", tall ? 640 : 320, tall ? 480 : 320) }
+        else { @Icons.Get("photo", 30) }
+        <span class="tag @(rent ? "rent" : "")">@Labels.Deal(Model.Deal)</span>
     </div>
-    <button class="fav" type="button" data-fav="@Model.Id" aria-pressed="false" aria-label="نشان کردن @Model.Title">@Icons.Get("heart")</button>
     <div class="b">
-        <span class="loc">@Labels.Kind(Model.Kind) · @Model.District، @Model.City</span>
         <h3>@Model.Title</h3>
         <div class="meta">
-            <span>@Icons.Get("area", 16) @Fa.Digits(Model.AreaM2.ToString()) متر</span>
-            @if (Model.Bedrooms is { } r and > 0) { <span>@Icons.Get("bed", 16) @Fa.Digits(r.ToString()) خواب</span> }
+            <span>@Fa.Digits(Model.AreaM2.ToString()) متر</span>
+            @if (Model.Bedrooms is { } r and > 0) { <span>@Fa.Digits(r.ToString()) خواب</span> }
+            @if (Model.Parking is > 0) { <span>پارکینگ</span> }
+            @if (Model.HasElevator == true) { <span>آسانسور</span> }
         </div>
-        <div class="price @(rent ? "rent" : "")">
-            @if (!rent) { <text>@Fa.Money(Model.Price) <small>تومان</small></text> }
-            else { <text>@Fa.Money(Model.Deposit) <small>رهن · اجاره @Fa.Money(Model.MonthlyRent)</small></text> }
+        <div class="price">
+            @if (rent) { <text>رهن @Fa.Money(Model.Deposit) <small>· اجاره @Fa.Money(Model.MonthlyRent)</small></text> }
+            else { <text>@Fa.Money(Model.Price) <small>@(shortTerm ? "تومان / شب" : "تومان")</small></text> }
         </div>
+        <span class="when">@(Model.PublishedAtUtc is { } pub ? Fa.Ago(pub) + " · " : "")@Model.District، @Model.City</span>
     </div>
+    <button class="fav" type="button" data-fav="@Model.Id" aria-pressed="false" aria-label="نشان کردن @Model.Title">@Icons.Get("bookmark")</button>
     <a class="cover" asp-page="/Properties/Details" asp-route-slug="@Model.Slug"><span class="sr-only">@Model.Title</span></a>
 </article>

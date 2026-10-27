@@ -96,11 +96,8 @@ public sealed class PublishingTests : IDisposable
             TestStores.Photos(_root), NullLogger<ChannelPublisher>.Instance);
     }
 
-    private static Property Sample(ListingStatus status = ListingStatus.Published) => new()
-    {
-        Title = "آپارتمان تست", Slug = "آپارتمان-تست", Description = "d", Deal = DealType.Sale, Kind = PropertyKind.Apartment,
-        City = "تهران", District = "ونک", AreaM2 = 90, Price = 5_000_000_000, Status = status, PublishedAtUtc = DateTime.UtcNow,
-    };
+    private static Property Sample(ListingStatus status = ListingStatus.Published) =>
+        TestData.Listing(published: status == ListingStatus.Published);
 
     [Fact]
     public void Caption_has_price_link_and_hashtags()
@@ -147,7 +144,7 @@ public sealed class PublishingTests : IDisposable
         var pub = NewPublisher(db);
         await pub.SyncAsync(p.Id);
 
-        p.Status = ListingStatus.Draft; db.SaveChanges();
+        p.Unpublish(TestData.Now); db.SaveChanges();
         await pub.SyncAsync(p.Id);
 
         Assert.Contains(_bot.Calls, c => c.Method == "deleteMessage");
@@ -159,7 +156,7 @@ public sealed class PublishingTests : IDisposable
     {
         using var db = NewDb();
         File.WriteAllBytes(Path.Combine(_root, "uploads", "a.png"), [0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0, 0]);
-        var p = Sample(); p.Photos.Add(new PropertyPhoto { Url = "/uploads/a.png", Alt = "x" });
+        var p = Sample(); p.AddPhoto("/uploads/a.png", TestData.Now);
         db.Properties.Add(p); db.SaveChanges();
         var pub = NewPublisher(db);
 
@@ -220,7 +217,7 @@ public sealed class PublishingTests : IDisposable
         for (var i = 0; i < n; i++)
         {
             File.WriteAllBytes(Path.Combine(_root, "uploads", $"p{i}.png"), [0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0, 0]);
-            p.Photos.Add(new PropertyPhoto { Url = $"/uploads/p{i}.png", Alt = "x", SortOrder = i });
+            p.AddPhoto($"/uploads/p{i}.png", TestData.Now);
         }
         return p;
     }
@@ -250,7 +247,7 @@ public sealed class PublishingTests : IDisposable
         await pub.SyncAsync(p.Id);
 
         File.WriteAllBytes(Path.Combine(_root, "uploads", "extra.png"), [0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0, 0]);
-        p.Photos.Add(new PropertyPhoto { Url = "/uploads/extra.png", Alt = "x", SortOrder = 5 }); db.SaveChanges();
+        p.AddPhoto("/uploads/extra.png", TestData.Now); db.SaveChanges();
         await pub.SyncAsync(p.Id);
 
         // Old album (2 messages) deleted, new album of 3 sent.
@@ -259,7 +256,7 @@ public sealed class PublishingTests : IDisposable
         Assert.Equal("103,104", db.ChannelPosts.Single().ExtraMessageIds);
 
         _bot.Calls.Clear();
-        p.Status = ListingStatus.Draft; db.SaveChanges();
+        p.Unpublish(TestData.Now); db.SaveChanges();
         await pub.SyncAsync(p.Id);
         Assert.Equal(3, _bot.Calls.Count(c => c.Method == "deleteMessage"));
         Assert.Empty(db.ChannelPosts);
@@ -272,7 +269,7 @@ public sealed class PublishingTests : IDisposable
         var p = WithPhotos(2); db.Properties.Add(p); db.SaveChanges();
         var pub = NewPublisher(db);
         await pub.SyncAsync(p.Id);
-        p.Title = "عنوان تازه"; db.SaveChanges();
+        p.Update(ListingDetails.Of("عنوان تازه", "d", p.Kind, p.AreaM2, p.City, p.District), p.Pricing, TestData.Now); db.SaveChanges();
         await pub.SyncAsync(p.Id);
 
         var edit = Assert.Single(_bot.Calls, c => c.Method == "editMessageCaption");
