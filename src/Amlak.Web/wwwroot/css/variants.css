@@ -1,0 +1,181 @@
+/* Ten UI variants, each modelled on the look of a leading Iranian property site (docs/UI-VARIANTS.md).
+   Chosen with <html data-ui="…"> (UiVariants.cs); without the attribute the site keeps the v4 look of site.css.
+   Variants only re-tint tokens and restyle the hero, header and cards; markup is shared. */
+
+/* ===== shared building blocks ===== */
+/* Photo-on-top card grid (portal style) instead of the classifieds row. */
+[data-ui=kilid] .listings,[data-ui=ihome] .listings,[data-ui=jabama] .listings,[data-ui=jajiga] .listings,
+[data-ui=shab] .listings,[data-ui=delta] .listings{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+[data-ui=kilid] .listings .card,[data-ui=ihome] .listings .card,[data-ui=jabama] .listings .card,[data-ui=jajiga] .listings .card,
+[data-ui=shab] .listings .card,[data-ui=delta] .listings .card{flex-direction:column;padding:0;gap:0;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius)}
+[data-ui=kilid] .listings .ph,[data-ui=ihome] .listings .ph,[data-ui=jabama] .listings .ph,[data-ui=jajiga] .listings .ph,
+[data-ui=shab] .listings .ph,[data-ui=delta] .listings .ph{width:auto;aspect-ratio:4/3;border-radius:0}
+[data-ui=kilid] .listings .card .b,[data-ui=ihome] .listings .card .b,[data-ui=jabama] .listings .card .b,[data-ui=jajiga] .listings .card .b,
+[data-ui=shab] .listings .card .b,[data-ui=delta] .listings .card .b{padding:12px 14px 14px;gap:4px}
+[data-ui=kilid] .listings .fav,[data-ui=ihome] .listings .fav,[data-ui=jabama] .listings .fav,[data-ui=jajiga] .listings .fav,
+[data-ui=shab] .listings .fav,[data-ui=delta] .listings .fav{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+@media(max-width:900px){
+  [data-ui=kilid] .listings,[data-ui=ihome] .listings,[data-ui=jabama] .listings,[data-ui=jajiga] .listings,
+  [data-ui=shab] .listings,[data-ui=delta] .listings{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  [data-ui=kilid] .listings .card,[data-ui=ihome] .listings .card,[data-ui=jabama] .listings .card,[data-ui=jajiga] .listings .card,
+  [data-ui=shab] .listings .card,[data-ui=delta] .listings .card{border:1px solid var(--line);border-radius:var(--radius);padding:0}
+  [data-ui=kilid] .listings .ph,[data-ui=ihome] .listings .ph,[data-ui=jabama] .listings .ph,[data-ui=jajiga] .listings .ph,
+  [data-ui=shab] .listings .ph,[data-ui=delta] .listings .ph{width:auto}
+}
+/* Hero with the brand colour behind it (white type). */
+[data-ui=kilid] .home-hero,[data-ui=melkradar] .home-hero,[data-ui=jabama] .home-hero,[data-ui=delta] .home-hero,
+[data-ui=melkana] .home-hero{background:var(--hero);border:0;color:#fff}
+[data-ui=kilid] .home-hero h1 span,[data-ui=melkradar] .home-hero h1 span,[data-ui=jabama] .home-hero h1 span,
+[data-ui=delta] .home-hero h1 span,[data-ui=melkana] .home-hero h1 span{color:rgba(255,255,255,.82)}
+[data-ui=kilid] .home-hero .trust,[data-ui=melkradar] .home-hero .trust,[data-ui=jabama] .home-hero .trust,
+[data-ui=delta] .home-hero .trust,[data-ui=melkana] .home-hero .trust,
+[data-ui=kilid] .home-hero .trust svg,[data-ui=melkradar] .home-hero .trust svg,[data-ui=jabama] .home-hero .trust svg,
+[data-ui=delta] .home-hero .trust svg,[data-ui=melkana] .home-hero .trust svg{color:rgba(255,255,255,.88)}
+[data-ui=kilid] .home-search .tabs,[data-ui=melkradar] .home-search .tabs,[data-ui=jabama] .home-search .tabs,
+[data-ui=delta] .home-search .tabs,[data-ui=melkana] .home-search .tabs{background:rgba(255,255,255,.16)}
+[data-ui=kilid] .home-search .tabs span,[data-ui=melkradar] .home-search .tabs span,[data-ui=jabama] .home-search .tabs span,
+[data-ui=delta] .home-search .tabs span,[data-ui=melkana] .home-search .tabs span{color:#fff}
+[data-ui=kilid] .home-search .tabs input:checked+span,[data-ui=melkradar] .home-search .tabs input:checked+span,
+[data-ui=jabama] .home-search .tabs input:checked+span,[data-ui=melkana] .home-search .tabs input:checked+span{background:#fff;color:var(--primary)}
+/* Main action keeps site.css's --cta; light CTA colours (amber, gold) need dark type. */
+[data-ui=melkradar] .btn:not([class*=" "]),[data-ui=delta] .btn:not([class*=" "]),
+[data-ui=melkradar] .btn.lg:not(.light):not(.outline-light),[data-ui=delta] .btn.lg:not(.light):not(.outline-light),
+[data-ui=melkradar] .btn.post,[data-ui=delta] .btn.post{color:var(--on-cta)}
+[data-ui] .tabbar .tab-post-btn{color:var(--on-cta,#fff);box-shadow:0 6px 16px color-mix(in srgb,var(--cta) 40%,transparent)}
+
+/* ===== 1. دیوار — flat classifieds feed ===== */
+/* Red brand, white page, hairlines instead of boxes, tiny radius: the densest, quickest-to-scan list. */
+[data-ui=divar]{--primary:#A62626;--primary-dark:#8A1F1F;--primary-soft:#FBECEC;--cta:#A62626;--cta-dark:#8A1F1F;
+  --radius:6px;--radius-sm:4px;--shadow:none;--band:#2B2B2B;--rent:#A62626}
+@media (prefers-color-scheme:dark){[data-ui=divar]{--primary:#F07272;--primary-dark:#F59A9A;--primary-soft:#3A1D1D}}
+[data-ui=divar] .home-hero{background:var(--surface)}
+[data-ui=divar] .home-hero .wrap{padding-block:28px 22px}
+[data-ui=divar] .home-search-row{box-shadow:none;border-radius:6px}
+[data-ui=divar] .listings{gap:0 24px}
+[data-ui=divar] .listings .card{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:16px 0}
+[data-ui=divar] .listings .card:hover{box-shadow:none}
+[data-ui=divar] .card .price{font-weight:500;color:var(--muted);font-size:.92rem}
+[data-ui=divar] .cat-ico{background:transparent;border:1px solid var(--line);border-radius:999px}
+[data-ui=divar] .steps,[data-ui=divar] .faq details{border-radius:6px}
+[data-ui=divar] .cta-band{border-radius:6px}
+
+/* ===== 2. شیپور — friendly marketplace ===== */
+/* Teal-blue brand, rounded white cards on a light grey page, quick-filter chips stand out. */
+[data-ui=sheypoor]{--primary:#0A7EA4;--primary-dark:#086383;--primary-soft:#E3F3F9;--cta:#0A7EA4;--cta-dark:#086383;
+  --radius:16px;--radius-sm:12px;--band:#075B77}
+@media (prefers-color-scheme:light){[data-ui=sheypoor]{--bg:#F4F6F8;--soft:#EAF0F3}}
+@media (prefers-color-scheme:dark){[data-ui=sheypoor]{--primary:#5CC3E4;--primary-dark:#8FD6EE;--primary-soft:#14303B}}
+[data-ui=sheypoor] .home-hero{background:linear-gradient(180deg,var(--primary-soft),var(--bg))}
+[data-ui=sheypoor] .listings .card{box-shadow:0 2px 10px rgba(16,40,60,.06)}
+@media(max-width:900px){[data-ui=sheypoor] .listings{gap:10px}[data-ui=sheypoor] .listings .card{border:1px solid var(--line);border-radius:16px;padding:10px}}
+[data-ui=sheypoor] .chip{border-radius:999px}
+[data-ui=sheypoor] .cat-ico{border-radius:999px;background:var(--primary-soft)}
+
+/* ===== 3. کیلید — specialist portal ===== */
+/* Blue band hero with a large search box, photo-first card grid, orange action. */
+[data-ui=kilid]{--primary:#1958D4;--primary-dark:#1245A8;--primary-soft:#E8F0FD;--cta:#F26B1D;--cta-dark:#D2560F;
+  --radius:12px;--hero:linear-gradient(120deg,#1245A8,#1958D4 55%,#2F7BEA);--band:#1245A8}
+@media (prefers-color-scheme:dark){[data-ui=kilid]{--primary:#7FA8F5;--primary-dark:#A9C5F8;--primary-soft:#18284A;--hero:linear-gradient(120deg,#0E2552,#163A80)}}
+[data-ui=kilid] .home-hero .wrap{padding-block:56px 48px}
+[data-ui=kilid] .home-search-row{padding:8px;border:0;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+
+/* ===== 4. ملک‌رادار — price and data first ===== */
+/* Navy and amber, price set large, meta shown as small chips: for buyers comparing numbers. */
+[data-ui=melkradar]{--primary:#0F2A4A;--primary-dark:#0A1D34;--primary-soft:#E7EDF5;--cta:#F59E0B;--cta-dark:#D97F06;--on-cta:#1A1200;
+  --radius:10px;--hero:linear-gradient(135deg,#0A1D34,#163A63);--band:#0F2A4A}
+@media (prefers-color-scheme:dark){[data-ui=melkradar]{--primary:#9DB8DA;--primary-dark:#C3D4EA;--primary-soft:#1A2A40}}
+[data-ui=melkradar] .card .price{font-size:1.18rem;color:var(--primary);order:-1;margin:0 0 2px}
+[data-ui=melkradar] .card .b{gap:6px}
+[data-ui=melkradar] .card .meta{gap:6px}
+[data-ui=melkradar] .card .meta span{background:var(--soft);border-radius:6px;padding:0 8px}
+[data-ui=melkradar] .card .meta span+span::before{content:none}
+[data-ui=melkradar] .ph .tag{background:var(--cta);color:#1A1200}
+
+/* ===== 5. آی‌هوم — calm and airy ===== */
+/* Violet accent, large radius, lots of white, big photos with a soft lift on hover. */
+[data-ui=ihome]{--primary:#6D28D9;--primary-dark:#5B21B6;--primary-soft:#F1EAFE;--cta:#6D28D9;--cta-dark:#5B21B6;
+  --radius:22px;--radius-sm:16px;--band:#3B1580}
+@media (prefers-color-scheme:dark){[data-ui=ihome]{--primary:#B794F6;--primary-dark:#D0B8FA;--primary-soft:#2A1C45}}
+[data-ui=ihome] .home-hero{background:radial-gradient(1000px 300px at 50% 0,var(--primary-soft),var(--bg))}
+[data-ui=ihome] .listings .card{border-color:transparent;box-shadow:0 6px 24px rgba(60,30,120,.08);transition:transform .2s,box-shadow .2s}
+[data-ui=ihome] .listings .card:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(60,30,120,.14)}
+[data-ui=ihome] .btn{border-radius:999px}
+
+/* ===== 6. جاباما — travel / short stay ===== */
+/* Warm orange gradient hero, rounded photo cards, bold price: suits daily rentals and villas. */
+[data-ui=jabama]{--primary:#E8590C;--primary-dark:#C2410C;--primary-soft:#FFF0E5;--cta:#E8590C;--cta-dark:#C2410C;
+  --radius:20px;--radius-sm:14px;--hero:linear-gradient(135deg,#FF7A1A,#E8590C 60%,#C2410C);--band:#9A3412}
+@media (prefers-color-scheme:dark){[data-ui=jabama]{--primary:#FF9F5A;--primary-dark:#FFBE8C;--primary-soft:#3A2010;--hero:linear-gradient(135deg,#7C2D12,#9A3412)}}
+[data-ui=jabama] .home-search-row{border-radius:999px;padding-inline-start:12px;border:0}
+[data-ui=jabama] .home-search-row .btn{border-radius:999px}
+[data-ui=jabama] .card .price{color:var(--primary)}
+[data-ui=jabama] .ph .tag{border-radius:999px;padding:0 10px}
+
+/* ===== 7. جاجیگا — villas and nature ===== */
+/* Forest green on warm cream, earthy and relaxed. */
+[data-ui=jajiga]{--primary:#1F7A4C;--primary-dark:#17613C;--primary-soft:#E5F3EB;--cta:#1F7A4C;--cta-dark:#17613C;
+  --radius:16px;--band:#17613C}
+@media (prefers-color-scheme:light){[data-ui=jajiga]{--bg:#FAF7F0;--soft:#F1ECE0;--line:#E6DFCF;--ph:#E8E1CF;--ph-2:#F4EFE3}}
+@media (prefers-color-scheme:dark){[data-ui=jajiga]{--primary:#6FCF97;--primary-dark:#98DEB4;--primary-soft:#173226}}
+[data-ui=jajiga] .home-hero{background:linear-gradient(180deg,#E5F3EB,var(--bg))}
+@media (prefers-color-scheme:dark){[data-ui=jajiga] .home-hero{background:var(--soft)}}
+[data-ui=jajiga] .cat-ico{border-radius:999px}
+
+/* ===== 8. شب / اتاقک — soft and welcoming ===== */
+/* Coral pink accent, pill buttons and tabs, playful but clean. */
+[data-ui=shab]{--primary:#E11D48;--primary-dark:#BE123C;--primary-soft:#FFE8EE;--cta:#E11D48;--cta-dark:#BE123C;
+  --radius:18px;--radius-sm:14px;--band:#9F1239}
+@media (prefers-color-scheme:light){[data-ui=shab]{--bg:#FFFBFC;--soft:#FFF1F4}}
+@media (prefers-color-scheme:dark){[data-ui=shab]{--primary:#FB7193;--primary-dark:#FDA4BA;--primary-soft:#3D1724}}
+[data-ui=shab] .home-hero{background:var(--soft)}
+[data-ui=shab] .btn,[data-ui=shab] .tabs,[data-ui=shab] .tabs span,[data-ui=shab] .home-search-row{border-radius:999px}
+[data-ui=shab] .home-search-row .btn{border-radius:999px}
+
+/* ===== 9. دلتا — premium agency ===== */
+/* Always dark: ink-blue ground, gold accent, sharp corners; for high-end listings. */
+[data-ui=delta]{--bg:#0B1220;--surface:#111A2C;--soft:#18233A;--soft-2:#1F2B45;--ink:#F3EEE2;--ink-2:#E2DACA;--muted:#A9B1C2;
+  --line:#25324D;--line-soft:#1B2740;--ph:#1B2740;--ph-2:#111A2C;--ph-ink:#7D8AA6;
+  --primary:#C9A24B;--primary-dark:#E2C27A;--primary-soft:#2A2616;--on-primary:#0B1220;--cta:#C9A24B;--cta-dark:#B08A35;--on-cta:#0B1220;
+  --rent:#E2C27A;--radius:4px;--radius-sm:2px;--glass:rgba(17,26,44,.96);--band:#18233A;
+  --hero:linear-gradient(160deg,#0B1220 30%,#1B2745);color-scheme:dark}
+[data-ui=delta] .home-hero h1{font-weight:300;letter-spacing:-.01em}
+[data-ui=delta] .home-hero h1 span{color:var(--primary)}
+[data-ui=delta] .home-search .tabs input:checked+span{background:var(--primary);color:#0B1220}
+[data-ui=delta] .home-search-row{background:var(--surface);border-color:var(--line)}
+[data-ui=delta] .card .price{color:var(--primary)}
+[data-ui=delta] .ph .tag{background:#0B1220;color:var(--primary);border:1px solid var(--primary)}
+[data-ui=delta] .site-head{border-bottom-color:var(--line)}
+
+/* ===== 10. ملکانه — agency workspace ===== */
+/* Indigo on slate, compact cards with a coloured edge per deal type: reads like an agent's file list. */
+[data-ui=melkana]{--primary:#4338CA;--primary-dark:#3730A3;--primary-soft:#EEF0FF;--cta:#4338CA;--cta-dark:#3730A3;
+  --radius:8px;--radius-sm:6px;--hero:linear-gradient(135deg,#312E81,#4338CA);--band:#312E81;--rent:#0D9488}
+@media (prefers-color-scheme:light){[data-ui=melkana]{--bg:#F1F5F9;--soft:#E2E8F0}}
+@media (prefers-color-scheme:dark){[data-ui=melkana]{--primary:#A5B4FC;--primary-dark:#C7D2FE;--primary-soft:#1E1B4B}}
+[data-ui=melkana] .home-hero .wrap{padding-block:32px 28px}
+[data-ui=melkana] .listings{gap:8px}
+[data-ui=melkana] .listings .card{border:1px solid var(--line);border-inline-start:4px solid var(--primary);border-radius:8px;padding:10px}
+[data-ui=melkana] .listings .card:has(.tag.rent){border-inline-start-color:var(--rent)}
+[data-ui=melkana] .ph{width:110px}
+[data-ui=melkana] .card h3{font-size:.95rem}
+
+/* ===== variant switcher (preview only) ===== */
+.ui-switch{position:fixed;inset-block-end:76px;inset-inline-start:12px;z-index:60;font-size:.85rem}
+@media(min-width:861px){.ui-switch{inset-block-end:16px}}
+.ui-switch summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:999px;background:var(--ink);color:var(--bg);font-weight:700;box-shadow:var(--shadow-lg)}
+.ui-switch summary::-webkit-details-marker{display:none}
+.ui-switch ul{list-style:none;margin:8px 0 0;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);max-height:60vh;overflow:auto;min-width:220px}
+.ui-switch a{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;color:var(--ink)}
+.ui-switch a:hover{background:var(--soft)}
+.ui-switch a[aria-current=true]{background:var(--primary-soft);color:var(--primary-dark);font-weight:700}
+.ui-switch small{color:var(--muted)}
+.ui-switch i{width:14px;height:14px;border-radius:999px;flex:none;align-self:center}
+
+/* ===== design gallery page ===== */
+.ui-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.ui-tile{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column}
+.ui-tile .sw{display:flex;height:64px}.ui-tile .sw span{flex:1}
+.ui-tile .tb{padding:14px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.ui-tile h2{font-size:1.05rem;font-weight:800}
+.ui-tile p{color:var(--muted);font-size:.9rem}
+.ui-tile .row-actions{margin-top:auto}
