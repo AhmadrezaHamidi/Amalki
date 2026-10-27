@@ -16,6 +16,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
     public DbSet<PhoneCode> PhoneCodes => Set<PhoneCode>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<SavedSearch> SavedSearches => Set<SavedSearch>();
+    public DbSet<AlertSent> AlertsSent => Set<AlertSent>();
+    public DbSet<SmsOptOut> SmsOptOuts => Set<SmsOptOut>();
+    public DbSet<SmsLog> SmsLogs => Set<SmsLog>();
+    public DbSet<SmsCampaign> SmsCampaigns => Set<SmsCampaign>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
         SaveWithEventsAsync(acceptAllChangesOnSuccess, sync: true, default).GetAwaiter().GetResult();
@@ -114,6 +119,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Error).HasMaxLength(500);
             // The dispatcher's query: unprocessed rows that are due, oldest first.
             e.HasIndex(x => new { x.ProcessedAtUtc, x.NextAttemptAtUtc });
+        });
+        b.Entity<SavedSearch>(e =>
+        {
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.Property(x => x.City).HasMaxLength(80);
+            e.Property(x => x.Districts).HasMaxLength(400);
+            // The alert query: active searches for one deal type in one city.
+            e.HasIndex(x => new { x.Active, x.Deal, x.City });
+            e.HasIndex(x => x.Phone);
+        });
+        b.Entity<AlertSent>().HasIndex(x => new { x.PropertyId, x.SavedSearchId, x.Kind, x.Price }).IsUnique();
+        b.Entity<SmsOptOut>(e => { e.HasKey(x => x.Phone); e.Property(x => x.Phone).HasMaxLength(20); });
+        b.Entity<SmsLog>(e =>
+        {
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Text).HasMaxLength(1000);
+            e.HasIndex(x => x.CampaignId);
+        });
+        b.Entity<SmsCampaign>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(150);
+            e.Property(x => x.Template).HasMaxLength(1000);
+            e.Property(x => x.City).HasMaxLength(80);
+            e.Property(x => x.District).HasMaxLength(80);
+            e.HasIndex(x => new { x.Status, x.ScheduledAtUtc });
         });
     }
 }

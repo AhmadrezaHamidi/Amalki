@@ -58,6 +58,11 @@ builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
 // SMS one-time codes for visitor listings: "Kavenegar" (Sms:ApiKey, Sms:Template) or "Log" (development).
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<Amlak.Web.Services.Sms.PhoneVerification>();
+// Alerts and bulk SMS ("Sms:Sender" is the Kavenegar line for them; codes use the template).
+builder.Services.AddScoped<Amlak.Web.Services.Sms.SmsGateway>();
+builder.Services.AddScoped<Amlak.Web.Services.Sms.AlertService>();
+builder.Services.AddScoped<Amlak.Web.Services.Sms.BulkSmsService>();
+builder.Services.AddHostedService<Amlak.Web.Services.Sms.CampaignWorker>();
 if (string.Equals(builder.Configuration["Sms:Provider"], "Kavenegar", StringComparison.OrdinalIgnoreCase))
 {
     var key = builder.Configuration["Sms:ApiKey"];
@@ -65,7 +70,7 @@ if (string.Equals(builder.Configuration["Sms:Provider"], "Kavenegar", StringComp
     if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(template))
         throw new InvalidOperationException("Sms:Provider is Kavenegar but Sms:ApiKey/Sms:Template are not set.");
     builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender>(sp => new Amlak.Web.Services.Sms.KavenegarSmsSender(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient("bots"), key, template,
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient("bots"), key, template, builder.Configuration["Sms:Sender"],
         sp.GetRequiredService<ILogger<Amlak.Web.Services.Sms.KavenegarSmsSender>>()));
 }
 else
@@ -88,6 +93,7 @@ builder.Services.AddRateLimiter(o =>
             : path.StartsWithSegments(Amlak.Web.Pages.Support.IndexModel.Path) ? ("support", 10)
             // Code requests, code checks and submissions share one allowance; codes are also limited per phone.
             : path.Equals(Amlak.Web.Pages.SubmitModel.Path) ? ("submit", 10)
+            : path.Equals(Amlak.Web.Pages.TrackModel.Path) ? ("track", 10)
             : ("", 0);
         return limit == 0
             ? RateLimitPartition.GetNoLimiter("")

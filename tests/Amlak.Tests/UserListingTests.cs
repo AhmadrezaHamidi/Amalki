@@ -117,6 +117,8 @@ public class UserListingTests : IDisposable
             Sent.Add((mobile, code));
             return Task.FromResult(true);
         }
+
+        public Task<bool> SendTextAsync(string mobile, string text, CancellationToken ct = default) => Task.FromResult(true);
     }
 
     private sealed class FakeClock(DateTimeOffset start) : TimeProvider

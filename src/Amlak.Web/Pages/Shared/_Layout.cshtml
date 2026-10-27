@@ -70,6 +70,7 @@
             <a href="/Admin/Listings" aria-current="@(On("/Admin/Listings") || On("/Admin/Edit") ? "page" : null)">@Icons.Get("apartment", 18) آگهی‌ها @if (pendingListings > 0) { <span class="count" title="در انتظار بررسی">@Fa.Digits(pendingListings.ToString())</span> }</a>
             <a href="/Admin/Leads" aria-current="@(On("/Admin/Leads") ? "page" : null)">@Icons.Get("phone", 18) درخواست‌های تماس @if (newLeads > 0) { <span class="count">@Fa.Digits(newLeads.ToString())</span> }</a>
             <a href="/Admin/Tickets" aria-current="@(On("/Admin/Tickets") ? "page" : null)">@Icons.Get("send", 18) تیکت‌های پشتیبانی @if (openTickets > 0) { <span class="count">@Fa.Digits(openTickets.ToString())</span> }</a>
+            <a href="/Admin/Sms" aria-current="@(On("/Admin/Sms") ? "page" : null)">@Icons.Get("send", 18) پیامک گروهی</a>
             <a href="/" target="_blank" rel="noopener">@Icons.Get("share", 18) مشاهدهٔ سایت</a>
             <form method="post" action="/Account/Logout">@Html.AntiForgeryToken()<button>@Icons.Get("close", 18) خروج</button></form>
             <span class="admin-user">@User.Identity?.Name</span>
@@ -91,6 +92,7 @@ else
                 <a href="@Taxonomy.EncodedPath(null, Taxonomy.Find("خرید"))" aria-current="@(browsingDeal == DealType.Sale ? "page" : null)">خرید</a>
                 <a href="@Taxonomy.EncodedPath(null, Taxonomy.Find("رهن-و-اجاره"))" aria-current="@(browsingDeal == DealType.Rent ? "page" : null)">رهن و اجاره</a>
                 <a href="@Taxonomy.EncodedPath(null, Taxonomy.Find("اجاره-کوتاه-مدت"))" aria-current="@(browsingDeal == DealType.ShortTerm ? "page" : null)">کوتاه‌مدت</a>
+                <a class="nav-extra" href="/پیگیری" aria-current="@(path == "/پیگیری" ? "page" : null)">پیگیری با پیامک</a>
                 <a class="nav-extra" href="/پشتیبانی" aria-current="@(path.StartsWith("/پشتیبانی") ? "page" : null)">پشتیبانی</a>
                 <a class="nav-extra" href="/تماس" aria-current="@(path == "/تماس" ? "page" : null)">مشاوره</a>
             </nav>
@@ -123,6 +125,7 @@ else
                 <a href="/املاک?deal=Sale">خرید ملک</a>
                 <a href="/املاک?deal=Rent">اجاره و رهن</a>
                 <a href="/نشان‌شده">نشان‌شده‌ها</a>
+                <a href="/پیگیری">پیگیری خانه با پیامک</a>
                 <a href="/#faq">پرسش‌های متداول</a>
                 <button class="foot-install" type="button" data-install hidden>@Icons.Get("download", 18) نصب اپلیکیشن آشیانه</button>
             </nav>

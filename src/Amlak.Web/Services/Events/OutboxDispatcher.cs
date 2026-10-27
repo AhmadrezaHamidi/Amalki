@@ -1,18 +1,19 @@
 using System.Text.Json;
 using Amlak.Web.Data;
 using Amlak.Web.Services.Publishing;
+using Amlak.Web.Services.Sms;
 using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Services.Events;
 
 /// <summary>
-/// Handles saved domain events: keeps the Telegram/Bale posts in sync, alerts the admin about leads and
-/// tickets and visitor listings, and deletes the files of removed listings. A failure is retried with growing delays.
+/// Handles saved domain events: keeps the Telegram/Bale posts in sync, texts SMS subscribers about matching
+/// listings, alerts the admin about leads and tickets and visitor listings, and deletes the files of removed listings. A failure is retried with growing delays.
 /// Handlers may run twice (a crash after the call, before the row is marked), so each one is safe to repeat.
 /// Assumes one app instance; several would need a row lock (UPDLOCK, READPAST) on the batch query.
 /// </summary>
 public sealed class OutboxDispatcher(
-    AppDbContext db, ChannelPublisher publisher, AdminNotifier notifier, PhotoStorage photos,
+    AppDbContext db, ChannelPublisher publisher, AdminNotifier notifier, PhotoStorage photos, AlertService alerts,
     TimeProvider clock, ILogger<OutboxDispatcher> log)
 {
     public const int MaxAttempts = 10;
@@ -26,11 +27,12 @@ public sealed class OutboxDispatcher(
             .OrderBy(m => m.Id).Take(max).ToListAsync(ct);
 
         var synced = new HashSet<int>(); // several events about one listing in a batch need one sync
+        var alerted = new HashSet<int>();
         foreach (var m in batch)
         {
             try
             {
-                await HandleAsync(m, synced, ct);
+                await HandleAsync(m, synced, alerted, ct);
                 m.ProcessedAtUtc = clock.GetUtcNow().UtcDateTime;
                 m.Error = null;
             }
@@ -50,8 +52,12 @@ public sealed class OutboxDispatcher(
     /// <summary>30 s, 1 min, 2 min … capped at 1 hour.</summary>
     public static TimeSpan Backoff(int attempts) => TimeSpan.FromSeconds(Math.Min(3600, 15 * Math.Pow(2, attempts)));
 
-    private async Task HandleAsync(OutboxMessage m, HashSet<int> synced, CancellationToken ct)
+    private async Task HandleAsync(OutboxMessage m, HashSet<int> synced, HashSet<int> alerted, CancellationToken ct)
     {
+        // Before the channel sync, so a messenger outage does not hold the SMS back; repeats send nothing twice.
+        if (m.Type is nameof(ListingPublished) or nameof(ListingChanged) && alerted.Add(m.AggregateId))
+            await alerts.NotifyAsync(m.AggregateId, ct);
+
         switch (m.Type)
         {
             case nameof(ListingCreated) or nameof(ListingChanged) or nameof(ListingPublished)

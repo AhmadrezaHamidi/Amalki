@@ -11,7 +11,10 @@
     var shortTerm = p.Deal == DealType.ShortTerm;
     var dealLabel = rent ? "اجارهٔ" : shortTerm ? "اجارهٔ کوتاه‌مدت" : "فروش";
     ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
-    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (shortTerm ? "هر شب " + Fa.Money(p.Price) + " تومان" : !rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    var hidden = !p.ShowsPrice;
+    var offer = new Dictionary<string, object?> { ["@type"] = "Offer", ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" };
+    if (!hidden) offer["price"] = !rent ? p.Price : p.MonthlyRent; // a "توافقی" listing publishes no amount
+    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (hidden ? "قیمت توافقی" : shortTerm ? "هر شب " + Fa.Money(p.Price) + " تومان" : !rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
     ViewData["Canonical"] = url;
     ViewData["BodyClass"] = "has-mobile-cta";
     // Crawlers and link previews need absolute image URLs; MinIO URLs already are.
@@ -28,7 +31,7 @@
         ["image"] = p.Photos.Select(x => Abs(x.Url)).ToArray(),
         ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["addressLocality"] = p.City, ["addressRegion"] = p.District, ["addressCountry"] = "IR" },
         ["floorSize"] = new Dictionary<string, object> { ["@type"] = "QuantitativeValue", ["value"] = p.AreaM2, ["unitCode"] = "MTK" },
-        ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["price"] = !rent ? p.Price : p.MonthlyRent, ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" }
+        ["offers"] = offer
     };
     var ldJson = JsonLd.Serialize(ld);
     // خانه / تهران / خرید آپارتمان / سعادت‌آباد / آگهی, each a landing page.
@@ -44,7 +47,7 @@
     var phone = Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
-    var perMeter = p.Deal == DealType.Sale && p.Price is > 0 && p.AreaM2 > 0 ? p.Price / p.AreaM2 : null;
+    var perMeter = PriceText.PerSquareMeter(p);
     string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 }
 @section Head {
@@ -110,7 +113,11 @@
                     <li><span>طبقه</span><strong>@(p.Floor is { } fl ? (fl == 0 ? "همکف" : Fa.Digits(fl.ToString())) : "—")</strong></li>
                 </ul>
                 <dl class="rows">
-                    @if (rent)
+                    @if (hidden)
+                    {
+                        <div><dt>قیمت</dt><dd>توافقی</dd></div>
+                    }
+                    else if (rent)
                     {
                         <div><dt>ودیعه (رهن)</dt><dd>@Fa.Money(p.Deposit) تومان</dd></div>
                         <div><dt>اجارهٔ ماهانه</dt><dd>@Fa.Money(p.MonthlyRent) تومان</dd></div>
@@ -170,8 +177,12 @@
         </div>
 
         <aside class="panel" id="contact" aria-labelledby="price-title">
-            <span class="hint" id="price-title">@(rent ? "رهن" : shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</span>
-            @if (!rent)
+            <span class="hint" id="price-title">@(hidden ? "قیمت" : rent ? "رهن" : shortTerm ? "اجارهٔ هر شب" : "قیمت کل")</span>
+            @if (hidden)
+            {
+                <strong class="big">توافقی</strong>
+            }
+            else if (!rent)
             {
                 <strong class="big">@Fa.Money(p.Price) <small>تومان</small></strong>
                 @if (perMeter is { } pm) { <span class="hint">هر متر حدود @Fa.Money(pm) تومان</span> }
@@ -210,7 +221,7 @@
 </div>
 
 <div class="mobile-cta">
-    <div class="p"><small>@(rent ? "رهن" : shortTerm ? "هر شب" : "قیمت")</small><strong>@Fa.Money(rent ? p.Deposit : p.Price)</strong></div>
+    <div class="p"><small>@(hidden ? "قیمت" : rent ? "رهن" : shortTerm ? "هر شب" : "قیمت")</small><strong>@(hidden ? "توافقی" : Fa.Money(rent ? p.Deposit : p.Price))</strong></div>
     @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس تلفنی">@Icons.Get("phone")</a> }
     <a class="btn" href="#contact">درخواست بازدید</a>
 </div>
