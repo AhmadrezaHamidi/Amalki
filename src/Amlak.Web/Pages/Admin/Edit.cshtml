@@ -30,9 +30,13 @@
                         @foreach (var k in Enum.GetValues<PropertyKind>()) { <option value="@k">@Labels.Kind(k)</option> }
                     </select></div>
                 <div><label for="Input_Status">وضعیت</label>
-                    <select asp-for="Input.Status"><option value="Draft">پیش‌نویس</option><option value="Published">منتشرشده</option><option value="Closed">بسته‌شده</option></select></div>
+                    <select asp-for="Input.Status"><option value="Pending">در انتظار بررسی</option><option value="Draft">پیش‌نویس</option><option value="Published">منتشرشده</option><option value="Closed">بسته‌شده</option></select></div>
             </div>
             <p class="hint">با «منتشرشده»، آگهی در سایت و کانال‌های تلگرام و بله قرار می‌گیرد.</p>
+            @if (Model.OwnerPhone is not null)
+            {
+                <p class="alert ok" style="margin-top:12px">ثبت‌شده توسط کاربر: @Model.OwnerName — <bdi dir="ltr"><a href="tel:@Model.OwnerPhone">@Model.OwnerPhone</a></bdi> (موبایل تأییدشده)</p>
+            }
         </section>
 
         <section class="form-card">
@@ -42,6 +46,7 @@
                 <div data-rent-only><label for="Input_Deposit">رهن</label><input asp-for="Input.Deposit" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
                 <div data-rent-only><label for="Input_MonthlyRent">اجارهٔ ماهانه</label><input asp-for="Input.MonthlyRent" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
             </div>
+            <label data-rent-only><input type="checkbox" asp-for="Input.Convertible" /> رهن و اجاره قابل تبدیل است</label>
             <p class="hint">مبلغ کامل را به تومان بنویسید؛ زیر هر خانه شکل خوانای آن نمایش داده می‌شود.</p>
         </section>
 
@@ -53,6 +58,22 @@
                 <div><label for="Input_Floor">طبقه</label><input asp-for="Input.Floor" inputmode="numeric" dir="ltr" /></div>
                 <div><label for="Input_Parking">پارکینگ</label><input asp-for="Input.Parking" inputmode="numeric" dir="ltr" /></div>
                 <div><label for="Input_YearBuilt">سال ساخت (شمسی)</label><input asp-for="Input.YearBuilt" inputmode="numeric" dir="ltr" placeholder="1403" /></div>
+            </div>
+            <div class="row">
+                @foreach (var (field, label, value) in new[] { ("HasElevator", "آسانسور", Model.Input.HasElevator), ("HasStorage", "انباری", Model.Input.HasStorage), ("HasBalcony", "بالکن", Model.Input.HasBalcony) })
+                {
+                    <div><label for="Input_@field">@label</label>
+                        <select id="Input_@field" name="Input.@field">
+                            <option value="" selected="@(value is null)">مشخص نشده</option>
+                            <option value="true" selected="@(value == true)">دارد</option>
+                            <option value="false" selected="@(value == false)">ندارد</option>
+                        </select></div>
+                }
+                <div><label for="Input_Deed">سند</label>
+                    <select asp-for="Input.Deed">
+                        <option value="">مشخص نشده</option>
+                        @foreach (var d in Enum.GetValues<DeedType>()) { <option value="@d">@Labels.Deed(d)</option> }
+                    </select></div>
             </div>
             <label for="Input_Description">توضیحات</label>
             <textarea asp-for="Input.Description" rows="7" placeholder="ویژگی‌ها، امکانات، دسترسی‌ها…"></textarea>

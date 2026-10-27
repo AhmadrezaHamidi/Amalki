@@ -2,7 +2,10 @@ namespace Amlak.Web.Domain;
 
 public enum DealType { Sale = 1, Rent = 2 }
 public enum PropertyKind { Apartment = 1, Villa = 2, Land = 3, Commercial = 4, Office = 5 }
-public enum ListingStatus { Draft = 0, Published = 1, Closed = 2 }
+/// <summary>Pending: sent in by a visitor from /ثبت-آگهی, waiting for an admin to review it.</summary>
+public enum ListingStatus { Draft = 0, Published = 1, Closed = 2, Pending = 3 }
+/// <summary>Ownership document, as Iranian listings label it (single-sheet, old "mangoleh" deed, ...).</summary>
+public enum DeedType { Single = 1, Manguleh = 2, Promissory = 3, Endowment = 4 }
 
 /// <summary>
 /// A listing: the aggregate root for its photos. All changes go through its methods, which keep the
@@ -36,6 +39,14 @@ public class Property : AggregateRoot
     public int? Parking { get; private set; }
     public int? YearBuilt { get; private set; }
 
+    // Amenities shown as "has / has not" like the big listing sites; null means not stated.
+    public bool? HasElevator { get; private set; }
+    public bool? HasStorage { get; private set; }
+    public bool? HasBalcony { get; private set; }
+    public DeedType? Deed { get; private set; }
+    /// <summary>Rent only: deposit and monthly rent can be traded against each other ("qabel-e tabdil").</summary>
+    public bool Convertible { get; private set; }
+
     public string City { get; private set; } = "";
     public string District { get; private set; } = "";
     public string? Address { get; private set; }
@@ -45,11 +56,15 @@ public class Property : AggregateRoot
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? PublishedAtUtc { get; private set; }
 
+    /// <summary>Set when a visitor submitted the listing; the phone was verified by SMS code.</summary>
+    public string? OwnerName { get; private set; }
+    public string? OwnerPhone { get; private set; }
+
     public IReadOnlyCollection<PropertyPhoto> Photos => _photos;
     /// <summary>Messenger posts of this listing; kept in sync by the publisher, not part of the listing's rules.</summary>
     public List<ChannelPost> ChannelPosts { get; private set; } = [];
 
-    public Pricing Pricing => Deal == DealType.Sale ? Pricing.ForSale(Price) : Pricing.ForRent(Deposit, MonthlyRent);
+    public Pricing Pricing => Deal == DealType.Sale ? Pricing.ForSale(Price) : Pricing.ForRent(Deposit, MonthlyRent, Convertible);
 
     public static Property Create(string slug, ListingDetails details, Pricing pricing, DateTime nowUtc)
     {
@@ -57,6 +72,19 @@ public class Property : AggregateRoot
         var p = new Property { Slug = slug, CreatedAtUtc = nowUtc };
         p.Apply(details, pricing);
         p.Raise(new ListingCreated(p, nowUtc));
+        return p;
+    }
+
+    /// <summary>A visitor's listing: it waits as Pending until an admin publishes it.</summary>
+    public static Property Submit(string slug, ListingDetails details, Pricing pricing, string ownerName, string ownerPhone, DateTime nowUtc)
+    {
+        if (string.IsNullOrWhiteSpace(ownerName) || string.IsNullOrWhiteSpace(ownerPhone))
+            throw new DomainException("نام و شمارهٔ موبایل آگهی‌دهنده لازم است");
+        pricing.EnsureComplete();
+        var p = Create(slug, details, pricing, nowUtc);
+        p.Status = ListingStatus.Pending;
+        p.OwnerName = ownerName.Trim(); p.OwnerPhone = ownerPhone.Trim();
+        p.Raise(new ListingSubmitted(p, nowUtc));
         return p;
     }
 
@@ -88,6 +116,7 @@ public class Property : AggregateRoot
         {
             case ListingStatus.Published: Publish(nowUtc); break;
             case ListingStatus.Closed: Close(nowUtc); break;
+            case ListingStatus.Pending: Leave(ListingStatus.Pending, nowUtc); break;
             default: Unpublish(nowUtc); break;
         }
     }
@@ -145,8 +174,10 @@ public class Property : AggregateRoot
         d.Validate();
         Title = d.Title; Description = d.Description; Kind = d.Kind;
         AreaM2 = d.AreaM2; Bedrooms = d.Bedrooms; Floor = d.Floor; Parking = d.Parking; YearBuilt = d.YearBuilt;
+        HasElevator = d.HasElevator; HasStorage = d.HasStorage; HasBalcony = d.HasBalcony; Deed = d.Deed;
         City = d.City; District = d.District; Address = d.Address; Latitude = d.Latitude; Longitude = d.Longitude;
         Deal = pricing.Deal; Price = pricing.Price; Deposit = pricing.Deposit; MonthlyRent = pricing.MonthlyRent;
+        Convertible = pricing.Convertible;
         // A published listing must stay complete.
         if (Status == ListingStatus.Published) pricing.EnsureComplete();
     }
@@ -192,6 +223,10 @@ public sealed record ListingDetails
     public string? Address { get; init; }
     public double? Latitude { get; init; }
     public double? Longitude { get; init; }
+    public bool? HasElevator { get; init; }
+    public bool? HasStorage { get; init; }
+    public bool? HasBalcony { get; init; }
+    public DeedType? Deed { get; init; }
 
     /// <summary>Trims and normalizes Arabic ي/ك so "تهران" typed either way is one city.</summary>
     public static ListingDetails Of(string title, string description, PropertyKind kind, int areaM2, string city, string district,
@@ -214,6 +249,7 @@ public sealed record ListingDetails
         if (string.IsNullOrWhiteSpace(District) || District.Length > Property.MaxPlace) throw new DomainException("محله لازم است");
         if (Address?.Length > Property.MaxAddress) throw new DomainException("نشانی طولانی است");
         if (Latitude is < -90 or > 90 || Longitude is < -180 or > 180) throw new DomainException("مختصات نقشه نامعتبر است");
+        if (Deed is { } deed && !Enum.IsDefined(deed)) throw new DomainException("نوع سند نامعتبر است");
     }
 }
 
@@ -226,19 +262,21 @@ public sealed record Pricing
     public long? Price { get; private init; }
     public long? Deposit { get; private init; }
     public long? MonthlyRent { get; private init; }
+    /// <summary>Rent only: deposit and monthly rent can be traded against each other.</summary>
+    public bool Convertible { get; private init; }
 
     public bool IsComplete => Deal == DealType.Sale ? Price > 0 : Deposit is not null || MonthlyRent is not null;
 
     /// <summary>A sale price; null is allowed only while the listing is a draft.</summary>
     public static Pricing ForSale(long? price) => new() { Deal = DealType.Sale, Price = NonNegative(price) };
 
-    public static Pricing ForRent(long? deposit, long? monthlyRent) =>
-        new() { Deal = DealType.Rent, Deposit = NonNegative(deposit), MonthlyRent = NonNegative(monthlyRent) };
+    public static Pricing ForRent(long? deposit, long? monthlyRent, bool convertible = false) =>
+        new() { Deal = DealType.Rent, Deposit = NonNegative(deposit), MonthlyRent = NonNegative(monthlyRent), Convertible = convertible };
 
-    public static Pricing For(DealType deal, long? price, long? deposit, long? monthlyRent) => deal switch
+    public static Pricing For(DealType deal, long? price, long? deposit, long? monthlyRent, bool convertible = false) => deal switch
     {
         DealType.Sale => ForSale(price),
-        DealType.Rent => ForRent(deposit, monthlyRent),
+        DealType.Rent => ForRent(deposit, monthlyRent, convertible),
         _ => throw new DomainException("نوع معامله نامعتبر است"),
     };
 
@@ -271,4 +309,17 @@ public class ChannelPost
     public string? PhotoKey { get; set; }
     public string? Error { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A one-time SMS code for proving a mobile number before submitting a listing.</summary>
+public class PhoneCode
+{
+    public int Id { get; set; }
+    public string Phone { get; set; } = "";
+    /// <summary>SHA-256 of phone + code; the code itself is never stored.</summary>
+    public string CodeHash { get; set; } = "";
+    public int Attempts { get; set; }
+    public bool Used { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAtUtc { get; set; }
 }

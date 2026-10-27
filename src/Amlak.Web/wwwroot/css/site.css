@@ -414,6 +414,23 @@ a.stat:hover{border-color:var(--primary);color:var(--ink)}
 }
 .no-js .admin-nav{display:flex}
 
+/* ---- divar features ---- */
+.cat-links{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.cat-links .chip{padding:6px 14px;text-decoration:none}
+.cat-links .chip.on{background:var(--primary);color:var(--on-primary)}
+.checks{border:0;margin:0;padding:0;display:grid;gap:8px}
+.checks label{display:flex;align-items:center;gap:8px;font-size:.95rem;cursor:pointer}
+.checks input{width:18px;height:18px;accent-color:var(--primary)}
+.place-links{margin-top:32px}
+.place-links h2{font-size:1.05rem;margin-bottom:10px}
+.place-links ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px 20px}
+.place-links a{color:var(--muted);font-size:.92rem}.place-links a:hover,.place-links a[aria-current]{color:var(--primary)}
+.amenities{padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.amenities li{list-style:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:.92rem}
+.amenities li.no{color:var(--muted);text-decoration:line-through}
+.posted{display:block;margin-top:4px;font-size:.88rem;color:var(--muted)}
+.mine{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.mine li{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line-soft);padding-bottom:8px}
 /* ---- dark theme: component colors that are not tokens (must stay after the rules they override) ---- */
 @media (prefers-color-scheme:dark){
   .pill.draft{background:#262D36;color:#C4CCD4}.pill.closed{color:#F6A49B}

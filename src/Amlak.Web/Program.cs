@@ -55,6 +55,24 @@ builder.Services.AddScoped<AdminNotifier>();
 builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
 builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
 
+// SMS one-time codes for visitor listings: "Kavenegar" (Sms:ApiKey, Sms:Template) or "Log" (development).
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<Amlak.Web.Services.Sms.PhoneVerification>();
+if (string.Equals(builder.Configuration["Sms:Provider"], "Kavenegar", StringComparison.OrdinalIgnoreCase))
+{
+    var key = builder.Configuration["Sms:ApiKey"];
+    var template = builder.Configuration["Sms:Template"];
+    if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(template))
+        throw new InvalidOperationException("Sms:Provider is Kavenegar but Sms:ApiKey/Sms:Template are not set.");
+    builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender>(sp => new Amlak.Web.Services.Sms.KavenegarSmsSender(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient("bots"), key, template,
+        sp.GetRequiredService<ILogger<Amlak.Web.Services.Sms.KavenegarSmsSender>>()));
+}
+else
+{
+    builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender, Amlak.Web.Services.Sms.LogSmsSender>();
+}
+
 // Public forms, per IP per 10 minutes (NFR-09): contact form 5 posts, support tickets 10 (new ticket,
 // tracking lookup and replies share one allowance). Every other request is unlimited.
 builder.Services.AddRateLimiter(o =>
@@ -68,6 +86,8 @@ builder.Services.AddRateLimiter(o =>
         var (bucket, limit) =
             path.Equals(Amlak.Web.Pages.ContactModel.Path) ? ("contact", 5)
             : path.StartsWithSegments(Amlak.Web.Pages.Support.IndexModel.Path) ? ("support", 10)
+            // Code requests, code checks and submissions share one allowance; codes are also limited per phone.
+            : path.Equals(Amlak.Web.Pages.SubmitModel.Path) ? ("submit", 10)
             : ("", 0);
         return limit == 0
             ? RateLimitPartition.GetNoLimiter("")
