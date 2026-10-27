@@ -12,28 +12,13 @@
     var dealLabel = rent ? "اجارهٔ" : shortTerm ? "اجارهٔ کوتاه‌مدت" : "فروش";
     ViewData["Title"] = $"{p.Title} | {dealLabel} در {p.District} {p.City}";
     var hidden = !p.ShowsPrice;
-    var offer = new Dictionary<string, object?> { ["@type"] = "Offer", ["priceCurrency"] = "IRT", ["availability"] = "https://schema.org/InStock" };
-    if (!hidden) offer["price"] = !rent ? p.Price : p.MonthlyRent; // a "توافقی" listing publishes no amount
-    ViewData["Description"] = $"{p.Title}، {Fa.Digits(p.AreaM2.ToString())} متر در {p.District}، {p.City}. " + (hidden ? "قیمت توافقی" : shortTerm ? "هر شب " + Fa.Money(p.Price) + " تومان" : !rent ? "قیمت " + Fa.Money(p.Price) + " تومان" : "رهن " + Fa.Money(p.Deposit) + " و اجارهٔ ماهانه " + Fa.Money(p.MonthlyRent) + " تومان");
+    // One factual sentence (what, where, size, price): shown at the top and used as the meta description.
+    var summary = SeoText.Summary(p);
+    ViewData["Description"] = summary;
     ViewData["Canonical"] = url;
     ViewData["BodyClass"] = "has-mobile-cta";
     // Crawlers and link previews need absolute image URLs; MinIO URLs already are.
-    string Abs(string u) => u.StartsWith('/') ? site + u : u;
-    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = Abs(first.Url);
-    var ld = new Dictionary<string, object?>
-    {
-        ["@context"] = "https://schema.org",
-        ["@type"] = "RealEstateListing",
-        ["name"] = p.Title,
-        ["description"] = p.Description,
-        ["url"] = url,
-        ["datePosted"] = p.PublishedAtUtc?.ToString("yyyy-MM-dd"),
-        ["image"] = p.Photos.Select(x => Abs(x.Url)).ToArray(),
-        ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["addressLocality"] = p.City, ["addressRegion"] = p.District, ["addressCountry"] = "IR" },
-        ["floorSize"] = new Dictionary<string, object> { ["@type"] = "QuantitativeValue", ["value"] = p.AreaM2, ["unitCode"] = "MTK" },
-        ["offers"] = offer
-    };
-    var ldJson = JsonLd.Serialize(ld);
+    if (p.Photos.FirstOrDefault() is { } first) ViewData["OgImage"] = SeoFiles.Absolute(site, first.Url);
     // خانه / تهران / خرید آپارتمان / سعادت‌آباد / آگهی, each a landing page.
     var cat = Taxonomy.For(p.Deal, p.Kind)!;
     var crumbs = new (string Name, string Path)[]
@@ -42,8 +27,8 @@
         (cat.Name, Taxonomy.EncodedPath(p.City, cat)),
         (p.District, Taxonomy.EncodedPath(p.City, cat, p.District)),
     };
-    var crumbJson = JsonLd.Serialize(JsonLd.Breadcrumbs(
-        [("خانه", site + "/"), .. crumbs.Select(c => (c.Name, site + c.Path)), (p.Title, SeoFiles.PropertyUrl(site, p))]));
+    var crumbLd = JsonLd.Breadcrumbs(
+        [("خانه", site + "/"), .. crumbs.Select(c => (c.Name, site + c.Path)), (p.Title, SeoFiles.PropertyUrl(site, p))]);
     var phone = Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
@@ -51,8 +36,8 @@
     string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
 }
 @section Head {
-    <script type="application/ld+json">@Html.Raw(ldJson)</script>
-    <script type="application/ld+json">@Html.Raw(crumbJson)</script>
+    @Html.Raw(JsonLd.Script(JsonLd.Listing(p, site)))
+    @Html.Raw(JsonLd.Script(crumbLd))
 }
 <div class="wrap page-pad detail-page">
     <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a>@foreach (var c in crumbs) { <text> / </text><a href="@c.Path">@c.Name</a> }</nav>
@@ -63,7 +48,8 @@
             <div class="tags"><span class="badge @(rent ? "rent" : "")">@Labels.Deal(p.Deal)</span><span class="badge soft">@Labels.Kind(p.Kind)</span></div>
             <h1>@p.Title</h1>
             <span class="loc">@Icons.Get("pin", 18) @p.District، @p.City · کد آگهی @Fa.Digits(p.Id.ToString())</span>
-            @if (p.PublishedAtUtc is { } pub) { <span class="posted"><time datetime="@pub.ToString("o")">@Fa.Ago(pub)</time> در @p.District</span> }
+            @if (p.PublishedAtUtc is { } pub) { <span class="posted"><time datetime="@pub.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" title="@Fa.Date(pub)">@Fa.Ago(pub)</time> در @p.District</span> }
+            <p class="lead">@summary</p>
         </div>
         <div class="row-actions">
             <button class="btn quiet" type="button" data-fav="@p.Id" aria-pressed="false" data-fav-label>@Icons.Get("heart", 18)<span>نشان کردن</span></button>

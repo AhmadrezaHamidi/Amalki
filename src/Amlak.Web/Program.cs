@@ -5,6 +5,8 @@ using Amlak.Web.Services.Seo;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +49,11 @@ builder.Services.AddSingleton<TicketAccess>();
 // /healthz for the load balancer or uptime monitor: 200 when the app can reach SQL Server, 503 otherwise.
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 builder.Services.AddProxySupport(builder.Configuration);
+
+// Emit Persian text as-is instead of &#x...; entities: smaller HTML that crawlers and AI engines read directly.
+// HTML-sensitive characters (<, >, &, quotes) are still encoded.
+builder.Services.AddSingleton(HtmlEncoder.Create(UnicodeRanges.All));
+
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();

@@ -208,6 +208,9 @@ public sealed class SmsTests : IDisposable
         var caption = CaptionBuilder.Build(p, "https://example.ir");
         Assert.Contains("قیمت: توافقی", caption);
         Assert.DoesNotContain("میلیارد", caption);
+        Assert.Contains("قیمت توافقی", Amlak.Web.Services.Seo.SeoText.Summary(p));
+        var ld = Amlak.Web.Services.Seo.JsonLd.Serialize(Amlak.Web.Services.Seo.JsonLd.Listing(p, "https://example.ir"));
+        Assert.DoesNotContain("\"price\"", ld);
 
         p.ClearDomainEvents();
         p.ShowPriceAs(PriceDisplay.Negotiable, TestData.Now);

@@ -13,8 +13,10 @@ public static class SeoFiles
 
     public static string ListUrl(string baseUrl) => $"{baseUrl}/{Uri.EscapeDataString("املاک")}";
 
-    public static string PropertyUrl(string baseUrl, Property p) =>
-        $"{baseUrl}/{Uri.EscapeDataString("ملک")}/{Uri.EscapeDataString(p.Slug)}";
+    public static string PropertyUrl(string baseUrl, Property p) => PropertyUrl(baseUrl, p.Slug);
+
+    public static string PropertyUrl(string baseUrl, string slug) =>
+        $"{baseUrl}/{Uri.EscapeDataString("ملک")}/{Uri.EscapeDataString(slug)}";
 
     public static string Absolute(string baseUrl, string url) =>
         url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : baseUrl + (url.StartsWith('/') ? url : "/" + url);
@@ -29,9 +31,11 @@ public static class SeoFiles
         var paths = new List<string>();
         foreach (var c in Taxonomy.All.Where(c => list.Any(p => Matches(c, p))))
             paths.Add(Taxonomy.EncodedPath(null, c));
+        if (list.Count > 0) paths.Add(Amlak.Web.Pages.Prices.IndexModel.Path(null));
         foreach (var city in list.GroupBy(p => p.City).OrderByDescending(g => g.Count()))
         {
             paths.Add(Taxonomy.EncodedPath(city.Key, null));
+            paths.Add(Amlak.Web.Pages.Prices.IndexModel.Path(city.Key));
             foreach (var c in Taxonomy.All.Where(c => city.Any(p => Matches(c, p))))
             {
                 paths.Add(Taxonomy.EncodedPath(city.Key, c));
@@ -57,7 +61,7 @@ public static class SeoFiles
         urls.AddRange(LandingPaths(published).Select(path =>
             new XElement(ns + "url", new XElement(ns + "loc", baseUrl + path), new XElement(ns + "changefreq", "daily"), new XElement(ns + "priority", "0.8"))));
 
-        foreach (var p in published.Take(MaxSitemapUrls - urls.Count))
+        foreach (var p in published.Take(Math.Max(0, MaxSitemapUrls - urls.Count)))
         {
             var url = new XElement(ns + "url",
                 new XElement(ns + "loc", PropertyUrl(baseUrl, p)),
