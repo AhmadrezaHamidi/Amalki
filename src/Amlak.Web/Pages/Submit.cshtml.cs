@@ -115,10 +115,10 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
         if (Owner is null) return RedirectToPage();
         if (!string.IsNullOrEmpty(Input.Website)) return RedirectToPage(new { sent = true }); // pretend success to the bot
 
-        var price = Number(Input.Price);
-        var deposit = Number(Input.Deposit);
-        var rent = Number(Input.MonthlyRent);
-        var area = Number(Input.Area);
+        var price = Fa.Amount(Input.Price);
+        var deposit = Fa.Amount(Input.Deposit);
+        var rent = Fa.Amount(Input.MonthlyRent);
+        var area = Fa.Amount(Input.Area);
         if (area is null or < 1 or > 1_000_000) ModelState.AddModelError("Input.Area", "متراژ نامعتبر است");
         if (Input.Deal == DealType.Sale && price is null or 0) ModelState.AddModelError("Input.Price", "برای فروش، قیمت لازم است");
         if (Input.Deal == DealType.Rent && deposit is null && rent is null) ModelState.AddModelError("Input.Deposit", "رهن یا اجارهٔ ماهانه را وارد کنید");
@@ -179,12 +179,5 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
         if (Owner is null) return;
         Mine = await db.Properties.AsNoTracking().Where(p => p.OwnerPhone == Owner)
             .OrderByDescending(p => p.CreatedAtUtc).Take(20).ToListAsync();
-    }
-
-    private static long? Number(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return null;
-        var digits = new string(Fa.Latin(s).Where(char.IsAsciiDigit).ToArray());
-        return digits.Length is > 0 and < 19 ? long.Parse(digits) : null;
     }
 }

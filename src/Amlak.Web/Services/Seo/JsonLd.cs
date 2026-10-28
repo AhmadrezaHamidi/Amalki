@@ -71,13 +71,14 @@ public static class JsonLd
             ("containedInPlace", string.IsNullOrWhiteSpace(p.District) ? null : Obj(("@type", "Place"), ("name", p.District))));
 
         var rent = p.Deal == DealType.Rent;
-        var price = Rial(rent ? p.MonthlyRent : p.Price);
+        // A "توافقی" listing publishes no amount.
+        var price = p.ShowsPrice ? Rial(rent ? p.MonthlyRent : p.Price) : null;
         var offer = Obj(
             ("@type", "Offer"),
             ("businessFunction", sale ? "http://purl.org/goodrelations/v1#Sell" : "http://purl.org/goodrelations/v1#LeaseOut"),
             ("price", price),
             ("priceCurrency", price is null ? null : "IRR"),
-            ("priceSpecification", p.Deal switch { DealType.Rent => RentSpecification(p), DealType.ShortTerm => NightSpecification(p), _ => null }),
+            ("priceSpecification", !p.ShowsPrice ? null : p.Deal switch { DealType.Rent => RentSpecification(p), DealType.ShortTerm => NightSpecification(p), _ => null }),
             ("availability", "https://schema.org/InStock"),
             ("url", url),
             ("itemOffered", place));

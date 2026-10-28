@@ -30,6 +30,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         public bool? HasBalcony { get; set; }
         public DeedType? Deed { get; set; }
         public bool Convertible { get; set; }
+        public PriceDisplay PriceDisplay { get; set; } = PriceDisplay.Full;
         [Required(ErrorMessage = "شهر لازم است"), StringLength(80)] public string City { get; set; } = "";
         [Required(ErrorMessage = "محله لازم است"), StringLength(80)] public string District { get; set; } = "";
         [StringLength(300)] public string? Address { get; set; }
@@ -59,7 +60,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
             Title = p.Title, Description = p.Description, Deal = p.Deal, Kind = p.Kind, Status = p.Status,
             Price = p.Price, Deposit = p.Deposit, MonthlyRent = p.MonthlyRent, AreaM2 = p.AreaM2, Bedrooms = p.Bedrooms,
             Floor = p.Floor, Parking = p.Parking, YearBuilt = p.YearBuilt, City = p.City, District = p.District,
-            HasElevator = p.HasElevator, HasStorage = p.HasStorage, HasBalcony = p.HasBalcony, Deed = p.Deed, Convertible = p.Convertible,
+            HasElevator = p.HasElevator, HasStorage = p.HasStorage, HasBalcony = p.HasBalcony, Deed = p.Deed, Convertible = p.Convertible, PriceDisplay = p.PriceDisplay,
             Address = p.Address, Latitude = p.Latitude, Longitude = p.Longitude,
         };
         return Page();
@@ -109,6 +110,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
                 p.ChangeStatus(Input.Status, now);
                 p.Update(details, pricing, now);
             }
+            p.ShowPriceAs(Input.PriceDisplay, now);
         }
         catch (DomainException ex)
         {

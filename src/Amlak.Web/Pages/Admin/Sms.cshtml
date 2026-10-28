@@ -1,0 +1,80 @@
+@page
+@model Amlak.Web.Pages.Admin.SmsModel
+@using Amlak.Web.Services.Sms
+@{ ViewData["Title"] = "پیامک گروهی"; ViewData["Robots"] = "noindex,nofollow"; }
+<div class="wrap page-pad">
+    <div class="admin-head">
+        <div><h1>پیامک گروهی</h1><p class="hint">مشترکان فعال پیگیری: @Fa.Digits(Model.ActiveSubscribers.ToString()) · «@SmsText.OptOutFooter» خودکار به آخر پیام اضافه می‌شود و شماره‌های لغوشده حذف می‌شوند.</p></div>
+    </div>
+    @if (TempData["Flash"] is string flash) { <div class="alert ok" role="status">@flash</div> }
+
+    <form method="post" class="form form-card">
+        <div asp-validation-summary="All" class="err alert bad" role="alert"></div>
+        <div class="row">
+            <div><label for="Input_Name">نام ارسال</label><input asp-for="Input.Name" placeholder="مثلاً معرفی ویلای مشکین‌دشت" /></div>
+            <div><label for="Input_Audience">گیرندگان</label>
+                <select asp-for="Input.Audience"><option value="Subscribers">مشترکان پیگیری</option><option value="Uploaded">فهرست شماره‌ها</option></select></div>
+        </div>
+        <div class="row">
+            <div><label for="Input_Deal">معامله (مشترکان)</label>
+                <select asp-for="Input.Deal"><option value="">همه</option>@foreach (var d in Enum.GetValues<DealType>()) { <option value="@d">@Labels.Deal(d)</option> }</select></div>
+            <div><label for="Input_City">شهر (مشترکان)</label><input asp-for="Input.City" /></div>
+            <div><label for="Input_District">محله (مشترکان)</label><input asp-for="Input.District" /></div>
+        </div>
+        <label for="Input_UploadedPhones">فهرست شماره‌ها (هر خط یک شماره)</label>
+        <textarea asp-for="Input.UploadedPhones" rows="3" dir="ltr"></textarea>
+
+        <label for="Input_PropertyId">آگهی برای {عنوان} {محله} {قیمت} {لینک}</label>
+        <select asp-for="Input.PropertyId">
+            <option value="">بدون آگهی</option>
+            @foreach (var p in Model.Listings) { <option value="@p.Id">@p.Title، @p.District</option> }
+        </select>
+        <label for="Input_Template">متن پیام</label>
+        <textarea asp-for="Input.Template" rows="5"></textarea>
+        <p class="hint">جای‌خالی‌ها: {نام} {عنوان} {محله} {قیمت} {لینک}</p>
+
+        <label for="Input_ScheduleLocal">زمان ارسال به وقت تهران (خالی یعنی همین حالا)</label>
+        <input asp-for="Input.ScheduleLocal" type="datetime-local" dir="ltr" />
+
+        @if (Model.Shown is { } s)
+        {
+            <div class="alert" role="status" style="margin-top:16px">
+                <strong>@Fa.Digits(s.Recipients.ToString()) گیرنده</strong> · @Fa.Digits(s.Segments.ToString()) پیامک برای هر نفر (@Fa.Digits(s.Sample.Length.ToString()) نویسه)
+                <pre style="font:inherit;white-space:pre-wrap;margin:8px 0 0">@s.Sample</pre>
+            </div>
+        }
+        <div class="row-actions" style="margin-top:16px">
+            <button class="btn quiet" asp-page-handler="Preview">پیش‌نمایش و شمارش</button>
+            <button class="btn" asp-page-handler="Create">ثبت ارسال</button>
+        </div>
+    </form>
+
+    <h2 style="margin-top:28px">ارسال‌ها</h2>
+    @if (Model.Campaigns.Count == 0)
+    {
+        <p class="hint">هنوز ارسالی ثبت نشده است.</p>
+    }
+    else
+    {
+        <div class="tablewrap">
+            <table class="table">
+                <thead><tr><th>نام</th><th>زمان</th><th>وضعیت</th><th>گیرنده</th><th>موفق</th><th>ناموفق</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var c in Model.Campaigns)
+                {
+                    <tr>
+                        <td>@c.Name</td>
+                        <td>@Fa.When(c.ScheduledAtUtc)</td>
+                        <td>@(c.Status switch { CampaignStatus.Scheduled => "زمان‌بندی‌شده", CampaignStatus.Sending => "در حال ارسال", CampaignStatus.Done => "ارسال شد", _ => "لغو شد" })</td>
+                        <td>@Fa.Digits(c.Recipients.ToString())</td>
+                        <td>@Fa.Digits(c.Sent.ToString())</td>
+                        <td>@Fa.Digits(c.Failed.ToString())</td>
+                        <td>@if (c.Status == CampaignStatus.Scheduled) {
+                            <form method="post" asp-page-handler="Cancel" asp-route-id="@c.Id"><button class="btn sm quiet">لغو</button></form> }</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

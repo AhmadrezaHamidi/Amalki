@@ -7,6 +7,8 @@ public enum PropertyKind { Apartment = 1, Villa = 2, Land = 3, Commercial = 4, O
 public enum ListingStatus { Draft = 0, Published = 1, Closed = 2, Pending = 3 }
 /// <summary>Ownership document, as Iranian listings label it (single-sheet, old "mangoleh" deed, ...).</summary>
 public enum DeedType { Single = 1, Manguleh = 2, Promissory = 3, Endowment = 4 }
+/// <summary>How the asking price is shown on the site, the channels and SMS alerts. The amounts are kept either way.</summary>
+public enum PriceDisplay { Full = 0, TotalOnly = 1, Negotiable = 2 }
 
 /// <summary>
 /// A listing: the aggregate root for its photos. All changes go through its methods, which keep the
@@ -33,6 +35,9 @@ public class Property : AggregateRoot
     public long? Price { get; private set; }
     public long? Deposit { get; private set; }
     public long? MonthlyRent { get; private set; }
+    public PriceDisplay PriceDisplay { get; private set; } = PriceDisplay.Full;
+    /// <summary>False when the price is "توافقی": visitors see no amount, and no price-drop SMS is sent.</summary>
+    public bool ShowsPrice => PriceDisplay != PriceDisplay.Negotiable;
 
     public int AreaM2 { get; private set; }
     public int? Bedrooms { get; private set; }
@@ -126,6 +131,13 @@ public class Property : AggregateRoot
     {
         if (Status == ListingStatus.Published) Unpublish(nowUtc);
         else Publish(nowUtc);
+    }
+
+    public void ShowPriceAs(PriceDisplay display, DateTime nowUtc)
+    {
+        if (Defined(display, "نحوهٔ نمایش قیمت نامعتبر است") == PriceDisplay) return;
+        PriceDisplay = display;
+        Raise(new ListingChanged(this, nowUtc));
     }
 
     public PropertyPhoto AddPhoto(string url, DateTime nowUtc) => AddPhoto(PropertyPhoto.Stored(url), nowUtc);

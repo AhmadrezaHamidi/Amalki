@@ -35,6 +35,13 @@ public static class SeoEndpoints
             return Results.Text(SeoFiles.Llms(cfg["Site:Name"] ?? "آشیانه", BaseUrl(cfg, req), items), "text/plain; charset=utf-8");
         }).CacheOutput(SiteCache.Listings);
 
+        // Short link for SMS: a Persian slug is long once encoded, and every 67 characters is another billed part.
+        app.MapGet("/p/{id:int}", async (int id, AppDbContext db, IConfiguration cfg, HttpRequest req, CancellationToken ct) =>
+        {
+            var p = await db.Properties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.Status == ListingStatus.Published, ct);
+            return p is null ? Results.NotFound() : Results.Redirect(SeoFiles.PropertyUrl(BaseUrl(cfg, req), p), permanent: true);
+        });
+
         // Cached pages cannot carry a per-visitor antiforgery token, so their forms fetch one here just before submitting.
         app.MapGet("/antiforgery-token", (HttpContext ctx, Microsoft.AspNetCore.Antiforgery.IAntiforgery af) =>
         {

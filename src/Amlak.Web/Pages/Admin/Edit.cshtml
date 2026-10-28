@@ -47,6 +47,12 @@
                 <div data-rent-only><label for="Input_MonthlyRent">اجارهٔ ماهانه</label><input asp-for="Input.MonthlyRent" inputmode="numeric" dir="ltr" data-money /><span class="hint" data-money-hint></span></div>
             </div>
             <label data-rent-only><input type="checkbox" asp-for="Input.Convertible" /> رهن و اجاره قابل تبدیل است</label>
+            <label for="Input_PriceDisplay">نمایش قیمت در سایت، کانال‌ها و پیامک</label>
+            <select asp-for="Input.PriceDisplay">
+                <option value="Full">قیمت کل و قیمت هر متر</option>
+                <option value="TotalOnly">فقط قیمت کل</option>
+                <option value="Negotiable">توافقی (مبلغ نمایش داده نمی‌شود)</option>
+            </select>
             <p class="hint">مبلغ کامل را به تومان بنویسید؛ زیر هر خانه شکل خوانای آن نمایش داده می‌شود.</p>
         </section>
 

@@ -20,7 +20,8 @@
             @if (Model.HasElevator == true) { <span>آسانسور</span> }
         </div>
         <div class="price">
-            @if (rent) { <text>رهن @Fa.Money(Model.Deposit) <small>· اجاره @Fa.Money(Model.MonthlyRent)</small></text> }
+            @if (!Model.ShowsPrice) { <text>قیمت توافقی</text> }
+            else if (rent) { <text>رهن @Fa.Money(Model.Deposit) <small>· اجاره @Fa.Money(Model.MonthlyRent)</small></text> }
             else { <text>@Fa.Money(Model.Price) <small>@(shortTerm ? "تومان / شب" : "تومان")</small></text> }
         </div>
         <span class="when">@(Model.PublishedAtUtc is { } pub ? Fa.Ago(pub) + " · " : "")@Model.District، @Model.City</span>

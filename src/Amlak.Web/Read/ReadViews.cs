@@ -14,7 +14,7 @@ public static class ReadViews
         CREATE VIEW IF NOT EXISTS vw_ListingCards AS
         SELECT p.Id, p.Slug, p.Title, p.Deal, p.Kind, p.City, p.District, p.AreaM2, p.Bedrooms, p.Floor, p.Parking,
                p.YearBuilt, p.HasElevator, p.HasStorage, p.HasBalcony, p.Deed, p.Convertible,
-               p.Price, p.Deposit, p.MonthlyRent, p.SortPrice, p.PublishedAtUtc,
+               p.Price, p.Deposit, p.MonthlyRent, p.PriceDisplay, p.SortPrice, p.PublishedAtUtc,
                (SELECT f.Url FROM PropertyPhotos f WHERE f.PropertyId = p.Id ORDER BY f.SortOrder, f.Id LIMIT 1) AS CoverUrl,
                (SELECT f.Alt FROM PropertyPhotos f WHERE f.PropertyId = p.Id ORDER BY f.SortOrder, f.Id LIMIT 1) AS CoverAlt,
                (SELECT f.Width FROM PropertyPhotos f WHERE f.PropertyId = p.Id ORDER BY f.SortOrder, f.Id LIMIT 1) AS CoverWidth,

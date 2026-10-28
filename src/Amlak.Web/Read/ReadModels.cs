@@ -29,6 +29,7 @@ public class ListingCard
     public long? Price { get; init; }
     public long? Deposit { get; init; }
     public long? MonthlyRent { get; init; }
+    public PriceDisplay PriceDisplay { get; init; }
     /// <summary>Price for sale, deposit (rahn) for rent: what visitors filter and sort by.</summary>
     public long SortPrice { get; init; }
     public DateTime? PublishedAtUtc { get; init; }
@@ -38,6 +39,10 @@ public class ListingCard
     public int? CoverHeight { get; init; }
     public string? CoverVariants { get; init; }
     public int PhotoCount { get; init; }
+
+    /// <summary>False when the price is "توافقی", as on <see cref="Property.ShowsPrice"/>.</summary>
+    [NotMapped]
+    public bool ShowsPrice => PriceDisplay != PriceDisplay.Negotiable;
 
     /// <summary>The cover as a photo, for PhotoVariants.Img (srcset of the WebP copies).</summary>
     [NotMapped]

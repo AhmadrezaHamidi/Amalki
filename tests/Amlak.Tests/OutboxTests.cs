@@ -3,6 +3,7 @@ using Amlak.Web.Data;
 using Amlak.Web.Domain;
 using Amlak.Web.Services.Events;
 using Amlak.Web.Services.Publishing;
+using Amlak.Web.Services.Sms;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +24,7 @@ public sealed class OutboxTests : IDisposable
     private readonly FakeBotHandler _bot = new();
     private readonly string _root = Path.Combine(Path.GetTempPath(), "amlak-" + Guid.NewGuid().ToString("N"));
     private readonly ManualClock _clock = new(TestData.Now);
+    private readonly RecordingSms _sms = new();
 
     public OutboxTests()
     {
@@ -55,7 +57,29 @@ public sealed class OutboxTests : IDisposable
         return new OutboxDispatcher(db,
             new ChannelPublisher(db, http, cfg, photos, NullLogger<ChannelPublisher>.Instance),
             new AdminNotifier(http, cfg, NullLogger<AdminNotifier>.Instance),
-            photos, _clock, NullLogger<OutboxDispatcher>.Instance);
+            photos, new AlertService(db, new SmsGateway(db, _sms, _clock), cfg, _clock),
+            _clock, NullLogger<OutboxDispatcher>.Instance);
+    }
+
+    [Fact]
+    public async Task Publishing_texts_matching_sms_subscribers_once()
+    {
+        using var db = NewDb();
+        db.SavedSearches.Add(new SavedSearch { Phone = "09121234567", Deal = DealType.Sale, City = "تهران", CreatedAtUtc = TestData.Now.AddDays(-1) });
+        db.SaveChanges();
+        var p = TestData.Listing(published: false);
+        db.Properties.Add(p);
+        p.Publish(TestData.Now);
+        db.SaveChanges();
+
+        await Dispatcher(db).ProcessBatchAsync();
+        p.ShowPriceAs(PriceDisplay.TotalOnly, TestData.Now); // a change at the same price sends nothing more
+        db.SaveChanges();
+        await Dispatcher(db).ProcessBatchAsync();
+
+        var text = Assert.Single(_sms.Texts);
+        Assert.Equal("09121234567", text.Mobile);
+        Assert.Contains($"https://example.ir/p/{p.Id}", text.Text);
     }
 
     [Fact]

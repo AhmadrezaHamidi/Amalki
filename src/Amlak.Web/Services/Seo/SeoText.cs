@@ -10,12 +10,12 @@ public static class SeoText
     public static string Summary(Property p)
     {
         var text = $"{KindPhrase(p.Kind)} {Fa.Digits(p.AreaM2.ToString())} متری در {Location(p)}"
-            + p.Deal switch
+            + (!p.ShowsPrice ? $" برای {Labels.Deal(p.Deal)} با قیمت توافقی" : p.Deal switch
             {
                 DealType.Sale => $" برای فروش به قیمت {Money(p.Price)}",
                 DealType.ShortTerm => $" برای اجارهٔ کوتاه‌مدت، هر شب {Money(p.Price)}",
                 _ => $" برای رهن و اجاره با رهن {Money(p.Deposit)} و اجارهٔ ماهانهٔ {Money(p.MonthlyRent)}",
-            };
+            });
 
         var specs = new List<string>();
         if (p.Bedrooms is { } b) specs.Add($"{Fa.Digits(b.ToString())} خواب");

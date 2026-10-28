@@ -16,6 +16,34 @@ public static class Fa
     /// <summary>Normalizes an Iranian mobile number to 09xxxxxxxxx, or null when it is not one.</summary>
     public static string? Mobile(string? input) => PhoneNumber.TryParse(input, out var p) ? p.Value : null;
 
+    /// <summary>A whole amount typed with any digits and separators ("۱٬۵۰۰٬۰۰۰"), or null when there is none.</summary>
+    public static long? Amount(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        var digits = new string(Latin(s).Where(char.IsAsciiDigit).ToArray());
+        return digits.Length is > 0 and < 19 ? long.Parse(digits) : null;
+    }
+
+    /// <summary>Iran Standard Time (UTC+3:30, no daylight saving since 1401).</summary>
+    public static TimeZoneInfo Tehran { get; } = FindTehran();
+
+    private static TimeZoneInfo FindTehran()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran"); }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.CreateCustomTimeZone("Tehran", TimeSpan.FromMinutes(210), "Tehran", "Tehran");
+        }
+    }
+
+    /// <summary>"۱۴۰۵/۰۸/۰۴ ۱۰:۰۰" in Tehran time.</summary>
+    public static string When(DateTime utc)
+    {
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Tehran);
+        var pc = new System.Globalization.PersianCalendar();
+        return Digits($"{pc.GetYear(local):0000}/{pc.GetMonth(local):00}/{pc.GetDayOfMonth(local):00} {local:HH:mm}");
+    }
+
     /// <summary>Formats Toman amounts as "۱۲٫۵ میلیارد" / "۴۰۰ میلیون".</summary>
     public static string Money(long? toman)
     {
