@@ -16,9 +16,11 @@
     var segs = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
     var browsingDeal = onList && segs.Length > 2 ? Taxonomy.Find(segs[2])?.Deal : null;
     var q = onList ? Context.Request.Query["q"].ToString() : "";
+    var ui = UiVariants.Current(Context);
+    var uiPreview = !isAdmin && UiVariants.Preview(Cfg);
 }
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" class="no-js">
+<html lang="fa" dir="rtl" class="no-js" data-ui="@ui?.Id">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -47,6 +49,7 @@
     @* Self-hosted variable Vazirmatn (one file, all weights): no third-party round trip, which is slow or blocked in Iran. *@
     <link rel="preload" href="/fonts/Vazirmatn-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @if (ui is not null || uiPreview) { <link rel="stylesheet" href="~/css/variants.css" asp-append-version="true" /> }
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="@ViewData["BodyClass"]">
@@ -150,5 +153,20 @@ else
 }
 <script src="~/js/site.js" asp-append-version="true" defer></script>
 @await RenderSectionAsync("Scripts", required: false)
+@if (uiPreview)
+{
+    // Preview switcher for the ten UI variants (Ui:Preview). Links keep the page and swap only ?ui=.
+    <details class="ui-switch">
+        <summary>@Icons.Get("palette", 18) طرح: @(ui?.Name ?? "پیش‌فرض")</summary>
+        <ul>
+            <li><a href="?ui=default" aria-current="@(ui is null ? "true" : null)">پیش‌فرض (v4) <i style="background:#1E3A5F"></i></a></li>
+            @foreach (var v in UiVariants.All)
+            {
+                <li><a href="?ui=@v.Id" aria-current="@(ui?.Id == v.Id ? "true" : null)">@v.Name <small>@v.InspiredBy</small><i style="background:@v.Swatch[0]"></i></a></li>
+            }
+            <li><a href="/طرح-ها">مقایسهٔ همهٔ طرح‌ها…</a></li>
+        </ul>
+    </details>
+}
 </body>
 </html>

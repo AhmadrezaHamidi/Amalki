@@ -16,7 +16,9 @@ public static class SiteCache
 
     public static void AddSiteCache(this IServiceCollection services)
     {
-        services.AddOutputCache(o => o.AddPolicy(Listings, b => b.Expire(TimeSpan.FromMinutes(10)).Tag(Listings)));
+        services.AddOutputCache(o => o.AddPolicy(Listings, b => b.Expire(TimeSpan.FromMinutes(10)).Tag(Listings)
+            // One copy per UI variant while visitors can preview them (UiVariants).
+            .VaryByValue(ctx => new KeyValuePair<string, string>("ui", UiVariants.Current(ctx)?.Id ?? ""))));
         services.AddSingleton<ListingCacheInterceptor>();
     }
 }

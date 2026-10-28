@@ -1,0 +1,32 @@
+@page "/طرح-ها"
+@model DesignsModel
+@{
+    ViewData["Title"] = "طرح‌های پیشنهادی ظاهر سایت";
+    ViewData["Robots"] = "noindex";
+    var current = UiVariants.Current(HttpContext);
+}
+<div class="wrap page-pad">
+    <div class="list-head">
+        <h1>۱۰ طرح ظاهر سایت <small>· هر کدام الهام‌گرفته از یکی از سایت‌های املاک ایران</small></h1>
+    </div>
+    <p class="hint" style="margin-bottom:20px">روی «امتحان کن» بزنید تا کل سایت با آن طرح نمایش داده شود. انتخاب شما در مرورگر می‌ماند؛ برای برگشت «پیش‌فرض» را بزنید. طرح نهایی سایت با تنظیم <code>Ui:Variant</code> انتخاب می‌شود.</p>
+    <div class="ui-gallery">
+        @foreach (var v in UiVariants.All)
+        {
+            <article class="ui-tile">
+                <div class="sw" aria-hidden="true">@foreach (var c in v.Swatch) { <span style="background:@c"></span> }</div>
+                <div class="tb">
+                    <h2>@Fa.Digits((UiVariants.All.ToList().IndexOf(v) + 1).ToString()). @v.Name</h2>
+                    <small class="hint">الهام از @v.InspiredBy</small>
+                    <p>@v.Summary</p>
+                    <div class="row-actions">
+                        <a class="btn sm" href="/?ui=@v.Id">امتحان کن</a>
+                        <a class="btn sm quiet" href="@Taxonomy.Root?ui=@v.Id">صفحهٔ آگهی‌ها</a>
+                        @if (current?.Id == v.Id) { <span class="pill pub">فعال</span> }
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+    <p style="margin-top:20px"><a class="btn quiet" href="/?ui=default">برگشت به طرح پیش‌فرض</a></p>
+</div>

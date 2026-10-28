@@ -13,8 +13,10 @@ public static class SeoFiles
 
     public static string ListUrl(string baseUrl) => $"{baseUrl}/{Uri.EscapeDataString("املاک")}";
 
-    public static string PropertyUrl(string baseUrl, Property p) =>
-        $"{baseUrl}/{Uri.EscapeDataString("ملک")}/{Uri.EscapeDataString(p.Slug)}";
+    public static string PropertyUrl(string baseUrl, Property p) => PropertyUrl(baseUrl, p.Slug);
+
+    public static string PropertyUrl(string baseUrl, string slug) =>
+        $"{baseUrl}/{Uri.EscapeDataString("ملک")}/{Uri.EscapeDataString(slug)}";
 
     public static string Absolute(string baseUrl, string url) =>
         url.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : baseUrl + (url.StartsWith('/') ? url : "/" + url);

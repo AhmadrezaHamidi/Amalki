@@ -119,7 +119,7 @@ app.UseForwardedHeaders();
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
-    await DevSeed.RunAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+    await DevSeed.RunAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), app.Environment.WebRootPath);
 }
 else
 {
@@ -150,6 +150,7 @@ app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseUiVariants(); // before the output cache, which keys entries on the variant
 app.UseOutputCache(); // after auth, so the default policy can see signed-in admins and skip them
 
 app.MapHealthChecks("/healthz").DisableHttpMetrics();
