@@ -7,12 +7,16 @@
     <UserSecretsId>f6dc229b-5d07-4ac4-8121-15b6e6cd0bbd</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <Using Include="Amlak.Web.Domain" />
-    <!-- Tests may build domain objects with internal setters; pages in this project should use the aggregate methods. -->
+    <Using Include="Amlak.Domain" />
+    <Using Include="Amlak.Application" />
     <InternalsVisibleTo Include="Amlak.Tests" />
   </ItemGroup>
-  <PropertyGroup>
-  </PropertyGroup>
+
+  <!-- Dependencies point inwards: Web (UI + infrastructure) -> Application (use cases, ports) -> Domain. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Amlak.Domain\Amlak.Domain.csproj" />
+    <ProjectReference Include="..\Amlak.Application\Amlak.Application.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.22" />

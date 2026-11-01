@@ -1,5 +1,5 @@
 using Amlak.Web.Data;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.OutputCaching;

@@ -1,4 +1,4 @@
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Services;
 using Microsoft.EntityFrameworkCore;
 

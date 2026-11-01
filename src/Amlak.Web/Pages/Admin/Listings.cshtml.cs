@@ -1,3 +1,4 @@
+using Amlak.Application.Listings;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class ListingsModel(AppDbContext db, TimeProvider clock) : PageModel
+public class ListingsModel(AppDbContext db, ListingCommands listings) : PageModel
 {
     public const int PageSize = 50;
 
@@ -33,32 +34,20 @@ public class ListingsModel(AppDbContext db, TimeProvider clock) : PageModel
             .GroupBy(f => f.PropertyId).ToDictionary(g => g.Key, g => g.MinBy(f => f.SortOrder)!.Url);
     }
 
-    public async Task<IActionResult> OnPostTogglePublishAsync(int id)
+    public async Task<IActionResult> OnPostTogglePublishAsync(int id, CancellationToken ct)
     {
-        var p = await db.Properties.FindAsync(id);
-        if (p is null) return NotFound();
-        try
-        {
-            p.TogglePublished(clock.GetUtcNow().UtcDateTime);
-        }
-        catch (DomainException ex)
+        var done = await listings.TogglePublishedAsync(id, ct);
+        if (done.IsNotFound) return NotFound();
+        if (done.Error is { } error)
         {
             // An incomplete draft cannot go live; send the admin to the form that names the missing field.
-            TempData["Error"] = ex.Message;
+            TempData["Error"] = error;
             return RedirectToPage("Edit", new { id });
         }
-        await db.SaveChangesAsync();
         return RedirectToPage(new { p = P });
     }
 
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        var p = await db.Properties.Include(x => x.Photos).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
-        if (p is null) return NotFound();
+    public async Task<IActionResult> OnPostDeleteAsync(int id, CancellationToken ct) =>
         // Channel messages and photo files are removed after the save, from the ListingDeleted event.
-        p.MarkDeleted(clock.GetUtcNow().UtcDateTime);
-        db.Properties.Remove(p);
-        await db.SaveChangesAsync();
-        return RedirectToPage(new { p = P });
-    }
+        (await listings.DeleteAsync(id, ct)).Succeeded ? RedirectToPage(new { p = P }) : NotFound();
 }

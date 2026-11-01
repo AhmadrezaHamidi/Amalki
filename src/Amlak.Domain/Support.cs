@@ -1,4 +1,4 @@
-namespace Amlak.Web.Domain;
+namespace Amlak.Domain;
 
 /// <summary>A visitor's contact/visit request, optionally tied to a listing.</summary>
 public class Lead : AggregateRoot

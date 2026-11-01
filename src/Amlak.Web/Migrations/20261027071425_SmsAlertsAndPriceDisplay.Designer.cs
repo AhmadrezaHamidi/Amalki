@@ -70,7 +70,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("OutboxMessages");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.AlertSent", b =>
+            modelBuilder.Entity("Amlak.Domain.AlertSent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -101,7 +101,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("AlertsSent");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.ChannelPost", b =>
+            modelBuilder.Entity("Amlak.Domain.ChannelPost", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -143,7 +143,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("ChannelPosts");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Lead", b =>
+            modelBuilder.Entity("Amlak.Domain.Lead", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -183,7 +183,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Leads");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.PhoneCode", b =>
+            modelBuilder.Entity("Amlak.Domain.PhoneCode", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -220,7 +220,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("PhoneCodes");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Property", b =>
+            modelBuilder.Entity("Amlak.Domain.Property", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -349,7 +349,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Properties");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.PropertyPhoto", b =>
+            modelBuilder.Entity("Amlak.Domain.PropertyPhoto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -390,7 +390,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("PropertyPhotos");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.SavedSearch", b =>
+            modelBuilder.Entity("Amlak.Domain.SavedSearch", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -450,7 +450,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("SavedSearches");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.SmsCampaign", b =>
+            modelBuilder.Entity("Amlak.Domain.SmsCampaign", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -513,7 +513,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("SmsCampaigns");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.SmsLog", b =>
+            modelBuilder.Entity("Amlak.Domain.SmsLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -547,7 +547,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("SmsLogs");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.SmsOptOut", b =>
+            modelBuilder.Entity("Amlak.Domain.SmsOptOut", b =>
                 {
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
@@ -561,7 +561,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("SmsOptOuts");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Ticket", b =>
+            modelBuilder.Entity("Amlak.Domain.Ticket", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -611,7 +611,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Tickets");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.TicketMessage", b =>
+            modelBuilder.Entity("Amlak.Domain.TicketMessage", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -998,18 +998,18 @@ namespace Amlak.Web.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.ChannelPost", b =>
+            modelBuilder.Entity("Amlak.Domain.ChannelPost", b =>
                 {
-                    b.HasOne("Amlak.Web.Domain.Property", null)
+                    b.HasOne("Amlak.Domain.Property", null)
                         .WithMany("ChannelPosts")
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Lead", b =>
+            modelBuilder.Entity("Amlak.Domain.Lead", b =>
                 {
-                    b.HasOne("Amlak.Web.Domain.Property", "Property")
+                    b.HasOne("Amlak.Domain.Property", "Property")
                         .WithMany()
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -1017,18 +1017,18 @@ namespace Amlak.Web.Migrations
                     b.Navigation("Property");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.PropertyPhoto", b =>
+            modelBuilder.Entity("Amlak.Domain.PropertyPhoto", b =>
                 {
-                    b.HasOne("Amlak.Web.Domain.Property", null)
+                    b.HasOne("Amlak.Domain.Property", null)
                         .WithMany("Photos")
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.TicketMessage", b =>
+            modelBuilder.Entity("Amlak.Domain.TicketMessage", b =>
                 {
-                    b.HasOne("Amlak.Web.Domain.Ticket", null)
+                    b.HasOne("Amlak.Domain.Ticket", null)
                         .WithMany("Messages")
                         .HasForeignKey("TicketId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1086,14 +1086,14 @@ namespace Amlak.Web.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Property", b =>
+            modelBuilder.Entity("Amlak.Domain.Property", b =>
                 {
                     b.Navigation("ChannelPosts");
 
                     b.Navigation("Photos");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Ticket", b =>
+            modelBuilder.Entity("Amlak.Domain.Ticket", b =>
                 {
                     b.Navigation("Messages");
                 });

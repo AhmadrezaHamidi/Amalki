@@ -62,8 +62,8 @@
     <section class="form-card row-actions" style="justify-content:space-between">
         <span><strong style="display:block">کانال‌ها</strong><span class="hint">انتشار خودکار آگهی‌ها</span></span>
         <span class="row-actions">
-            <span class="pill @(Model.Channels.Contains(Channel.Telegram) ? "pub" : "draft")">تلگرام: @(Model.Channels.Contains(Channel.Telegram) ? "تنظیم‌شده" : "تنظیم نشده")</span>
-            <span class="pill @(Model.Channels.Contains(Channel.Bale) ? "pub" : "draft")">بله: @(Model.Channels.Contains(Channel.Bale) ? "تنظیم‌شده" : "تنظیم نشده")</span>
+            <span class="pill @(Model.Channels.Contains(Messenger.Telegram) ? "pub" : "draft")">تلگرام: @(Model.Channels.Contains(Messenger.Telegram) ? "تنظیم‌شده" : "تنظیم نشده")</span>
+            <span class="pill @(Model.Channels.Contains(Messenger.Bale) ? "pub" : "draft")">بله: @(Model.Channels.Contains(Messenger.Bale) ? "تنظیم‌شده" : "تنظیم نشده")</span>
         </span>
     </section>
 </div>

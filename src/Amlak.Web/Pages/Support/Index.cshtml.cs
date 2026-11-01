@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Amlak.Application.Support;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Support;
 
 /// <summary>Public support desk: open a ticket, or look one up by tracking code + mobile.</summary>
-public class IndexModel(AppDbContext db, TimeProvider clock, TicketAccess access) : PageModel
+public class IndexModel(AppDbContext db, TicketCommands tickets, TicketAccess access) : PageModel
 {
     /// <summary>Route prefix of the support pages; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/پشتیبانی";
@@ -40,7 +41,7 @@ public class IndexModel(AppDbContext db, TimeProvider clock, TicketAccess access
         if (!string.IsNullOrWhiteSpace(code)) Track.Code = TicketCodes.Pretty(TicketCodes.Normalize(code));
     }
 
-    public async Task<IActionResult> OnPostNewAsync()
+    public async Task<IActionResult> OnPostNewAsync(CancellationToken ct)
     {
         ModelState.Clear();
         if (!TryValidateModel(New, nameof(New))) return Page();
@@ -51,20 +52,14 @@ public class IndexModel(AppDbContext db, TimeProvider clock, TicketAccess access
             return Page();
         }
 
-        Ticket ticket;
-        try
+        var opened = await tickets.OpenAsync(New.Name, phone, New.Subject, New.Category, New.Message, ct);
+        if (opened.Error is { } error)
         {
-            ticket = Ticket.Open(await UniqueCodeAsync(), New.Name, phone, New.Subject, New.Category, New.Message, clock.GetUtcNow().UtcDateTime);
-        }
-        catch (DomainException ex)
-        {
-            ModelState.AddModelError("", ex.Message);
+            ModelState.AddModelError("", error);
             return Page();
         }
-        db.Tickets.Add(ticket);
-        await db.SaveChangesAsync();
-        access.Grant(HttpContext, ticket.Code);
-        return Redirect(TicketModel.Url(ticket.Code, created: true));
+        access.Grant(HttpContext, opened.Value!);
+        return Redirect(TicketModel.Url(opened.Value!, created: true));
     }
 
     public async Task<IActionResult> OnPostTrackAsync()
@@ -81,12 +76,5 @@ public class IndexModel(AppDbContext db, TimeProvider clock, TicketAccess access
         // Same message whether the code or the phone is wrong, so the form can't be used to probe codes.
         TrackError = "تیکتی با این کد پیگیری و شمارهٔ موبایل پیدا نشد.";
         return Page();
-    }
-
-    private async Task<string> UniqueCodeAsync()
-    {
-        string code;
-        do code = TicketCodes.New(); while (await db.Tickets.AnyAsync(t => t.Code == code));
-        return code;
     }
 }

@@ -22,7 +22,7 @@ public class IndexModel(AppDbContext db, AdminQueries admin, ChannelPublisher pu
     public int EventsFailed { get; private set; }
     public List<Ticket> Tickets { get; private set; } = [];
     public List<Lead> Leads { get; private set; } = [];
-    public IReadOnlyCollection<Channel> Channels => publisher.ConfiguredChannels;
+    public IReadOnlyCollection<Messenger> Channels => publisher.ConfiguredChannels;
     /// <summary>Photos uploaded before WebP copies existed.</summary>
     public int PhotosWithoutCopies { get; private set; }
     [TempData] public string? Notice { get; set; }
@@ -52,7 +52,7 @@ public class IndexModel(AppDbContext db, AdminQueries admin, ChannelPublisher pu
         foreach (var photo in batch)
             if (!await photos.BackfillAsync(photo, ct))
             {
-                photo.Variants = ""; // original is gone; do not retry forever
+                photo.RecordNoCopies(); // original is gone; do not retry forever
                 missing++;
             }
         await db.SaveChangesAsync(ct);

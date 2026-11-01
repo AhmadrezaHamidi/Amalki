@@ -1,4 +1,4 @@
-namespace Amlak.Web.Domain;
+namespace Amlak.Domain;
 
 /// <summary>A business rule was broken. Pages show <see cref="Exception.Message"/> to the user, so it is Persian.</summary>
 public sealed class DomainException(string message) : Exception(message);

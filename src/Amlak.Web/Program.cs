@@ -54,6 +54,8 @@ builder.Services.AddProxySupport(builder.Configuration);
 // HTML-sensitive characters (<, >, &, quotes) are still encoded.
 builder.Services.AddSingleton(HtmlEncoder.Create(UnicodeRanges.All));
 
+// Use cases (Amlak.Application) and the EF Core repositories behind their ports.
+builder.Services.AddApplication();
 builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
@@ -65,7 +67,6 @@ builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
 builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
 
 // SMS one-time codes for visitor listings: "Kavenegar" (Sms:ApiKey, Sms:Template) or "Log" (development).
-builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<Amlak.Web.Services.Sms.PhoneVerification>();
 // Alerts and bulk SMS ("Sms:Sender" is the Kavenegar line for them; codes use the template).
 builder.Services.AddScoped<Amlak.Web.Services.Sms.SmsGateway>();

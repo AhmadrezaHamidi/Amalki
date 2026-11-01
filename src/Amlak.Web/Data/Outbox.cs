@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Amlak.Web.Services.Publishing;
 
 namespace Amlak.Web.Data;
 
@@ -27,7 +26,7 @@ public class OutboxMessage
     public sealed record DeletedListing(List<DeletedListing.File> Photos, List<DeletedListing.Post> Posts)
     {
         public sealed record File(string Url, string? Variants);
-        public sealed record Post(Channel Channel, List<string> MessageIds);
+        public sealed record Post(Messenger Channel, List<string> MessageIds);
     }
 
     /// <summary>Called after the aggregate is saved, so database ids are known.</summary>
@@ -40,7 +39,7 @@ public class OutboxMessage
                 m.AggregateId = d.Listing.Id;
                 m.Payload = JsonSerializer.Serialize(new DeletedListing(
                     d.Photos.Select(x => new DeletedListing.File(x.Url, x.Variants)).ToList(),
-                    d.Posts.Select(x => new DeletedListing.Post(x.Channel, ChannelPublisher.MessageIdsOf(x).ToList())).ToList()));
+                    d.Posts.Select(x => new DeletedListing.Post(x.Channel, x.MessageIds().ToList())).ToList()));
                 break;
             case IListingEvent l: m.AggregateId = l.Listing.Id; break;
             case LeadSubmitted l: m.AggregateId = l.Lead.Id; break;

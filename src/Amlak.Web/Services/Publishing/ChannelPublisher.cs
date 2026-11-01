@@ -17,9 +17,9 @@ public class ChannelPublisher
     private readonly PhotoStorage _photos;
     private readonly ILogger<ChannelPublisher> _log;
     private readonly string _baseUrl;
-    private readonly Dictionary<Channel, BotApiClient> _clients = [];
-    private readonly HashSet<Channel> _buttons = [];
-    private readonly HashSet<Channel> _albums = [];
+    private readonly Dictionary<Messenger, BotApiClient> _clients = [];
+    private readonly HashSet<Messenger> _buttons = [];
+    private readonly HashSet<Messenger> _albums = [];
 
     public ChannelPublisher(AppDbContext db, IHttpClientFactory httpFactory, IConfiguration cfg,
         PhotoStorage photos, ILogger<ChannelPublisher> log)
@@ -28,10 +28,10 @@ public class ChannelPublisher
         _baseUrl = cfg["Site:BaseUrl"] ?? "http://localhost";
 
         var http = httpFactory.CreateClient("bots");
-        Register(Channel.Telegram, "Telegram", "https://api.telegram.org");
-        Register(Channel.Bale, "Bale", "https://tapi.bale.ai");
+        Register(Messenger.Telegram, "Telegram", "https://api.telegram.org");
+        Register(Messenger.Bale, "Bale", "https://tapi.bale.ai");
 
-        void Register(Channel channel, string section, string defaultBase)
+        void Register(Messenger channel, string section, string defaultBase)
         {
             var token = cfg[$"{section}:BotToken"];
             var chat = cfg[$"{section}:ChatId"];
@@ -45,7 +45,7 @@ public class ChannelPublisher
         static bool IsOff(string? v) => string.Equals(v, "false", StringComparison.OrdinalIgnoreCase);
     }
 
-    public IReadOnlyCollection<Channel> ConfiguredChannels => _clients.Keys;
+    public IReadOnlyCollection<Messenger> ConfiguredChannels => _clients.Keys;
 
     public async Task SyncAsync(int propertyId, CancellationToken ct = default)
     {
@@ -69,20 +69,18 @@ public class ChannelPublisher
     public async Task RemoveAllAsync(int propertyId, CancellationToken ct = default)
     {
         var posts = await _db.ChannelPosts.Where(c => c.PropertyId == propertyId).ToListAsync(ct);
-        foreach (var post in posts) await DeleteMessagesAsync(post.Channel, MessageIds(post), ct);
+        foreach (var post in posts) await DeleteMessagesAsync(post.Channel, post.MessageIds(), ct);
     }
 
     /// <summary>Deletes messages of a listing that no longer exists; a message already gone counts as deleted.</summary>
-    public async Task DeleteMessagesAsync(Channel channel, IEnumerable<string> messageIds, CancellationToken ct = default)
+    public async Task DeleteMessagesAsync(Messenger channel, IEnumerable<string> messageIds, CancellationToken ct = default)
     {
         if (!_clients.TryGetValue(channel, out var client)) return;
         foreach (var id in messageIds) await client.DeleteAsync(id, ct);
     }
 
     /// <summary>Every message id of a post: the first message, then the rest of its album.</summary>
-    public static IEnumerable<string> MessageIdsOf(ChannelPost post) => MessageIds(post);
-
-    private async Task PublishOrEditAsync(Property p, ChannelPost? post, Channel channel, BotApiClient client, CancellationToken ct)
+    private async Task PublishOrEditAsync(Property p, ChannelPost? post, Messenger channel, BotApiClient client, CancellationToken ct)
     {
         var caption = CaptionBuilder.Build(p, _baseUrl);
         var markup = _buttons.Contains(channel) ? BotApiClient.LinkButton("مشاهده و درخواست تماس", CaptionBuilder.Url(p, _baseUrl)) : null;
@@ -106,7 +104,7 @@ public class ChannelPublisher
             }
 
             // Photos were added or removed: messengers cannot change an album in place, so replace the post.
-            foreach (var id in MessageIds(post)) await client.DeleteAsync(id, ct);
+            foreach (var id in post.MessageIds()) await client.DeleteAsync(id, ct);
             post.ExternalMessageId = null;
             post.ExtraMessageIds = null;
         }
@@ -149,7 +147,7 @@ public class ChannelPublisher
 
     private async Task RemoveAsync(Property p, ChannelPost post, BotApiClient client, CancellationToken ct)
     {
-        foreach (var id in MessageIds(post))
+        foreach (var id in post.MessageIds())
         {
             var del = await client.DeleteAsync(id, ct);
             var gone = del.Error?.Contains("not found", StringComparison.OrdinalIgnoreCase) == true;
@@ -161,12 +159,6 @@ public class ChannelPublisher
         }
         _db.ChannelPosts.Remove(post);
         p.ChannelPosts.Remove(post);
-    }
-
-    private static IEnumerable<string> MessageIds(ChannelPost post)
-    {
-        if (post.ExternalMessageId is { } first) yield return first;
-        foreach (var id in (post.ExtraMessageIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)) yield return id;
     }
 
     private static string PhotoKey(IEnumerable<PropertyPhoto> photos) =>

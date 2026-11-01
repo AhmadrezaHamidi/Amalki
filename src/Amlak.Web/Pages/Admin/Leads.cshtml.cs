@@ -1,3 +1,4 @@
+using Amlak.Application.Leads;
 using Amlak.Web.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Admin;
 
 /// <summary>Contact requests from visitors (ADM-10).</summary>
-public class LeadsModel(AppDbContext db) : PageModel
+public class LeadsModel(AppDbContext db, LeadCommands leads) : PageModel
 {
     public List<Lead> Items { get; private set; } = [];
     [BindProperty(SupportsGet = true)] public bool All { get; set; }
@@ -18,21 +19,9 @@ public class LeadsModel(AppDbContext db) : PageModel
         Items = await q.OrderByDescending(l => l.CreatedAtUtc).Take(500).ToListAsync();
     }
 
-    public async Task<IActionResult> OnPostToggleAsync(int id)
-    {
-        var lead = await db.Leads.FindAsync(id);
-        if (lead is null) return NotFound();
-        lead.ToggleHandled();
-        await db.SaveChangesAsync();
-        return RedirectToPage(new { All });
-    }
+    public async Task<IActionResult> OnPostToggleAsync(int id, CancellationToken ct) =>
+        (await leads.ToggleHandledAsync(id, ct)).Succeeded ? RedirectToPage(new { All }) : NotFound();
 
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        var lead = await db.Leads.FindAsync(id);
-        if (lead is null) return NotFound();
-        db.Leads.Remove(lead);
-        await db.SaveChangesAsync();
-        return RedirectToPage(new { All });
-    }
+    public async Task<IActionResult> OnPostDeleteAsync(int id, CancellationToken ct) =>
+        (await leads.DeleteAsync(id, ct)).Succeeded ? RedirectToPage(new { All }) : NotFound();
 }

@@ -4,16 +4,44 @@
 
 یک برنامهٔ ASP.NET Core 9 با Razor Pages (رندر سمت سرور برای سئو) و یک دیتابیس SQL Server. ارسال به کانال‌ها با HTTP مستقیم به Bot API انجام می‌شود؛ سرویس یا صف جداگانه‌ای وجود ندارد.
 
+### لایه‌ها (Clean Architecture)
+
+کد در سه پروژه است و وابستگی‌ها فقط به سمت داخل می‌روند. این قاعده را کامپایلر و `ArchitectureTests` نگه می‌دارند.
+
 ```
-مرورگر ──> Razor Pages ──> AppDbContext ──> SQL Server (Amlak)
-              │
-              ├─ Pages/Admin ──> PhotoStorage ──> wwwroot/uploads
-              └─ Pages/Admin ──> ChannelPublisher ──> BotApiClient ──> Telegram / Bale
+Amlak.Web  ──>  Amlak.Application  ──>  Amlak.Domain
+(UI + زیرساخت)     (use caseها + port ها)      (Aggregate، Value Object، رویداد)
 ```
+
+| پروژه | چه دارد | به چه وابسته است |
+|---|---|---|
+| `src/Amlak.Domain` | `Property`، `Ticket`، `Lead`، `Pricing`، `PhoneNumber`، رویدادها، `Slugger`، `TicketCodes` | هیچ پکیجی (نه EF، نه ASP.NET) |
+| `src/Amlak.Application` | use caseهای نوشتن (`ListingCommands`، `LeadCommands`، `TicketCommands`)، port ها (`IListingRepository`، `ILeadRepository`، `ITicketRepository`، `IUnitOfWork`)، `Result` | فقط Domain |
+| `src/Amlak.Web` | صفحه‌های Razor، `AppDbContext` و repositoryهای EF (`Data/Repositories.cs`)، Outbox، ناشر تلگرام/بله، پیامک، ذخیرهٔ عکس، سمت خواندن (`Read/`) | Application و Domain |
+
+- **نوشتن:** صفحه فرم را اعتبارسنجی و فایل‌ها را ذخیره می‌کند، بعد use case را صدا می‌زند. use case Aggregate را از repository می‌گیرد، متدش را صدا می‌زند و `IUnitOfWork.SaveChangesAsync` می‌کند. خطای قانون (`DomainException`) به `Result.Error` فارسی تبدیل می‌شود؛ صفحه دیگر `try/catch` ندارد.
+- **خواندن:** صفحه‌ها مستقیم از View های SQL (`ListingQueries`، `AdminQueries`) یا `AsNoTracking` می‌خوانند (CQRS). خواندن از use case نمی‌گذرد چون قانونی ندارد.
+- **اثرهای جانبی** (پست کانال، اعلان ادمین، پیامک، حذف فایل) هیچ‌وقت در use case نیستند؛ از رویدادهای ذخیره‌شده در Outbox در پس‌زمینه اجرا می‌شوند.
+
+```
+مرورگر ──> Razor Page ──> use case (Application) ──> Aggregate (Domain)
+                │                 └──> IUnitOfWork = AppDbContext ──> SQL Server (+ OutboxMessages)
+                └──> Read (View های SQL)
+OutboxProcessor ──> OutboxDispatcher ──> ChannelPublisher / AdminNotifier / AlertService / PhotoStorage
+```
+
+### گام‌های بعدی
+
+| کار | چرا |
+|---|---|
+| جدا کردن `Amlak.Infrastructure` از `Amlak.Web` (Data، Outbox، Publishing، Sms، Storage) | الان UI و زیرساخت در یک پروژه‌اند؛ صفحه‌ها هنوز می‌توانند `AppDbContext` را برای نوشتن صدا بزنند |
+| غنی کردن مدل پیامک (`SavedSearch`، `SmsCampaign`، `PhoneCode`) | هنوز setter عمومی دارند و قانون‌هایشان در سرویس‌ها (`AlertService`، `BulkSmsService`، `PhoneVerification`) است |
+| use case برای صفحهٔ پیامک ادمین و پرکردن نسخهٔ سبک عکس‌ها | این دو هنوز مستقیم با `AppDbContext` می‌نویسند |
+| رویدادها شناسه حمل کنند نه خود Aggregate | الان رویداد خود `Property` را دارد چون شناسه بعد از ذخیره ساخته می‌شود |
 
 ## لایهٔ Domain (DDD)
 
-قوانین کسب‌وکار داخل Aggregateها هستند، نه در صفحه‌ها. همهٔ setterها private هستند و تغییر فقط از متدها می‌گذرد (`src/Amlak.Web/Domain`).
+قوانین کسب‌وکار داخل Aggregateها هستند، نه در صفحه‌ها. همهٔ setterها private هستند و تغییر فقط از متدها می‌گذرد (`src/Amlak.Domain`).
 
 | Aggregate | متدها | قانون‌ها | رویدادها |
 |---|---|---|---|
@@ -21,7 +49,7 @@
 | `Ticket` (با `TicketMessage`) | `Open`، `ReplyFromVisitor`، `ReplyFromStaff`، `ChangeStatus` | تیکت بسته پیام بازدیدکننده نمی‌گیرد؛ پاسخ پشتیبانی تیکت را «پاسخ داده شد» می‌کند | `TicketOpened`، `TicketMessageReceived`، `TicketAnswered` |
 | `Lead` | `Submit`، `ToggleHandled` | نام و پیام محدودیت طول دارند | `LeadSubmitted` |
 
-Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails` (مشخصات آگهی، با نرمال‌سازی ي/ك)، `PhoneNumber` (همیشه 09xxxxxxxxx). خطای قانون با `DomainException` و پیام فارسی برمی‌گردد و صفحه آن را در فرم نشان می‌دهد. زمان از `TimeProvider` تزریق می‌شود.
+Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails` (مشخصات آگهی، با نرمال‌سازی ي/ك)، `PhoneNumber` (همیشه 09xxxxxxxxx). خطای قانون با `DomainException` و پیام فارسی برمی‌گردد؛ use case آن را به `Result.Error` تبدیل می‌کند و صفحه آن را در فرم نشان می‌دهد. زمان از `TimeProvider` تزریق می‌شود.
 
 ### رویدادها و Outbox
 
@@ -140,6 +168,8 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 
 `tests/Amlak.Tests/ReadSideTests.cs`: View ها و `ListingQueries` (کاور، فیلترها، مرتب‌سازی و صفحه‌بندی، facet ها، به‌روز شدن View بعد از نوشتن، شمارنده‌های پنل). هر تست دو بار اجرا می‌شود: روی SQLite و، اگر `AMLAK_TEST_SQLSERVER` (رشتهٔ اتصال بدون نام دیتابیس) تنظیم شده باشد، روی SQL Server واقعی با همان migration ها؛ در غیر این صورت نسخهٔ SQL Server رد (skip) می‌شود.
 
+`tests/Amlak.Tests/ApplicationTests.cs`: قاعدهٔ وابستگی لایه‌ها (Domain و Application به EF/ASP.NET وابسته نیستند، Aggregate ها setter عمومی ندارند) و use caseها روی repositoryهای واقعی EF (slug یکتا، ردیف Outbox، خطای فارسی، سقف آگهی در انتظار، حذف، تیکت و سرنخ).
+
 پوشش‌داده‌نشده: صفحه‌های Razor (فقط با درخواست HTTP دستی بررسی شده‌اند)، `PhotoStorage`، ورود/خروج.
 
 ## تصمیم‌های معماری
@@ -150,4 +180,6 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 | یک کلاینت برای تلگرام و بله | API بله با Telegram Bot API هم‌شکل است؛ فقط میزبان فرق دارد |
 | آپلود عکس به‌جای لینک عکس در کانال | در توسعه (localhost) هم کار می‌کند و به آدرس عمومی عکس وابسته نیست |
 | خطای ارسال، غیرمسدودکننده | شکست تلگرام (فیلتر یا قطعی) نباید ثبت آگهی را بخواباند |
+| سه پروژهٔ Domain / Application / Web | قاعدهٔ وابستگی را کامپایلر نگه می‌دارد؛ Domain بدون EF و ASP.NET تست و فهمیده می‌شود |
+| enum `Messenger` به‌جای `Channel` | با `System.Threading.Channels` تداخل نداشته باشد |
 | Slug فارسی | گوگل URL فارسی را ایندکس می‌کند و خوانا است |

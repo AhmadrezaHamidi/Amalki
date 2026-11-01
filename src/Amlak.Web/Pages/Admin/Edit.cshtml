@@ -153,7 +153,7 @@
                 {
                     var post = Model.Posts.FirstOrDefault(x => x.Channel == ch);
                     <p>
-                        <strong>@(ch == Channel.Telegram ? "تلگرام" : "بله"):</strong>
+                        <strong>@(ch == Messenger.Telegram ? "تلگرام" : "بله"):</strong>
                         @if (post?.ExternalMessageId is not null && post.Error is null) { <span class="ch-ok">ارسال شده</span> }
                         else if (post?.Error is not null) { <span class="err">خطا: @post.Error</span> }
                         else { <span class="hint">ارسال نشده (آگهی منتشر نشده)</span> }

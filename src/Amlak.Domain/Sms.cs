@@ -1,4 +1,4 @@
-namespace Amlak.Web.Domain;
+namespace Amlak.Domain;
 
 /// <summary>A visitor's "tell me by SMS" request: new matching listings and price drops are texted to <see cref="Phone"/>.</summary>
 public class SavedSearch
@@ -12,7 +12,7 @@ public class SavedSearch
     public string City { get; set; } = "";
     /// <summary>Comma-separated district names; empty means the whole city.</summary>
     public string Districts { get; set; } = "";
-    /// <summary>Compared with <see cref="Services.PriceText.Comparable"/>: sale price, rent's full-deposit equivalent, nightly price. Toman.</summary>
+    /// <summary>Compared with the site's comparable price (PriceText.Comparable in the web project): sale price, rent's full-deposit equivalent, nightly price. Toman.</summary>
     public long? MaxBudget { get; set; }
     public int? MinBedrooms { get; set; }
     public bool NotifyNew { get; set; } = true;

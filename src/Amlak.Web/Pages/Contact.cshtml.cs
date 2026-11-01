@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Amlak.Application.Leads;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages;
 
 /// <summary>Contact / visit request (PUB-06). Posted from a listing page or used on its own for a general consultation.</summary>
-public class ContactModel(AppDbContext db, TimeProvider clock) : PageModel
+public class ContactModel(AppDbContext db, LeadCommands leads) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/تماس";
@@ -34,7 +35,7 @@ public class ContactModel(AppDbContext db, TimeProvider clock) : PageModel
         Property = await FindAsync(propertyId);
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
         Property = await FindAsync(Input.PropertyId);
         if (!string.IsNullOrEmpty(Input.Website)) return Done(); // pretend success to the bot
@@ -43,18 +44,12 @@ public class ContactModel(AppDbContext db, TimeProvider clock) : PageModel
             ModelState.AddModelError("Input.Phone", "شمارهٔ موبایل معتبر نیست (مثل ۰۹۱۲۱۲۳۴۵۶۷)");
         if (!ModelState.IsValid) return Page();
 
-        Lead lead;
-        try
+        var sent = await leads.SubmitAsync(Input.Name, phone, Input.Message, Property?.Id, ct);
+        if (sent.Error is { } error)
         {
-            lead = Lead.Submit(Input.Name, phone, Input.Message, Property?.Id, clock.GetUtcNow().UtcDateTime);
-        }
-        catch (DomainException ex)
-        {
-            ModelState.AddModelError("", ex.Message);
+            ModelState.AddModelError("", error);
             return Page();
         }
-        db.Leads.Add(lead);
-        await db.SaveChangesAsync();
         return Done();
     }
 

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Amlak.Application.Listings;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
@@ -13,13 +14,13 @@ namespace Amlak.Web.Pages;
 /// Divar-style "post an ad": the visitor proves a mobile number with an SMS code, fills in the listing,
 /// and it waits as Pending until an admin publishes it. The same page lists the visitor's own listings.
 /// </summary>
-public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoStorage storage, TimeProvider clock) : PageModel
+public class SubmitModel(AppDbContext db, ListingCommands listings, PhoneVerification verification, PhotoStorage storage) : PageModel
 {
     /// <summary>Route of this page; the rate limiter in Program.cs keys on it.</summary>
     public const string Path = "/ثبت-آگهی";
     public const int MaxPhotos = 10;
     /// <summary>Open (pending) submissions one phone may have at a time.</summary>
-    public const int MaxPending = 5;
+    public const int MaxPending = ListingCommands.MaxPendingPerOwner;
 
     public class ListingInput
     {
@@ -109,7 +110,7 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
         Owner = verification.CurrentPhone(Request);
         if (Owner is null) return RedirectToPage();
@@ -124,47 +125,36 @@ public class SubmitModel(AppDbContext db, PhoneVerification verification, PhotoS
         if (Input.Deal == DealType.Rent && deposit is null && rent is null) ModelState.AddModelError("Input.Deposit", "رهن یا اجارهٔ ماهانه را وارد کنید");
         var files = Uploads.Where(f => f.Length > 0).ToList();
         if (files.Count > MaxPhotos) ModelState.AddModelError(nameof(Uploads), $"حداکثر {Fa.Digits(MaxPhotos.ToString())} عکس");
-        if (await db.Properties.CountAsync(p => p.OwnerPhone == Owner && p.Status == ListingStatus.Pending) >= MaxPending)
-            ModelState.AddModelError("", "چند آگهی شما هنوز در انتظار بررسی است. پس از بررسی آن‌ها آگهی تازه بفرستید.");
         if (!ModelState.IsValid) return await RedisplayAsync();
 
-        Property p;
-        var now = clock.GetUtcNow().UtcDateTime;
-        try
-        {
-            var details = ListingDetails.Of(Input.Title, Input.Description, Input.Kind, (int)area!.Value, Input.City, Input.District,
-                Input.Bedrooms, Input.Floor, Input.Parking, Input.YearBuilt)
-                with { HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed };
-            var pricing = Pricing.For(Input.Deal, price, deposit, rent, Input.Convertible);
-            p = Property.Submit(await Slugger.UniqueAsync(db, details.Title), details, pricing, Input.OwnerName, Owner, now);
-        }
-        catch (DomainException ex)
-        {
-            ModelState.AddModelError("", ex.Message);
-            return await RedisplayAsync();
-        }
-
         // Check every upload before storing any, so a bad second file leaves no orphaned first file.
-        if (files.FirstOrDefault(f => !PhotoStorage.LooksValid(f)) is { } bad)
-        {
-            ModelState.AddModelError(nameof(Uploads), $"فایل «{System.IO.Path.GetFileName(bad.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
-            return await RedisplayAsync();
-        }
+        if (files.FirstOrDefault(f => !PhotoStorage.LooksValid(f)) is { } bad) return await RejectFileAsync(bad, []);
+        var stored = new List<PropertyPhoto>();
         foreach (var file in files)
         {
-            var photo = await storage.SaveAsync(file);
-            if (photo is null)
-            {
-                foreach (var saved in p.Photos) await storage.DeleteAsync(saved);
-                ModelState.AddModelError(nameof(Uploads), $"فایل «{System.IO.Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
-                return await RedisplayAsync();
-            }
-            p.AddPhoto(photo, now);
+            if (await storage.SaveAsync(file) is not { } photo) return await RejectFileAsync(file, stored);
+            stored.Add(photo);
         }
 
-        db.Properties.Add(p);
-        await db.SaveChangesAsync();
-        return RedirectToPage(new { sent = true });
+        var form = new ListingForm
+        {
+            Title = Input.Title, Description = Input.Description, Deal = Input.Deal, Kind = Input.Kind, AreaM2 = (int)area!.Value,
+            City = Input.City, District = Input.District, Price = price, Deposit = deposit, MonthlyRent = rent, Convertible = Input.Convertible,
+            Bedrooms = Input.Bedrooms, Floor = Input.Floor, Parking = Input.Parking, YearBuilt = Input.YearBuilt,
+            HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed,
+        };
+        var submitted = await listings.SubmitAsync(Input.OwnerName, Owner, form, stored, ct);
+        if (submitted.Succeeded) return RedirectToPage(new { sent = true });
+        foreach (var photo in stored) await storage.DeleteAsync(photo);
+        ModelState.AddModelError("", submitted.Error!);
+        return await RedisplayAsync();
+    }
+
+    private async Task<IActionResult> RejectFileAsync(IFormFile file, List<PropertyPhoto> stored)
+    {
+        foreach (var photo in stored) await storage.DeleteAsync(photo);
+        ModelState.AddModelError(nameof(Uploads), $"فایل «{System.IO.Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
+        return await RedisplayAsync();
     }
 
     private async Task<IActionResult> RedisplayAsync()

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The core: aggregates, value objects and domain events. No package references on purpose:
+       nothing here may know about EF Core, ASP.NET Core, SMS gateways or messengers. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Tests build domain objects through internal setters. -->
+    
+    <InternalsVisibleTo Include="Amlak.Tests" />
+  </ItemGroup>
+
+</Project>

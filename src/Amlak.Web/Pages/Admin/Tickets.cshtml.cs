@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Amlak.Application.Support;
 using Amlak.Web.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Pages.Admin;
 
 /// <summary>Support inbox: ticket list on one side, the selected conversation and reply box on the other.</summary>
-public class TicketsModel(AppDbContext db, TimeProvider clock) : PageModel
+public class TicketsModel(AppDbContext db, TicketCommands tickets) : PageModel
 {
     [BindProperty(SupportsGet = true)] public TicketStatus? Status { get; set; }
     [BindProperty(SupportsGet = true)] public int? Id { get; set; }
@@ -21,45 +22,25 @@ public class TicketsModel(AppDbContext db, TimeProvider clock) : PageModel
 
     public async Task OnGetAsync() => await LoadAsync();
 
-    public async Task<IActionResult> OnPostReplyAsync(int id)
+    public async Task<IActionResult> OnPostReplyAsync(int id, CancellationToken ct)
     {
-        var t = await db.Tickets.FindAsync(id);
-        if (t is null) return NotFound();
-        if (!ModelState.IsValid)
+        if (ModelState.IsValid)
         {
-            Id = id;
-            await LoadAsync();
-            return Page();
+            var sent = await tickets.ReplyFromStaffAsync(id, Reply, ct);
+            if (sent.IsNotFound) return NotFound();
+            if (sent.Succeeded) return RedirectToPage(new { id, Status });
+            ModelState.AddModelError(nameof(Reply), sent.Error!);
         }
-        try
-        {
-            t.ReplyFromStaff(Reply, clock.GetUtcNow().UtcDateTime);
-        }
-        catch (DomainException ex)
-        {
-            ModelState.AddModelError(nameof(Reply), ex.Message);
-            Id = id;
-            await LoadAsync();
-            return Page();
-        }
-        await db.SaveChangesAsync();
-        return RedirectToPage(new { id, Status });
+        Id = id;
+        await LoadAsync();
+        return Current is null ? NotFound() : Page();
     }
 
-    public async Task<IActionResult> OnPostSetStatusAsync(int id, TicketStatus to)
+    public async Task<IActionResult> OnPostSetStatusAsync(int id, TicketStatus to, CancellationToken ct)
     {
-        var t = await db.Tickets.FindAsync(id);
-        if (t is null) return NotFound();
-        try
-        {
-            t.ChangeStatus(to, clock.GetUtcNow().UtcDateTime);
-        }
-        catch (DomainException)
-        {
-            return BadRequest();
-        }
-        await db.SaveChangesAsync();
-        return RedirectToPage(new { id, Status });
+        var done = await tickets.ChangeStatusAsync(id, to, ct);
+        if (done.IsNotFound) return NotFound();
+        return done.Succeeded ? RedirectToPage(new { id, Status }) : BadRequest();
     }
 
     private async Task LoadAsync()

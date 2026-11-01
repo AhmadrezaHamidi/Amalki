@@ -1,4 +1,4 @@
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Services;
 
 namespace Amlak.Tests;
@@ -18,5 +18,5 @@ internal static class TestData
     }
 
     public static Lead Lead(string name = "سارا", string phone = "09121112233", string? message = null) =>
-        Amlak.Web.Domain.Lead.Submit(name, PhoneNumber.Parse(phone), message, null, Now);
+        Amlak.Domain.Lead.Submit(name, PhoneNumber.Parse(phone), message, null, Now);
 }
