@@ -1,4 +1,4 @@
-namespace Amlak.Web.Domain;
+namespace Amlak.Domain;
 
 /// <summary>ShortTerm: daily/temporary rent (Divar's "اجارهٔ کوتاه‌مدت"); its Price is the price per night.</summary>
 public enum DealType { Sale = 1, Rent = 2, ShortTerm = 3 }
@@ -205,8 +205,19 @@ public class PropertyPhoto
     internal PropertyPhoto() { } // EF Core and tests
 
     /// <summary>A stored file that is not yet part of a listing.</summary>
-    public static PropertyPhoto Stored(string url) =>
-        string.IsNullOrWhiteSpace(url) ? throw new DomainException("نشانی عکس خالی است") : new() { Url = url };
+    public static PropertyPhoto Stored(string url, string? variants = null) =>
+        string.IsNullOrWhiteSpace(url) ? throw new DomainException("نشانی عکس خالی است") : new() { Url = url, Variants = variants };
+
+    /// <summary>The storage made WebP copies of the file: its upright pixel size and the widths of the copies.</summary>
+    public void RecordCopies(int width, int height, IEnumerable<int> variantWidths)
+    {
+        if (width <= 0 || height <= 0) throw new DomainException("اندازهٔ عکس نامعتبر است");
+        Width = width; Height = height;
+        Variants = string.Join(",", variantWidths);
+    }
+
+    /// <summary>The file cannot get copies (unreadable, or the original is gone), so the backfill does not try it again.</summary>
+    public void RecordNoCopies() => Variants = "";
 
     public int Id { get; internal set; }
     public int PropertyId { get; private set; }
@@ -314,14 +325,15 @@ public sealed record Pricing
     private static long? NonNegative(long? v) => v < 0 ? throw new DomainException("مبلغ نمی‌تواند منفی باشد") : v;
 }
 
-public enum Channel { Telegram = 1, Bale = 2 }
+/// <summary>A messenger the listings are posted to. (Named Messenger, not Channel, so it does not clash with System.Threading.Channels.)</summary>
+public enum Messenger { Telegram = 1, Bale = 2 }
 
 /// <summary>Tracks the message published to an external channel so it can be edited or removed.</summary>
 public class ChannelPost
 {
     public int Id { get; set; }
     public int PropertyId { get; set; }
-    public Channel Channel { get; set; }
+    public Messenger Channel { get; set; }
     public string? ExternalMessageId { get; set; }
     /// <summary>True when the message is a photo with caption (edit uses editMessageCaption instead of editMessageText).</summary>
     public bool HasPhoto { get; set; }
@@ -331,6 +343,13 @@ public class ChannelPost
     public string? PhotoKey { get; set; }
     public string? Error { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Every message id of the post: the first message, then the rest of an album.</summary>
+    public IEnumerable<string> MessageIds()
+    {
+        if (ExternalMessageId is { } first) yield return first;
+        foreach (var id in (ExtraMessageIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)) yield return id;
+    }
 }
 
 /// <summary>A one-time SMS code for proving a mobile number before submitting a listing.</summary>

@@ -83,9 +83,7 @@ public sealed class OutboxDispatcher(
                 foreach (var post in gone?.Posts ?? []) await publisher.DeleteMessagesAsync(post.Channel, post.MessageIds, ct);
                 foreach (var file in gone?.Photos ?? [])
                 {
-                    var photo = PropertyPhoto.Stored(file.Url);
-                    photo.Variants = file.Variants;
-                    await photos.DeleteAsync(photo, ct);
+                    await photos.DeleteAsync(PropertyPhoto.Stored(file.Url, file.Variants), ct);
                 }
                 return;
 

@@ -66,17 +66,18 @@ public class PhotoStorage(IFileStore primary, LocalFileStore local)
     private static async Task AddVariantsAsync(PropertyPhoto photo, Stream original, IFileStore store, CancellationToken ct)
     {
         var made = PhotoVariants.Make(original);
-        photo.Variants = "";
-        if (made is null) return;
-        photo.Width = made.Width;
-        photo.Height = made.Height;
+        if (made is null)
+        {
+            photo.RecordNoCopies();
+            return;
+        }
         var stem = Path.GetFileNameWithoutExtension(photo.Url);
         foreach (var v in made.Variants)
         {
             using var webp = new MemoryStream(v.Webp);
             await store.PutAsync($"{stem}-{v.Width}.webp", webp, v.Webp.Length, "image/webp", ct);
         }
-        photo.Variants = string.Join(",", made.Variants.Select(v => v.Width));
+        photo.RecordCopies(made.Width, made.Height, made.Variants.Select(v => v.Width));
     }
 
     /// <returns>The photo's bytes, or null when it is gone from its store.</returns>

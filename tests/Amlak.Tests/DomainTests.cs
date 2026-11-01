@@ -1,4 +1,4 @@
-using Amlak.Web.Domain;
+using Amlak.Domain;
 
 namespace Amlak.Tests;
 

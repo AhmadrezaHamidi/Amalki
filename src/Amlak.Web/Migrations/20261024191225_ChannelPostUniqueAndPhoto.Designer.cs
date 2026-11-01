@@ -25,7 +25,7 @@ namespace Amlak.Web.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Amlak.Web.Domain.ChannelPost", b =>
+            modelBuilder.Entity("Amlak.Domain.ChannelPost", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,7 +59,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("ChannelPosts");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Property", b =>
+            modelBuilder.Entity("Amlak.Domain.Property", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -149,7 +149,7 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Properties");
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.PropertyPhoto", b =>
+            modelBuilder.Entity("Amlak.Domain.PropertyPhoto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -380,18 +380,18 @@ namespace Amlak.Web.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.ChannelPost", b =>
+            modelBuilder.Entity("Amlak.Domain.ChannelPost", b =>
                 {
-                    b.HasOne("Amlak.Web.Domain.Property", null)
+                    b.HasOne("Amlak.Domain.Property", null)
                         .WithMany("ChannelPosts")
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.PropertyPhoto", b =>
+            modelBuilder.Entity("Amlak.Domain.PropertyPhoto", b =>
                 {
-                    b.HasOne("Amlak.Web.Domain.Property", null)
+                    b.HasOne("Amlak.Domain.Property", null)
                         .WithMany("Photos")
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -449,7 +449,7 @@ namespace Amlak.Web.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Amlak.Web.Domain.Property", b =>
+            modelBuilder.Entity("Amlak.Domain.Property", b =>
                 {
                     b.Navigation("ChannelPosts");
 

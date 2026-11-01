@@ -4,6 +4,12 @@ using SkiaSharp;
 
 namespace Amlak.Web.Services;
 
+/// <summary>What the page needs to render a stored photo: a view of a <see cref="PropertyPhoto"/> or of a read-side row.</summary>
+public sealed record PhotoFile(string Url, string Alt, int? Width, int? Height, string? Variants)
+{
+    public static implicit operator PhotoFile(PropertyPhoto p) => new(p.Url, p.Alt, p.Width, p.Height, p.Variants);
+}
+
 /// <summary>
 /// Resized WebP copies of listing photos, served through srcset so phones download a small file
 /// instead of the camera original (SEO-07, Core Web Vitals / LCP). The copy of ".../abc.jpg" at
@@ -77,7 +83,7 @@ public static class PhotoVariants
     /// &lt;picture&gt; with the WebP srcset when the photo has copies, else a plain &lt;img&gt;.
     /// The picture element is display:contents in CSS, so layouts written for a bare img keep working.
     /// </summary>
-    public static IHtmlContent Img(PropertyPhoto p, string sizes, int width, int height, bool eager = false)
+    public static IHtmlContent Img(PhotoFile p, string sizes, int width, int height, bool eager = false)
     {
         var e = HtmlEncoder.Default;
         var img = $"<img src=\"{e.Encode(p.Url)}\" alt=\"{e.Encode(p.Alt)}\" width=\"{p.Width ?? width}\" height=\"{p.Height ?? height}\" "
@@ -89,7 +95,7 @@ public static class PhotoVariants
     }
 
     /// <returns>URL of the largest WebP copy, or the original when there is none.</returns>
-    public static string Largest(PropertyPhoto p) => ParseWidths(p.Variants) is { Count: > 0 } w ? UrlFor(p.Url, w[^1]) : p.Url;
+    public static string Largest(PhotoFile p) => ParseWidths(p.Variants) is { Count: > 0 } w ? UrlFor(p.Url, w[^1]) : p.Url;
 
     public static List<int> ParseWidths(string? variants) =>
         string.IsNullOrWhiteSpace(variants) ? [] : variants.Split(',').Select(s => int.TryParse(s, out var w) ? w : 0).Where(w => w > 0).Order().ToList();

@@ -1,4 +1,4 @@
-namespace Amlak.Web.Domain;
+namespace Amlak.Domain;
 
 /// <summary>An Iranian mobile number, always stored as 09xxxxxxxxx. An invalid number cannot be built.</summary>
 public readonly record struct PhoneNumber

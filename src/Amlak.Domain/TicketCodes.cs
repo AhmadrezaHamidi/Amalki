@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace Amlak.Web.Services;
+namespace Amlak.Domain;
 
 /// <summary>Tracking codes for support tickets: 8 characters, no look-alikes (0/O, 1/I/L), ~40 bits of randomness.</summary>
 public static class TicketCodes
@@ -14,5 +14,5 @@ public static class TicketCodes
 
     /// <summary>Accepts what people type: lower case, dashes, spaces, Persian digits.</summary>
     public static string Normalize(string? input) =>
-        new(Fa.Latin(input ?? "").ToUpperInvariant().Where(c => Alphabet.Contains(c)).ToArray());
+        new(PersianText.LatinDigits(input ?? "").ToUpperInvariant().Where(c => Alphabet.Contains(c)).ToArray());
 }

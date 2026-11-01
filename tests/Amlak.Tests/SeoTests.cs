@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Seo;
 

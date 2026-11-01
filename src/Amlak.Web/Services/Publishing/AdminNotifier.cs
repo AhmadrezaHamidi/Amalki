@@ -7,7 +7,7 @@ namespace Amlak.Web.Services.Publishing;
 /// </summary>
 public class AdminNotifier
 {
-    private readonly List<(Channel Channel, BotApiClient Client)> _clients = [];
+    private readonly List<(Messenger Channel, BotApiClient Client)> _clients = [];
     private readonly ILogger<AdminNotifier> _log;
     private readonly string _baseUrl;
 
@@ -16,10 +16,10 @@ public class AdminNotifier
         _log = log;
         _baseUrl = cfg["Site:BaseUrl"] ?? "http://localhost";
         var http = httpFactory.CreateClient("bots");
-        Register(Channel.Telegram, "Telegram", "https://api.telegram.org");
-        Register(Channel.Bale, "Bale", "https://tapi.bale.ai");
+        Register(Messenger.Telegram, "Telegram", "https://api.telegram.org");
+        Register(Messenger.Bale, "Bale", "https://tapi.bale.ai");
 
-        void Register(Channel channel, string section, string defaultBase)
+        void Register(Messenger channel, string section, string defaultBase)
         {
             var token = cfg[$"{section}:BotToken"];
             var chat = cfg[$"{section}:AdminChatId"];

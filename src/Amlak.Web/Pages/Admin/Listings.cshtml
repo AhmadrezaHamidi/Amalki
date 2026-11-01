@@ -33,7 +33,7 @@
                             @if (p.ChannelPosts.Count == 0) { <span class="hint">—</span> }
                             @foreach (var c in p.ChannelPosts)
                             {
-                                var name = c.Channel == Channel.Telegram ? "تلگرام" : "بله";
+                                var name = c.Channel == Messenger.Telegram ? "تلگرام" : "بله";
                                 if (c.Error is null) { <span class="ch-ok" style="margin-inline-end:8px">@name ✓</span> }
                                 else { <span class="ch-bad" style="margin-inline-end:8px" title="@c.Error">@name ✗</span> }
                             }

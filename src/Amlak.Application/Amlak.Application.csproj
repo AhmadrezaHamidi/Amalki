@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Use cases and the ports they need. References only the Domain: no EF Core, no ASP.NET Core.
+       The web project implements the ports (repositories, unit of work) and calls the use cases. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Amlak.Domain" />
+    <InternalsVisibleTo Include="Amlak.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Amlak.Domain\Amlak.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

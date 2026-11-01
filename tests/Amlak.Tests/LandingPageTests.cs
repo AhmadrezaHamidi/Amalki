@@ -1,5 +1,5 @@
 using Amlak.Web.Data;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Pages.Properties;
 using Amlak.Web.Read;
 using Amlak.Web.Services;

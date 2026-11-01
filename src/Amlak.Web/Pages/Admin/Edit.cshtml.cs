@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Amlak.Application.Listings;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
@@ -8,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Pages.Admin;
 
-public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher publisher, TimeProvider clock) : PageModel
+/// <summary>Admin listing form. Reads the listing directly; every change goes through <see cref="ListingCommands"/>.</summary>
+public class EditModel(AppDbContext db, ListingCommands listings, PhotoStorage storage, ChannelPublisher publisher) : PageModel
 {
     public class InputModel
     {
@@ -47,7 +49,7 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
     public string? OwnerName { get; private set; }
     public string? OwnerPhone { get; private set; }
     public List<ChannelPost> Posts { get; private set; } = [];
-    public IReadOnlyCollection<Channel> Configured => publisher.ConfiguredChannels;
+    public IReadOnlyCollection<Messenger> Configured => publisher.ConfiguredChannels;
 
     public async Task<IActionResult> OnGetAsync(int? id)
     {
@@ -66,91 +68,41 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(int? id)
+    public async Task<IActionResult> OnPostAsync(int? id, CancellationToken ct)
     {
         Validate();
-        Property? p = null;
-        if (id is not null)
-        {
-            p = await db.Properties.Include(x => x.Photos).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
-            if (p is null) return NotFound();
-        }
-        if (!ModelState.IsValid) return await Redisplay(p);
+        if (!ModelState.IsValid) return await RedisplayAsync(id);
 
         // Check every upload before storing any, so a bad second file leaves no orphaned first file.
         var uploads = Uploads.Where(f => f.Length > 0).ToList();
-        if (uploads.FirstOrDefault(f => !PhotoStorage.LooksValid(f)) is { } bad)
-        {
-            ModelState.AddModelError("", $"فایل «{Path.GetFileName(bad.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
-            return await Redisplay(p);
-        }
-
-        var isNew = p is null;
-        var now = clock.GetUtcNow().UtcDateTime;
-        try
-        {
-            var details = ListingDetails.Of(Input.Title, Input.Description, Input.Kind, Input.AreaM2, Input.City, Input.District,
-                Input.Bedrooms, Input.Floor, Input.Parking, Input.YearBuilt, Input.Address, Input.Latitude, Input.Longitude)
-                with { HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed };
-            var pricing = Pricing.For(Input.Deal, Input.Price, Input.Deposit, Input.MonthlyRent, Input.Convertible);
-            if (p is null)
-            {
-                p = Property.Create(await Slugger.UniqueAsync(db, details.Title), details, pricing, now);
-                p.ChangeStatus(Input.Status, now);
-                db.Properties.Add(p);
-            }
-            else if (Input.Status == ListingStatus.Published)
-            {
-                p.Update(details, pricing, now);
-                p.ChangeStatus(Input.Status, now);
-            }
-            else
-            {
-                // Leave the live state first, so a draft may be saved without a complete price.
-                p.ChangeStatus(Input.Status, now);
-                p.Update(details, pricing, now);
-            }
-            p.ShowPriceAs(Input.PriceDisplay, now);
-        }
-        catch (DomainException ex)
-        {
-            ModelState.AddModelError("", ex.Message);
-            return await Redisplay(isNew ? null : p);
-        }
-
+        if (uploads.FirstOrDefault(f => !PhotoStorage.LooksValid(f)) is { } bad) return await RejectFileAsync(id, bad, []);
+        var stored = new List<PropertyPhoto>();
         foreach (var file in uploads)
         {
-            var photo = await storage.SaveAsync(file);
-            if (photo is null)
-            {
-                ModelState.AddModelError("", $"فایل «{Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
-                return await Redisplay(isNew ? null : p);
-            }
-            p.AddPhoto(photo, now);
+            if (await storage.SaveAsync(file) is not { } photo) return await RejectFileAsync(id, file, stored);
+            stored.Add(photo);
         }
 
         // Channel posts follow from the saved events (OutboxDispatcher), outside this request.
-        await db.SaveChangesAsync();
-        return RedirectToPage("Edit", new { id = p.Id });
+        var saved = await listings.SaveAsync(id, ToForm(), Input.Status, Input.PriceDisplay, stored, ct);
+        if (saved.Succeeded) return RedirectToPage("Edit", new { id = saved.Value });
+        foreach (var photo in stored) await storage.DeleteAsync(photo);
+        if (saved.IsNotFound) return NotFound();
+        ModelState.AddModelError("", saved.Error!);
+        return await RedisplayAsync(id);
     }
 
-    public async Task<IActionResult> OnPostDeletePhotoAsync(int id, int photoId)
+    public async Task<IActionResult> OnPostDeletePhotoAsync(int id, int photoId, CancellationToken ct)
     {
-        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
-        if (p?.RemovePhoto(photoId, clock.GetUtcNow().UtcDateTime) is not { } photo) return NotFound();
-        await db.SaveChangesAsync();
+        var removed = await listings.RemovePhotoAsync(id, photoId, ct);
+        if (!removed.Succeeded) return NotFound();
         // The file goes only after the database no longer points at it.
-        await storage.DeleteAsync(photo);
+        await storage.DeleteAsync(removed.Value!);
         return RedirectToPage("Edit", new { id });
     }
 
-    public async Task<IActionResult> OnPostMovePhotoAsync(int id, int photoId, PhotoOrder.Move move)
-    {
-        var p = await db.Properties.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == id);
-        if (p is null || !p.MovePhoto(photoId, move, clock.GetUtcNow().UtcDateTime)) return NotFound();
-        await db.SaveChangesAsync();
-        return RedirectToPage("Edit", new { id });
-    }
+    public async Task<IActionResult> OnPostMovePhotoAsync(int id, int photoId, PhotoOrder.Move move, CancellationToken ct) =>
+        (await listings.MovePhotoAsync(id, photoId, move, ct)).Succeeded ? RedirectToPage("Edit", new { id }) : NotFound();
 
     public async Task<IActionResult> OnPostRepublishAsync(int id)
     {
@@ -166,9 +118,29 @@ public class EditModel(AppDbContext db, PhotoStorage storage, ChannelPublisher p
             ModelState.AddModelError("Input.Deposit", "رهن یا اجارهٔ ماهانه را وارد کنید");
     }
 
-    private Task<IActionResult> Redisplay(Property? p)
+    private ListingForm ToForm() => new()
     {
-        Id = p?.Id; Slug = p?.Slug; OwnerName = p?.OwnerName; OwnerPhone = p?.OwnerPhone; Photos = p?.Photos.OrderBy(x => x.SortOrder).ToList() ?? []; Posts = p?.ChannelPosts ?? [];
-        return Task.FromResult<IActionResult>(Page());
+        Title = Input.Title, Description = Input.Description, Deal = Input.Deal, Kind = Input.Kind, AreaM2 = Input.AreaM2,
+        City = Input.City, District = Input.District, Price = Input.Price, Deposit = Input.Deposit, MonthlyRent = Input.MonthlyRent,
+        Convertible = Input.Convertible, Bedrooms = Input.Bedrooms, Floor = Input.Floor, Parking = Input.Parking, YearBuilt = Input.YearBuilt,
+        Address = Input.Address, Latitude = Input.Latitude, Longitude = Input.Longitude,
+        HasElevator = Input.HasElevator, HasStorage = Input.HasStorage, HasBalcony = Input.HasBalcony, Deed = Input.Deed,
+    };
+
+    private async Task<IActionResult> RejectFileAsync(int? id, IFormFile file, List<PropertyPhoto> stored)
+    {
+        foreach (var photo in stored) await storage.DeleteAsync(photo);
+        ModelState.AddModelError("", $"فایل «{Path.GetFileName(file.FileName)}» معتبر نیست (فقط JPG، PNG یا WebP تا ۵ مگابایت).");
+        return await RedisplayAsync(id);
+    }
+
+    /// <summary>Shows the form again with what was typed, next to the saved listing's photos and posts.</summary>
+    private async Task<IActionResult> RedisplayAsync(int? id)
+    {
+        if (id is null) return Page();
+        var p = await db.Properties.AsNoTracking().Include(x => x.Photos).Include(x => x.ChannelPosts).FirstOrDefaultAsync(x => x.Id == id);
+        if (p is null) return NotFound();
+        Id = p.Id; Slug = p.Slug; OwnerName = p.OwnerName; OwnerPhone = p.OwnerPhone; Photos = p.Photos.OrderBy(x => x.SortOrder).ToList(); Posts = p.ChannelPosts;
+        return Page();
     }
 }

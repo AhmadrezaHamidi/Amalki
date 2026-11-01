@@ -1,6 +1,6 @@
 using System.Net;
 using Amlak.Web.Data;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Services.Publishing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;

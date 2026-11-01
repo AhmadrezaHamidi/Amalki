@@ -1,5 +1,5 @@
 using Amlak.Web.Data;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
 using Amlak.Web.Services.Sms;

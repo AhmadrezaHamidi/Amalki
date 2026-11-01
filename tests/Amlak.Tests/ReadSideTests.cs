@@ -1,5 +1,5 @@
 using Amlak.Web.Data;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Read;
 using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
@@ -69,8 +69,8 @@ public abstract class ReadSideTests : IAsyncLifetime
             return t;
         }
         _db.Tickets.AddRange(T("T1", TicketStatus.Open), T("T2", TicketStatus.Answered), T("T3", TicketStatus.Answered), T("T4", TicketStatus.Closed));
-        _db.ChannelPosts.AddRange(new ChannelPost { PropertyId = vanak.Id, Channel = Channel.Telegram, Error = "timeout" },
-            new ChannelPost { PropertyId = vanak.Id, Channel = Channel.Bale, ExternalMessageId = "5" });
+        _db.ChannelPosts.AddRange(new ChannelPost { PropertyId = vanak.Id, Channel = Messenger.Telegram, Error = "timeout" },
+            new ChannelPost { PropertyId = vanak.Id, Channel = Messenger.Bale, ExternalMessageId = "5" });
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
     }

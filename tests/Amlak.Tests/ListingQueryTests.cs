@@ -1,5 +1,5 @@
 ﻿using Amlak.Web.Data;
-using Amlak.Web.Domain;
+using Amlak.Domain;
 using Amlak.Web.Pages.Properties;
 using Amlak.Web.Read;
 using Microsoft.AspNetCore.Http;
@@ -173,7 +173,7 @@ public sealed class ListingQueryTests : IDisposable
             await seed.SaveChangesAsync();
         }
         await using var db = NewDb();
-        Amlak.Web.Pages.Admin.ListingsModel Model(int p) => new(db, TimeProvider.System) { P = p };
+        Amlak.Web.Pages.Admin.ListingsModel Model(int p) => new(db, new Amlak.Application.Listings.ListingCommands(new Amlak.Web.Data.EfListingRepository(db), db, TimeProvider.System)) { P = p };
 
         var first = Model(1);
         await first.OnGetAsync();

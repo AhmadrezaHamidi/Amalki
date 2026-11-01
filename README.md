@@ -158,11 +158,13 @@ dotnet test tests/Amlak.Tests
 ## ساختار پوشه‌ها
 
 ```
+src/Amlak.Domain/       Aggregate ها، Value Object ها و رویدادها (بدون وابستگی)
+src/Amlak.Application/  use caseهای نوشتن و port ها (فقط به Domain وابسته)
 src/Amlak.Web/
-  Domain/            موجودیت‌ها (Property, PropertyPhoto, ChannelPost)
-  Data/              AppDbContext, AdminSeed, DevSeed
+  Data/              AppDbContext (Unit of Work)، repositoryهای EF، Outbox، seed
   Migrations/        EF Core migrations
-  Services/          Slugger, Fa (ارقام و پول فارسی), PhotoStorage
+  Read/              سمت خواندن (CQRS) با View های SQL
+  Services/          Fa، PhotoStorage، پیامک، سئو
   Services/Publishing/  BotApiClient, CaptionBuilder, ChannelPublisher
   Pages/             صفحه‌های عمومی، Account، Admin
 tests/Amlak.Tests/   تست‌های ناشر

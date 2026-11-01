@@ -1,4 +1,5 @@
-﻿using Amlak.Web.Domain;
+﻿using Amlak.Application.Abstractions;
+using Amlak.Domain;
 using Amlak.Web.Read;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -7,8 +8,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Amlak.Web.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options)
-    : IdentityDbContext<IdentityUser>(options)
+    : IdentityDbContext<IdentityUser>(options), IUnitOfWork
 {
+    Task IUnitOfWork.SaveChangesAsync(CancellationToken ct) => SaveChangesAsync(ct);
+
     public DbSet<Property> Properties => Set<Property>();
     public DbSet<PropertyPhoto> PropertyPhotos => Set<PropertyPhoto>();
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();

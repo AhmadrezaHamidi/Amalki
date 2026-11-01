@@ -1,4 +1,4 @@
-namespace Amlak.Web.Domain;
+namespace Amlak.Domain;
 
 // Events carry the aggregate itself: ids are assigned by the database on save, and handlers run after it.
 
