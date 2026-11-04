@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Amlak.Web\Amlak.Web.csproj" />
     <ProjectReference Include="..\..\src\Amlak.Domain\Amlak.Domain.csproj" />
     <ProjectReference Include="..\..\src\Amlak.Application\Amlak.Application.csproj" />
+    <ProjectReference Include="..\..\src\Amlak.Infrastructure\Amlak.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

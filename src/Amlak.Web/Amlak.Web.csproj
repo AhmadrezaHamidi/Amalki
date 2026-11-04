@@ -9,13 +9,15 @@
   <ItemGroup>
     <Using Include="Amlak.Domain" />
     <Using Include="Amlak.Application" />
+    <Using Include="Amlak.Application.Abstractions" />
     <InternalsVisibleTo Include="Amlak.Tests" />
   </ItemGroup>
 
-  <!-- Dependencies point inwards: Web (UI + infrastructure) -> Application (use cases, ports) -> Domain. -->
+  <!-- Dependencies point inwards: Web (UI, EF Core) and Infrastructure (files, SMS) -> Application (use cases, ports) -> Domain. -->
   <ItemGroup>
     <ProjectReference Include="..\Amlak.Domain\Amlak.Domain.csproj" />
     <ProjectReference Include="..\Amlak.Application\Amlak.Application.csproj" />
+    <ProjectReference Include="..\Amlak.Infrastructure\Amlak.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,7 +29,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.22" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.22" />
-    <PackageReference Include="Minio" Version="6.0.5" />
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
   </ItemGroup>

@@ -1,3 +1,4 @@
+using Amlak.Infrastructure;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
 using Amlak.Web.Services.Publishing;
@@ -31,19 +32,8 @@ builder.Services.ConfigureApplicationCookie(o =>
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Admin", p => p.RequireRole("Admin"));
 
-// File storage: "Local" (wwwroot/uploads, default) or "Minio" (Storage:Minio:* settings).
-builder.Services.AddSingleton<Amlak.Web.Services.Storage.LocalFileStore>();
-if (string.Equals(builder.Configuration["Storage:Provider"], "Minio", StringComparison.OrdinalIgnoreCase))
-{
-    var minio = builder.Configuration.GetSection("Storage:Minio").Get<Amlak.Web.Services.Storage.MinioOptions>() ?? new();
-    if (string.IsNullOrWhiteSpace(minio.Endpoint) || string.IsNullOrWhiteSpace(minio.AccessKey) || string.IsNullOrWhiteSpace(minio.SecretKey))
-        throw new InvalidOperationException("Storage:Provider is Minio but Storage:Minio:Endpoint/AccessKey/SecretKey are not set.");
-    builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(new Amlak.Web.Services.Storage.MinioFileStore(minio));
-}
-else
-{
-    builder.Services.AddSingleton<Amlak.Web.Services.Storage.IFileStore>(sp => sp.GetRequiredService<Amlak.Web.Services.Storage.LocalFileStore>());
-}
+// Adapters (Amlak.Infrastructure): file storage on local disk or MinIO, SMS through the log or Kavenegar.
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.WebRootPath);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TicketAccess>();
 // /healthz for the load balancer or uptime monitor: 200 when the app can reach SQL Server, 503 otherwise.
@@ -73,21 +63,6 @@ builder.Services.AddScoped<Amlak.Web.Services.Sms.SmsGateway>();
 builder.Services.AddScoped<Amlak.Web.Services.Sms.AlertService>();
 builder.Services.AddScoped<Amlak.Web.Services.Sms.BulkSmsService>();
 builder.Services.AddHostedService<Amlak.Web.Services.Sms.CampaignWorker>();
-if (string.Equals(builder.Configuration["Sms:Provider"], "Kavenegar", StringComparison.OrdinalIgnoreCase))
-{
-    var key = builder.Configuration["Sms:ApiKey"];
-    var template = builder.Configuration["Sms:Template"];
-    if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(template))
-        throw new InvalidOperationException("Sms:Provider is Kavenegar but Sms:ApiKey/Sms:Template are not set.");
-    builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender>(sp => new Amlak.Web.Services.Sms.KavenegarSmsSender(
-        sp.GetRequiredService<IHttpClientFactory>().CreateClient("bots"), key, template, builder.Configuration["Sms:Sender"],
-        sp.GetRequiredService<ILogger<Amlak.Web.Services.Sms.KavenegarSmsSender>>()));
-}
-else
-{
-    builder.Services.AddScoped<Amlak.Web.Services.Sms.ISmsSender, Amlak.Web.Services.Sms.LogSmsSender>();
-}
-
 // Public forms, per IP per 10 minutes (NFR-09): contact form 5 posts, support tickets 10 (new ticket,
 // tracking lookup and replies share one allowance). Every other request is unlimited.
 builder.Services.AddRateLimiter(o =>
@@ -104,6 +79,7 @@ builder.Services.AddRateLimiter(o =>
             // Code requests, code checks and submissions share one allowance; codes are also limited per phone.
             : path.Equals(Amlak.Web.Pages.SubmitModel.Path) ? ("submit", 10)
             : path.Equals(Amlak.Web.Pages.TrackModel.Path) ? ("track", 10)
+            : path.Equals(Amlak.Web.Pages.Account.OtpModel.Path) ? ("login", 10)
             : ("", 0);
         return limit == 0
             ? RateLimitPartition.GetNoLimiter("")
@@ -123,12 +99,19 @@ var app = builder.Build();
 // First, so the real client IP and scheme reach HTTPS redirection, the rate limiter and the logs.
 app.UseForwardedHeaders();
 
-if (app.Environment.IsDevelopment())
+// Database: Development always migrates and seeds sample listings. Elsewhere Database:Migrate applies the
+// migrations at startup (docker-compose turns it on) and Database:SeedDemo adds the sample listings too.
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Database:SeedDemo"))
 {
     using var scope = app.Services.CreateScope();
     await DevSeed.RunAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), app.Environment.WebRootPath);
 }
-else
+else if (builder.Configuration.GetValue<bool>("Database:Migrate"))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+}
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();

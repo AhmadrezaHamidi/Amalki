@@ -36,3 +36,39 @@ public interface ITicketRepository
     Task<bool> CodeExistsAsync(string code, CancellationToken ct = default);
     void Add(Ticket ticket);
 }
+
+public interface IPhoneCodeRepository
+{
+    /// <summary>True when a code was issued for this number after <paramref name="sinceUtc"/>.</summary>
+    Task<bool> IssuedSinceAsync(string phone, DateTime sinceUtc, CancellationToken ct = default);
+    /// <summary>The newest unused, unexpired code for this number, or null.</summary>
+    Task<PhoneCode?> LatestOpenAsync(string phone, DateTime nowUtc, CancellationToken ct = default);
+    void Add(PhoneCode code);
+}
+
+// Adapters for these two live in Amlak.Infrastructure (Local / MinIO files, Log / Kavenegar SMS).
+
+/// <summary>Where uploaded files live. Files are addressed by the public URL the store returned for them.</summary>
+public interface IFileStore
+{
+    /// <summary>True when <paramref name="url"/> points into this store.</summary>
+    bool Owns(string url);
+
+    /// <returns>Public URL of the stored file.</returns>
+    Task<string> PutAsync(string name, Stream content, long length, string contentType, CancellationToken ct = default);
+
+    /// <returns>The file's bytes, or null when it does not exist.</returns>
+    Task<Stream?> OpenAsync(string url, CancellationToken ct = default);
+
+    Task DeleteAsync(string url, CancellationToken ct = default);
+}
+
+/// <summary>Sends SMS. Chosen by Sms:Provider: "Kavenegar", or "Log" (default, development).</summary>
+public interface ISmsSender
+{
+    /// <summary>The one-time login code, through a template so it is never held back as advertising.</summary>
+    Task<bool> SendCodeAsync(string mobile, string code, CancellationToken ct = default);
+
+    /// <summary>Free text: alerts and campaigns. Callers go through the web SmsGateway, which adds the opt-out rules.</summary>
+    Task<bool> SendTextAsync(string mobile, string text, CancellationToken ct = default);
+}

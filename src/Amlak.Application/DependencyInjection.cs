@@ -8,5 +8,6 @@ public static class UseCases
         typeof(Listings.ListingCommands),
         typeof(Leads.LeadCommands),
         typeof(Support.TicketCommands),
+        typeof(Identity.OtpLogin),
     ];
 }

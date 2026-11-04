@@ -1,57 +1,36 @@
-using System.Security.Cryptography;
-using System.Text;
-using Amlak.Web.Data;
+using Amlak.Application.Identity;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
 
 namespace Amlak.Web.Services.Sms;
 
 public enum SendResult { Sent, TooSoon, Failed }
 
 /// <summary>
-/// SMS one-time codes for visitors who submit listings: 6 digits, valid 5 minutes, 5 tries, one new code
-/// per phone every 2 minutes. A verified phone is kept in a signed, encrypted cookie for one hour.
+/// The web side of OTP login (<see cref="OtpLogin"/> holds the rules): sends and checks codes, and keeps a
+/// verified phone in a signed, encrypted cookie for <see cref="Session"/>. One cookie serves the login page,
+/// posting a listing and SMS alerts, so a visitor proves the number once.
 /// </summary>
-public class PhoneVerification(AppDbContext db, ISmsSender sms, IDataProtectionProvider dp, TimeProvider clock)
+public class PhoneVerification(OtpLogin otp, IDataProtectionProvider dp, TimeProvider clock)
 {
     public const string CookieName = "ash_owner";
-    public static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(5);
-    public static readonly TimeSpan Resend = TimeSpan.FromMinutes(2);
-    public static readonly TimeSpan Session = TimeSpan.FromHours(1);
-    public const int MaxAttempts = 5;
+    public static readonly TimeSpan CodeLifetime = PhoneCode.Lifetime;
+    public static readonly TimeSpan Resend = OtpLogin.ResendAfter;
+    public static readonly TimeSpan Session = TimeSpan.FromDays(7);
+    public const int MaxAttempts = PhoneCode.MaxAttempts;
 
     private readonly IDataProtector _protector = dp.CreateProtector("Amlak.OwnerPhone");
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
-    public async Task<SendResult> SendAsync(string mobile, CancellationToken ct = default)
-    {
-        var since = Now - Resend;
-        if (await db.PhoneCodes.AnyAsync(x => x.Phone == mobile && x.CreatedAtUtc > since, ct)) return SendResult.TooSoon;
-
-        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
-        db.PhoneCodes.Add(new PhoneCode { Phone = mobile, CodeHash = Hash(mobile, code), CreatedAtUtc = Now, ExpiresAtUtc = Now + CodeLifetime });
-        await db.SaveChangesAsync(ct);
-        return await sms.SendCodeAsync(mobile, code, ct) ? SendResult.Sent : SendResult.Failed;
-    }
-
-    public async Task<bool> VerifyAsync(string mobile, string code, CancellationToken ct = default)
-    {
-        var now = Now;
-        var entry = await db.PhoneCodes.Where(x => x.Phone == mobile && !x.Used && x.ExpiresAtUtc > now)
-            .OrderByDescending(x => x.CreatedAtUtc).FirstOrDefaultAsync(ct);
-        if (entry is null || entry.Attempts >= MaxAttempts) return false;
-
-        var given = Fa.Latin(code ?? "").Trim();
-        if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(entry.CodeHash), Encoding.ASCII.GetBytes(Hash(mobile, given))))
+    public async Task<SendResult> SendAsync(string mobile, CancellationToken ct = default) =>
+        await otp.RequestCodeAsync(mobile, ct) switch
         {
-            entry.Attempts++;
-            await db.SaveChangesAsync(ct);
-            return false;
-        }
-        entry.Used = true;
-        await db.SaveChangesAsync(ct);
-        return true;
-    }
+            OtpRequest.Sent => SendResult.Sent,
+            OtpRequest.TooSoon => SendResult.TooSoon,
+            _ => SendResult.Failed,
+        };
+
+    public async Task<bool> VerifyAsync(string mobile, string code, CancellationToken ct = default) =>
+        (await otp.VerifyAsync(mobile, code, ct)).Succeeded;
 
     public void SignIn(HttpResponse response, string mobile) =>
         response.Cookies.Append(CookieName, _protector.Protect($"{mobile}|{(Now + Session).Ticks}"),
@@ -73,7 +52,4 @@ public class PhoneVerification(AppDbContext db, ISmsSender sms, IDataProtectionP
             return null;
         }
     }
-
-    private static string Hash(string mobile, string code) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(mobile + ":" + code)));
 }

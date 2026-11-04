@@ -25,8 +25,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#1E3A5F" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#11151B" media="(prefers-color-scheme: dark)" />
+    @if (ui?.Id == "delta")
+    {
+        // Delta is dark in both schemes.
+        <meta name="theme-color" content="#0B1220" />
+    }
+    else
+    {
+        <meta name="theme-color" content="#1E3A5F" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#11151B" media="(prefers-color-scheme: dark)" />
+    }
     <title>@(string.IsNullOrEmpty(title) ? $"{siteName} | خرید و اجارهٔ ملک" : $"{title} | {siteName}")</title>
     <meta name="description" content="@desc" />
     <link rel="canonical" href="@canonical" />
@@ -104,6 +112,7 @@ else
                 {
                     <a class="btn quiet icon call" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس: @phone">@Icons.Get("phone", 18)</a>
                 }
+                <a class="btn quiet icon" href="/ورود" aria-label="ورود / حساب من" aria-current="@(path == "/ورود" ? "page" : null)">@Icons.Get("user")</a>
                 <a class="btn post" href="/ثبت-آگهی">@Icons.Get("plus", 18)<span class="post-label">ثبت آگهی</span></a>
                 <button class="btn quiet icon nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav" data-nav-toggle>
                     @Icons.Get("menu")<span class="sr-only">منو</span>

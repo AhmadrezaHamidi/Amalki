@@ -13,7 +13,7 @@ namespace Amlak.Tests;
 /// <summary>The dependency rule of the layers: Domain knows nothing, Application knows only the Domain.</summary>
 public class ArchitectureTests
 {
-    private static readonly string[] Frameworks = ["Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore", "Minio", "SkiaSharp", "Amlak.Web"];
+    private static readonly string[] Frameworks = ["Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore", "Minio", "SkiaSharp", "Amlak.Web", "Amlak.Infrastructure"];
 
     private static IEnumerable<string> References(Assembly a) => a.GetReferencedAssemblies().Select(x => x.Name!);
 
@@ -33,9 +33,17 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void Infrastructure_implements_ports_without_knowing_the_web_or_ef()
+    {
+        var refs = References(typeof(Amlak.Infrastructure.DependencyInjection).Assembly).ToList();
+        Assert.Contains("Amlak.Application", refs);
+        Assert.DoesNotContain(refs, r => r.StartsWith("Amlak.Web") || r.StartsWith("Microsoft.EntityFrameworkCore") || r.StartsWith("Microsoft.AspNetCore"));
+    }
+
+    [Fact]
     public void Aggregate_state_cannot_be_set_from_outside_the_domain()
     {
-        foreach (var type in new[] { typeof(Property), typeof(PropertyPhoto), typeof(Lead), typeof(Ticket), typeof(TicketMessage) })
+        foreach (var type in new[] { typeof(Property), typeof(PropertyPhoto), typeof(Lead), typeof(Ticket), typeof(TicketMessage), typeof(PhoneCode) })
         foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.SetMethod is not null))
             Assert.False(prop.SetMethod!.IsPublic && prop.Name != nameof(Property.ChannelPosts), $"{type.Name}.{prop.Name} has a public setter");
     }

@@ -41,7 +41,7 @@ internal static class TestStores
 {
     public static Amlak.Web.Services.PhotoStorage Photos(string root)
     {
-        var local = new Amlak.Web.Services.Storage.LocalFileStore(new Env(root));
+        var local = new Amlak.Infrastructure.Storage.LocalFileStore(root);
         return new Amlak.Web.Services.PhotoStorage(local, local);
     }
 }

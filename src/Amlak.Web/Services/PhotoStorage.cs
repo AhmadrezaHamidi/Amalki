@@ -1,4 +1,4 @@
-using Amlak.Web.Services.Storage;
+using Amlak.Infrastructure.Storage;
 
 namespace Amlak.Web.Services;
 
