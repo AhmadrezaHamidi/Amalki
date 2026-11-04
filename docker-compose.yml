@@ -1,0 +1,66 @@
+# Whole site on one machine: web (ASP.NET Core) + SQL Server + MinIO for listing photos.
+#   cp .env.example .env   # then change the passwords
+#   docker compose up -d --build
+# Site: http://localhost:8080   MinIO console: http://localhost:9001
+# Docs: docs/DEPLOY.md
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes: [db-data:/var/opt/mssql]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 12
+      start_period: 20s
+
+  minio:
+    # The official minio/minio image is no longer published on Docker Hub; point MINIO_IMAGE at your own
+    # build or mirror of it (see docs/DEPLOY.md).
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:?set MINIO_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:?set MINIO_PASSWORD in .env}
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio-data:/data]
+
+  web:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+      minio: { condition: service_started }
+    ports: ["8080:8080"]
+    environment:
+      ConnectionStrings__Default: "Server=db;Database=Amlak;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      Database__Migrate: "true"
+      Database__SeedDemo: ${SEED_DEMO:-false}
+      Site__BaseUrl: ${SITE_URL:-http://localhost:8080}
+      Ui__Variant: delta
+      Storage__Provider: Minio
+      Storage__Minio__Endpoint: minio:9000
+      Storage__Minio__AccessKey: ${MINIO_USER}
+      Storage__Minio__SecretKey: ${MINIO_PASSWORD}
+      Storage__Minio__Bucket: amlak
+      Storage__Minio__UseSsl: "false"
+      # Where browsers load photos from: MinIO's public address (or a CDN / reverse proxy in front of it).
+      Storage__Minio__PublicBaseUrl: ${PHOTOS_URL:-http://localhost:9000/amlak}
+      Admin__Email: ${ADMIN_EMAIL:-}
+      Admin__Password: ${ADMIN_PASSWORD:-}
+      Sms__Provider: ${SMS_PROVIDER:-Log}
+      Sms__ApiKey: ${SMS_API_KEY:-}
+      Sms__Template: ${SMS_TEMPLATE:-}
+      Sms__Sender: ${SMS_SENDER:-}
+      Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
+      Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
+      Bale__BotToken: ${BALE_BOT_TOKEN:-}
+      Bale__ChatId: ${BALE_CHAT_ID:-}
+    volumes: [keys:/home/app/.aspnet/DataProtection-Keys]
+
+volumes:
+  db-data:
+  minio-data:
+  keys:

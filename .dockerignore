@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+.git/
+tests/
+loadtest/
+design/
+docs/screenshots/
+src/Amlak.Web/wwwroot/uploads/

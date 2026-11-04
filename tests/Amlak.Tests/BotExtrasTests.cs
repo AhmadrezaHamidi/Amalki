@@ -127,7 +127,7 @@ public class SupportAndStorageTests
         File.WriteAllText(Path.Combine(root, "secret.txt"), "x");
         try
         {
-            var store = new Amlak.Web.Services.Storage.LocalFileStore(new Env(root));
+            var store = new Amlak.Infrastructure.Storage.LocalFileStore(root);
             Assert.Null(await store.OpenAsync("/uploads/../secret.txt"));
             Assert.Null(await store.OpenAsync("/other/secret.txt"));
             var url = await store.PutAsync("a.png", new MemoryStream([1, 2, 3]), 3, "image/png");

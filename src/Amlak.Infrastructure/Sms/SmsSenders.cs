@@ -1,14 +1,6 @@
-namespace Amlak.Web.Services.Sms;
+using Microsoft.Extensions.Logging;
 
-/// <summary>Sends SMS. Chosen by Sms:Provider: "Kavenegar", or "Log" (default, development).</summary>
-public interface ISmsSender
-{
-    /// <summary>The one-time login code, through a template so it is never held back as advertising.</summary>
-    Task<bool> SendCodeAsync(string mobile, string code, CancellationToken ct = default);
-
-    /// <summary>Free text: alerts and campaigns. Callers go through <see cref="SmsGateway"/>, which adds the opt-out rules.</summary>
-    Task<bool> SendTextAsync(string mobile, string text, CancellationToken ct = default);
-}
+namespace Amlak.Infrastructure.Sms;
 
 /// <summary>Development sender: writes the code to the log instead of sending an SMS.</summary>
 public class LogSmsSender(ILogger<LogSmsSender> log) : ISmsSender

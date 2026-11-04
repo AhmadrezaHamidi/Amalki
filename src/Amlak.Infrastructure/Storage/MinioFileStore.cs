@@ -2,7 +2,7 @@ using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
 
-namespace Amlak.Web.Services.Storage;
+namespace Amlak.Infrastructure.Storage;
 
 public sealed class MinioOptions
 {

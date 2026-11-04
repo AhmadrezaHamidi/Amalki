@@ -41,4 +41,6 @@ mc anonymous set download amlak/amlak/uploads
 
 ## راستی‌آزمایی
 
-نوشتن، خواندن، حذف و دانلود عمومی با یک سرور سازگار با S3 (moto) امتحان شده است؛ با سرور واقعی MinIO امتحان نشده است.
+نوشتن، خواندن، حذف و دانلود عمومی با سرور واقعی MinIO امتحان شده است (۲۰۲۶-۱۱-۰۴). تست `MinioIntegrationTests` وقتی `AMLAK_TEST_MINIO="localhost:9000|کلید|رمز"` تنظیم باشد روی سرور واقعی اجرا می‌شود و در غیر این صورت رد (skip) می‌شود.
+
+کد این بخش در پروژهٔ `src/Amlak.Infrastructure/Storage` است (پورت `IFileStore` در `Amlak.Application`). اجرای کامل با Docker: [DEPLOY.md](DEPLOY.md).

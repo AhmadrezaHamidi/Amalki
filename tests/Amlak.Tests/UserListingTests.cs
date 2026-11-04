@@ -1,3 +1,4 @@
+using Amlak.Application.Abstractions;
 using Amlak.Web.Data;
 using Amlak.Domain;
 using Amlak.Web.Services;
@@ -27,7 +28,8 @@ public class UserListingTests : IDisposable
         return db;
     }
 
-    private PhoneVerification NewVerification(AppDbContext db) => new(db, _sms, _dp, _clock);
+    private PhoneVerification NewVerification(AppDbContext db) =>
+        new(new Amlak.Application.Identity.OtpLogin(new EfPhoneCodeRepository(db), _sms, db, _clock), _dp, _clock);
 
     [Fact]
     public async Task Code_is_sent_once_per_window_and_verifies_once()

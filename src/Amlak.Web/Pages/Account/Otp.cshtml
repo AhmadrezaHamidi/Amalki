@@ -1,0 +1,57 @@
+@page "/ورود"
+@model Amlak.Web.Pages.Account.OtpModel
+@{
+    ViewData["Title"] = "ورود با شمارهٔ موبایل";
+    ViewData["Description"] = "ورود به حساب کاربری با کد یک‌بارمصرف پیامکی؛ برای ثبت آگهی، دیدن آگهی‌های خودتان و هشدار پیامکی.";
+    ViewData["Robots"] = "noindex,follow";
+}
+<div class="wrap page-pad" style="max-width:520px">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / ورود</nav>
+    @if (Model.Current is { } phone)
+    {
+        <section class="form-card form" aria-labelledby="acc-title">
+            <h1 id="acc-title" style="font-size:1.35rem">حساب من</h1>
+            <p>وارد شده با <bdi dir="ltr">@Fa.Digits(phone)</bdi></p>
+            <div class="row-actions" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:12px">
+                <a class="btn lg block" href="/ثبت-آگهی">آگهی‌های من و ثبت آگهی تازه</a>
+                <a class="btn ghost lg block" href="/پیگیری">هشدارهای پیامکی من</a>
+                <a class="btn ghost lg block" href="/نشان‌شده">نشان‌شده‌ها</a>
+            </div>
+            <form method="post" asp-page-handler="Logout" style="margin-top:16px"><button class="btn quiet sm">خروج از حساب</button></form>
+        </section>
+    }
+    else
+    {
+        <section class="form-card form" aria-labelledby="login-title">
+            <h1 id="login-title" style="font-size:1.35rem">ورود با شمارهٔ موبایل</h1>
+            @if (!Model.AwaitingCode)
+            {
+                <form method="post" asp-page-handler="SendCode">
+                    <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+                    <label for="Phone">شمارهٔ موبایل</label>
+                    <input id="Phone" name="Phone" value="@Model.Phone" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" required autofocus />
+                    <span asp-validation-for="Phone" class="err"></span>
+                    <p class="hint">یک کد ۶ رقمی برایتان پیامک می‌شود. رمز عبور لازم نیست.</p>
+                    <button class="btn lg block" style="margin-top:12px">دریافت کد</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-page-handler="Verify">
+                    <input type="hidden" name="Phone" value="@Model.Phone" />
+                    <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+                    <p>کد ارسال‌شده به <bdi dir="ltr">@Fa.Digits(Model.Phone ?? "")</bdi> را وارد کنید.</p>
+                    <label for="Code">کد تأیید</label>
+                    <input id="Code" name="Code" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="6" required autofocus />
+                    <span asp-validation-for="Code" class="err"></span>
+                    <button class="btn lg block" style="margin-top:12px">ورود</button>
+                </form>
+                <form method="post" asp-page-handler="SendCode" style="margin-top:8px">
+                    <input type="hidden" name="Phone" value="@Model.Phone" />
+                    <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+                    <button class="btn quiet sm">ارسال دوبارهٔ کد</button>
+                </form>
+            }
+        </section>
+    }
+</div>

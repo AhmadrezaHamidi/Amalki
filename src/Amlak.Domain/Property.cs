@@ -351,16 +351,3 @@ public class ChannelPost
         foreach (var id in (ExtraMessageIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)) yield return id;
     }
 }
-
-/// <summary>A one-time SMS code for proving a mobile number before submitting a listing.</summary>
-public class PhoneCode
-{
-    public int Id { get; set; }
-    public string Phone { get; set; } = "";
-    /// <summary>SHA-256 of phone + code; the code itself is never stored.</summary>
-    public string CodeHash { get; set; } = "";
-    public int Attempts { get; set; }
-    public bool Used { get; set; }
-    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-    public DateTime ExpiresAtUtc { get; set; }
-}

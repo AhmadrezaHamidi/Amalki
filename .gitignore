@@ -3,3 +3,4 @@ obj/
 src/Amlak.Web/wwwroot/uploads/
 *.user
 src/Amlak.Web/wwwroot/lib/
+.env

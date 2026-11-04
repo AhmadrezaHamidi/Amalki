@@ -39,7 +39,7 @@
 [data-ui=jabama] .home-search .tabs input:checked+span,[data-ui=melkana] .home-search .tabs input:checked+span{background:#fff;color:var(--primary)}
 /* Main action keeps site.css's --cta; light CTA colours (amber, gold) need dark type. */
 [data-ui=melkradar] .btn:not([class*=" "]),[data-ui=delta] .btn:not([class*=" "]),
-[data-ui=melkradar] .btn.lg:not(.light):not(.outline-light),[data-ui=delta] .btn.lg:not(.light):not(.outline-light),
+[data-ui=melkradar] .btn.lg:not(.light):not(.outline-light):not(.ghost),[data-ui=delta] .btn.lg:not(.light):not(.outline-light):not(.ghost),
 [data-ui=melkradar] .btn.post,[data-ui=delta] .btn.post{color:var(--on-cta)}
 [data-ui] .tabbar .tab-post-btn{color:var(--on-cta,#fff);box-shadow:0 6px 16px color-mix(in srgb,var(--cta) 40%,transparent)}
 
@@ -145,6 +145,9 @@
 [data-ui=delta] .card .price{color:var(--primary)}
 [data-ui=delta] .ph .tag{background:#0B1220;color:var(--primary);border:1px solid var(--primary)}
 [data-ui=delta] .site-head{border-bottom-color:var(--line)}
+[data-ui=delta] .btn.lg,[data-ui=delta] .home-search-row .btn{border-radius:var(--radius)}
+[data-ui=delta]{--cta-soft:var(--primary-soft)}
+[data-ui=delta] .safety{color:var(--primary-dark);border:1px solid color-mix(in srgb,var(--primary) 35%,transparent)}
 
 /* ===== 10. ملکانه — agency workspace ===== */
 /* Indigo on slate, compact cards with a coloured edge per deal type: reads like an agent's file list. */

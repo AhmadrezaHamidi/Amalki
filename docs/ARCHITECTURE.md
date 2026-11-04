@@ -180,6 +180,7 @@ Value Objectها: `Pricing` (فروش یا رهن/اجاره)، `ListingDetails`
 | یک کلاینت برای تلگرام و بله | API بله با Telegram Bot API هم‌شکل است؛ فقط میزبان فرق دارد |
 | آپلود عکس به‌جای لینک عکس در کانال | در توسعه (localhost) هم کار می‌کند و به آدرس عمومی عکس وابسته نیست |
 | خطای ارسال، غیرمسدودکننده | شکست تلگرام (فیلتر یا قطعی) نباید ثبت آگهی را بخواباند |
-| سه پروژهٔ Domain / Application / Web | قاعدهٔ وابستگی را کامپایلر نگه می‌دارد؛ Domain بدون EF و ASP.NET تست و فهمیده می‌شود |
+| چهار پروژهٔ Domain / Application / Infrastructure / Web | قاعدهٔ وابستگی را کامپایلر نگه می‌دارد؛ Domain بدون EF و ASP.NET تست و فهمیده می‌شود؛ آداپتورهای فایل (Local/MinIO) و پیامک (Log/Kavenegar) در Infrastructure و پشت پورت‌های Application هستند. EF Core هنوز در Web است |
+| ورود کاربر با کد پیامکی (OTP) | قانون‌ها روی Aggregate `PhoneCode` و جریان در use case `OtpLogin`؛ صفحهٔ `/ورود` فقط کوکی را نگه می‌دارد |
 | enum `Messenger` به‌جای `Channel` | با `System.Threading.Channels` تداخل نداشته باشد |
 | Slug فارسی | گوگل URL فارسی را ایندکس می‌کند و خوانا است |

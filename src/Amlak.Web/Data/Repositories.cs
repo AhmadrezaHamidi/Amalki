@@ -40,6 +40,18 @@ public sealed class EfTicketRepository(AppDbContext db) : ITicketRepository
     public void Add(Ticket ticket) => db.Tickets.Add(ticket);
 }
 
+public sealed class EfPhoneCodeRepository(AppDbContext db) : IPhoneCodeRepository
+{
+    public Task<bool> IssuedSinceAsync(string phone, DateTime sinceUtc, CancellationToken ct = default) =>
+        db.PhoneCodes.AnyAsync(x => x.Phone == phone && x.CreatedAtUtc > sinceUtc, ct);
+
+    public Task<PhoneCode?> LatestOpenAsync(string phone, DateTime nowUtc, CancellationToken ct = default) =>
+        db.PhoneCodes.Where(x => x.Phone == phone && !x.Used && x.ExpiresAtUtc > nowUtc)
+            .OrderByDescending(x => x.CreatedAtUtc).FirstOrDefaultAsync(ct);
+
+    public void Add(PhoneCode code) => db.PhoneCodes.Add(code);
+}
+
 public static class PersistenceRegistration
 {
     /// <summary>Wires the Application layer: its use cases and the EF Core adapters for its ports.</summary>
@@ -49,6 +61,7 @@ public static class PersistenceRegistration
         services.AddScoped<IListingRepository, EfListingRepository>();
         services.AddScoped<ILeadRepository, EfLeadRepository>();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
+        services.AddScoped<IPhoneCodeRepository, EfPhoneCodeRepository>();
         foreach (var useCase in UseCases.All) services.AddScoped(useCase);
         return services;
     }

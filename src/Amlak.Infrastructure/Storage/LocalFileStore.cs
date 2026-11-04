@@ -1,7 +1,7 @@
-namespace Amlak.Web.Services.Storage;
+namespace Amlak.Infrastructure.Storage;
 
-/// <summary>Files under wwwroot/uploads, served by the app itself at /uploads/...</summary>
-public class LocalFileStore(IWebHostEnvironment env) : IFileStore
+/// <summary>Files under {web root}/uploads, served by the app itself at /uploads/...</summary>
+public class LocalFileStore(string webRoot) : IFileStore
 {
     private const string Folder = "uploads";
 
@@ -9,7 +9,7 @@ public class LocalFileStore(IWebHostEnvironment env) : IFileStore
 
     public async Task<string> PutAsync(string name, Stream content, long length, string contentType, CancellationToken ct = default)
     {
-        var dir = Path.Combine(env.WebRootPath, Folder);
+        var dir = Path.Combine(webRoot, Folder);
         Directory.CreateDirectory(dir);
         await using (var output = File.Create(Path.Combine(dir, name)))
             await content.CopyToAsync(output, ct);
@@ -29,5 +29,5 @@ public class LocalFileStore(IWebHostEnvironment env) : IFileStore
     }
 
     // GetFileName drops any directory part, so a crafted URL cannot reach outside the uploads folder.
-    private string? PathOf(string url) => Owns(url) ? Path.Combine(env.WebRootPath, Folder, Path.GetFileName(url)) : null;
+    private string? PathOf(string url) => Owns(url) ? Path.Combine(webRoot, Folder, Path.GetFileName(url)) : null;
 }
