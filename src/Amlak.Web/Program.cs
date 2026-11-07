@@ -12,9 +12,17 @@ using System.Text.Unicode;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSiteCache();
-builder.Services.AddDbContext<AppDbContext>((sp, o) => o
-    .UseSqlServer(builder.Configuration.GetConnectionString("Default"))
+// Compression, request time limits, Redis for several servers, OpenTelemetry (docs/PERFORMANCE.md).
+builder.AddPerformance();
+builder.Services.AddWebVitals();
+// Pooled contexts: a request reuses a ready DbContext instead of building one (SQL connections are pooled by
+// SqlClient underneath; size it with "Max Pool Size" in the connection string). The factory also lets a page
+// run independent queries at the same time, each on its own context (home page).
+builder.Services.AddPooledDbContextFactory<AppDbContext>((sp, o) => o
+    .UseSqlServer(builder.Configuration.GetConnectionString("Default"),
+        sql => sql.CommandTimeout(builder.Configuration.GetValue("Database:CommandTimeoutSeconds", 15)))
     .AddInterceptors(sp.GetRequiredService<ListingCacheInterceptor>()));
+builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 builder.Services.AddDefaultIdentity<IdentityUser>(o =>
     {
         o.Password.RequiredLength = 10;
@@ -95,7 +103,14 @@ builder.Services.AddRateLimiter(o =>
         await ctx.HttpContext.Response.WriteAsync("درخواست‌های زیادی فرستاده‌اید. لطفاً چند دقیقهٔ دیگر دوباره تلاش کنید.", ct);
     };
 });
-builder.Services.AddRazorPages(o => o.Conventions.AuthorizeFolder("/Admin", "Admin"));
+builder.Services.AddRazorPages(o =>
+{
+    o.Conventions.AuthorizeFolder("/Admin", "Admin");
+    // Photo uploads from a phone on a slow network can take longer than the page time limit.
+    var noTimeout = new Microsoft.AspNetCore.Http.Timeouts.DisableRequestTimeoutAttribute();
+    o.Conventions.AddFolderApplicationModelConvention("/Admin", m => m.EndpointMetadata.Add(noTimeout));
+    o.Conventions.AddPageApplicationModelConvention("/Submit", m => m.EndpointMetadata.Add(noTimeout));
+});
 
 var app = builder.Build();
 
@@ -126,21 +141,16 @@ using (var scope = app.Services.CreateScope())
     await AdminSeed.RunAsync(scope.ServiceProvider, builder.Configuration, app.Logger);
 }
 
+app.UseResponseCompression();
 app.UseHttpsRedirection();
 if (!app.Environment.IsDevelopment()) app.UseCanonicalHost(builder.Configuration);
 app.UseSecurityHeaders();
-// Serves runtime uploads in wwwroot/uploads. Names are random GUIDs and never reused, so browsers may keep them for a year.
-app.UseStaticFiles(new StaticFileOptions
-{
-    OnPrepareResponse = ctx =>
-    {
-        if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
-            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-    },
-});
+// Runtime uploads, fonts, photos and icons, with browser-cache headers (Performance.StaticFiles).
+app.UseStaticFiles(Performance.StaticFiles());
 app.UseStatusCodePagesWithReExecute("/Error", "?code={0}");
 app.UseRouting();
 app.UseRateLimiter();
+app.UseRequestTimeouts();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseUiVariants(); // before the output cache, which keys entries on the variant
@@ -149,6 +159,8 @@ app.UseOutputCache(); // after auth, so the default policy can see signed-in adm
 app.MapHealthChecks("/healthz").DisableHttpMetrics();
 app.MapSeo();
 app.MapDemoMode();
+app.MapSuggest();
+app.MapWebVitals();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

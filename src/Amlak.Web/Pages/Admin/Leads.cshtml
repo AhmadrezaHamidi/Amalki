@@ -25,7 +25,7 @@
                         <td dir="ltr" style="text-align:end">@Fa.Digits(l.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</td>
                         <td>@l.Name</td>
                         <td><a href="tel:@l.Phone" dir="ltr">@Fa.Digits(l.Phone)</a></td>
-                        <td class="wrap-cell">@if (l.Property is { } p) { <a href="/Admin/Edit/@p.Id">@p.Title</a> } else { <span class="hint">مشاورهٔ عمومی</span> }</td>
+                        <td class="wrap-cell">@if (l.PropertyId is { } pid) { <a href="/Admin/Edit/@pid">@l.PropertyTitle</a> } else { <span class="hint">مشاورهٔ عمومی</span> }</td>
                         <td class="wrap-cell" style="max-width:320px">@l.Message</td>
                         <td><span class="pill @(l.Handled ? "draft" : "pub")">@(l.Handled ? "پیگیری‌شده" : "جدید")</span></td>
                         <td>
@@ -39,5 +39,14 @@
                 </tbody>
             </table>
         </div>
+        @if (Model.Pages > 1)
+        {
+            <nav class="pager" aria-label="صفحه‌ها">
+                @for (var i = 1; i <= Model.Pages; i++)
+                {
+                    <a class="btn sm @(i == Model.P ? "" : "quiet")" href="?All=@Model.All&amp;p=@i" aria-current="@(i == Model.P ? "page" : null)">@Fa.Digits(i.ToString())</a>
+                }
+            </nav>
+        }
     }
 </div>

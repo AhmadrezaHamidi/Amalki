@@ -199,6 +199,7 @@
             }
             else
             {
+                ViewData["EagerCards"] = 1; // the first photo is the largest thing on a phone screen (LCP): fetch it first
                 <div class="listings">@foreach (var p in Model.Items) { <partial name="_PropertyCard" model="p" /> }</div>
             }
             @if (Model.Pages > 1)

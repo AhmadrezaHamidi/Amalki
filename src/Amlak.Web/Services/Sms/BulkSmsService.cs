@@ -35,9 +35,14 @@ public class BulkSmsService(AppDbContext db, SmsGateway sms, IConfiguration cfg,
         return list.Where(r => !optedOut.Contains(r.Phone)).DistinctBy(r => r.Phone).ToList();
     }
 
-    public async Task<string> RenderAsync(SmsCampaign c, string? name, CancellationToken ct = default)
+    public async Task<string> RenderAsync(SmsCampaign c, string? name, CancellationToken ct = default) =>
+        Render(c, name, await ListingOfAsync(c, ct));
+
+    private Task<Property?> ListingOfAsync(SmsCampaign c, CancellationToken ct) =>
+        c.PropertyId is { } id ? db.Properties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) : Task.FromResult<Property?>(null);
+
+    private string Render(SmsCampaign c, string? name, Property? p)
     {
-        var p = c.PropertyId is { } id ? await db.Properties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) : null;
         return SmsText.WithOptOut(SmsText.Render(c.Template, new Dictionary<string, string?>
         {
             ["نام"] = string.IsNullOrWhiteSpace(name) ? "کاربر" : name,
@@ -67,10 +72,12 @@ public class BulkSmsService(AppDbContext db, SmsGateway sms, IConfiguration cfg,
 
         var recipients = await RecipientsAsync(c, ct);
         c.Recipients = recipients.Count;
+        // The listing is read once for the whole campaign, not once per recipient (was N+1 queries).
+        var listing = await ListingOfAsync(c, ct);
         foreach (var (phone, name) in recipients)
         {
             ct.ThrowIfCancellationRequested();
-            if (await sms.SendAsync(phone, await RenderAsync(c, name, ct), c.Id, ct)) c.Sent++; else c.Failed++;
+            if (await sms.SendAsync(phone, Render(c, name, listing), c.Id, ct)) c.Sent++; else c.Failed++;
         }
         c.Status = CampaignStatus.Done;
         await db.SaveChangesAsync(ct);

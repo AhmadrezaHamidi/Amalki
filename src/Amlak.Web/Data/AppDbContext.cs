@@ -95,7 +95,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.District).HasMaxLength(80);
             e.Property(x => x.OwnerName).HasMaxLength(80);
             e.Property(x => x.OwnerPhone).HasMaxLength(20);
-            e.HasIndex(x => x.OwnerPhone);
+            // Owner's own listings, newest first (/ثبت-آگهی, /پیگیری): seek by phone and read in order.
+            e.HasIndex(x => new { x.OwnerPhone, x.CreatedAtUtc });
+            // Admin listing table pages through every listing newest first; without this each page sorted the whole table.
+            e.HasIndex(x => new { x.CreatedAtUtc, x.Id });
             e.HasMany(x => x.Photos).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.ChannelPosts).WithOne().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -117,6 +120,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.Phone).HasMaxLength(20);
             e.Property(x => x.Message).HasMaxLength(1000);
             e.HasIndex(x => new { x.Handled, x.CreatedAtUtc });
+            e.HasIndex(x => x.CreatedAtUtc); // "all leads" view, newest first
             // Keep the lead when its listing is deleted.
             e.HasOne(x => x.Property).WithMany().HasForeignKey(x => x.PropertyId).OnDelete(DeleteBehavior.SetNull);
         });
