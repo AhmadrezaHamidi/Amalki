@@ -13,6 +13,8 @@ RUN dotnet publish src/Amlak.Web/Amlak.Web.csproj -c Release -o /app --no-restor
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app .
+# Folders that docker volumes mount over (photos, login key ring): owned by the app user so a new volume is writable.
+RUN mkdir -p /app/wwwroot/uploads /home/app/keys && chown app:app /app/wwwroot/uploads /home/app/keys
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
