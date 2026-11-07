@@ -137,6 +137,70 @@ namespace Amlak.Web.Migrations
                     b.ToTable("Leads");
                 });
 
+            modelBuilder.Entity("Amlak.Domain.MessengerAccount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChatId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastSeenAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LinkedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Messenger")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ReplyingToTicket")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Phone");
+
+                    b.HasIndex("Messenger", "ChatId")
+                        .IsUnique();
+
+                    b.ToTable("MessengerAccounts");
+                });
+
+            modelBuilder.Entity("Amlak.Domain.MessengerInbox", b =>
+                {
+                    b.Property<int>("Messenger")
+                        .HasColumnType("int");
+
+                    b.Property<long>("UpdateId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Messenger", "UpdateId");
+
+                    b.ToTable("MessengerInbox");
+                });
+
             modelBuilder.Entity("Amlak.Domain.PhoneCode", b =>
                 {
                     b.Property<int>("Id")

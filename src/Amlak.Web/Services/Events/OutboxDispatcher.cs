@@ -14,7 +14,7 @@ namespace Amlak.Web.Services.Events;
 /// </summary>
 public sealed class OutboxDispatcher(
     AppDbContext db, ChannelPublisher publisher, AdminNotifier notifier, PhotoStorage photos, AlertService alerts,
-    TimeProvider clock, ILogger<OutboxDispatcher> log)
+    Amlak.Web.Services.Bot.BotTicketNotifier botTickets, TimeProvider clock, ILogger<OutboxDispatcher> log)
 {
     public const int MaxAttempts = 10;
 
@@ -107,8 +107,13 @@ public sealed class OutboxDispatcher(
                     throw new InvalidOperationException("اعلان تیکت به هیچ پیام‌رسانی نرسید");
                 return;
 
+            case nameof(TicketAnswered):
+                if (!await botTickets.TicketAnsweredAsync(m.AggregateId, m.RefId, ct))
+                    throw new InvalidOperationException("پاسخ تیکت به هیچ چت رباتی نرسید");
+                return;
+
             default:
-                return; // no handler (e.g. TicketAnswered): kept as a record of what happened
+                return; // no handler: kept as a record of what happened
         }
     }
 }

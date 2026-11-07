@@ -72,6 +72,10 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
     public Task<BotResult> CallAsync(string method, CancellationToken ct = default) =>
         Post(method, new MultipartFormDataContent(), ct);
 
+    /// <summary>Any Bot API method with plain form fields (answerCallbackQuery, setWebhook, getUpdates with offset…).</summary>
+    public Task<BotResult> CallAsync(string method, CancellationToken ct, params (string Name, string Value)[] fields) =>
+        Post(method, Form(null, fields), ct);
+
     public Task<BotResult> DeleteAsync(string messageId, CancellationToken ct = default) =>
         Post("deleteMessage", Form(null, ("chat_id", chatId), ("message_id", messageId)), ct);
 

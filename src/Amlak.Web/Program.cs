@@ -1,3 +1,4 @@
+using Amlak.Web.Services.Bot;
 using Amlak.Infrastructure;
 using Amlak.Web.Data;
 using Amlak.Web.Services;
@@ -63,6 +64,10 @@ builder.Services.AddScoped<Amlak.Web.Read.ListingQueries>();
 builder.Services.AddScoped<Amlak.Web.Read.AdminQueries>();
 builder.Services.AddScoped<AdminNotifier>();
 builder.Services.AddScoped<BotDiagnostics>();
+builder.Services.AddSingleton<Amlak.Web.Services.Bot.BotClients>();
+builder.Services.AddScoped<Amlak.Web.Services.Bot.BotUpdateHandler>();
+builder.Services.AddScoped<Amlak.Web.Services.Bot.BotTicketNotifier>();
+builder.Services.AddHostedService<Amlak.Web.Services.Bot.BotPollingService>();
 // Domain events saved with each change are handled here, outside the request (channel posts, admin alerts, file cleanup).
 builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
 builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
@@ -161,6 +166,7 @@ app.MapSeo();
 app.MapDemoMode();
 app.MapSuggest();
 app.MapWebVitals();
+app.MapBotWebhooks();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
