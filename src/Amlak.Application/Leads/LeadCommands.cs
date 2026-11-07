@@ -6,12 +6,13 @@ namespace Amlak.Application.Leads;
 public sealed class LeadCommands(ILeadRepository leads, IUnitOfWork uow, TimeProvider clock)
 {
     /// <param name="propertyId">The published listing the request is about, if any.</param>
-    public async Task<Result<int>> SubmitAsync(string name, PhoneNumber phone, string? message, int? propertyId, CancellationToken ct = default)
+    /// <param name="consultantId">The consultant the visitor picked, if any.</param>
+    public async Task<Result<int>> SubmitAsync(string name, PhoneNumber phone, string? message, int? propertyId, int? consultantId = null, CancellationToken ct = default)
     {
         Lead lead;
         try
         {
-            lead = Lead.Submit(name, phone, message, propertyId, clock.GetUtcNow().UtcDateTime);
+            lead = Lead.Submit(name, phone, message, propertyId, clock.GetUtcNow().UtcDateTime, consultantId);
         }
         catch (DomainException ex)
         {

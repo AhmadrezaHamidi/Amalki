@@ -38,8 +38,8 @@ public class LeadsModel(AppDbContext db, LeadCommands leads) : PageModel
 /// What the lead lists show: only the listing's id and title, not the whole listing row
 /// (description and every other column) that Include(l => l.Property) used to load for each lead.
 /// </summary>
-public sealed record LeadRow(int Id, string Name, string Phone, string? Message, bool Handled, DateTime CreatedAtUtc, int? PropertyId, string? PropertyTitle)
+public sealed record LeadRow(int Id, string Name, string Phone, string? Message, bool Handled, DateTime CreatedAtUtc, int? PropertyId, string? PropertyTitle, string? ConsultantName = null)
 {
     public static IQueryable<LeadRow> Select(IQueryable<Lead> q) =>
-        q.Select(l => new LeadRow(l.Id, l.Name, l.Phone, l.Message, l.Handled, l.CreatedAtUtc, l.PropertyId, l.Property != null ? l.Property.Title : null));
+        q.Select(l => new LeadRow(l.Id, l.Name, l.Phone, l.Message, l.Handled, l.CreatedAtUtc, l.PropertyId, l.Property != null ? l.Property.Title : null, l.Consultant != null ? l.Consultant.Name : null));
 }

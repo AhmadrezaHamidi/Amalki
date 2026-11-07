@@ -27,6 +27,12 @@ public interface ILeadRepository
     void Remove(Lead lead);
 }
 
+public interface IConsultantRepository
+{
+    Task<Consultant?> GetAsync(int id, CancellationToken ct = default);
+    void Add(Consultant consultant);
+}
+
 public interface ITicketRepository
 {
     /// <summary>The ticket with its messages, or null.</summary>

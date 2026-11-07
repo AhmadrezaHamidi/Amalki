@@ -131,19 +131,19 @@ public sealed class ListingQueryTests : IDisposable
     public async Task Detail_loads_every_photo_in_order_and_hides_drafts()
     {
         await using var db = NewDb();
-        var m = new DetailsModel(new ListingQueries(db));
+        var m = new DetailsModel(new ListingQueries(db), new ConsultantQueries(db));
         Assert.IsType<PageResult>(await m.OnGetAsync("sale-tehran-new"));
         Assert.Equal([0, 1, 2], m.Item.Photos.Select(x => x.SortOrder));
 
-        Assert.IsType<NotFoundResult>(await new DetailsModel(new ListingQueries(db)).OnGetAsync("draft-tehran"));
-        Assert.IsType<NotFoundResult>(await new DetailsModel(new ListingQueries(db)).OnGetAsync("missing"));
+        Assert.IsType<NotFoundResult>(await new DetailsModel(new ListingQueries(db), new ConsultantQueries(db)).OnGetAsync("draft-tehran"));
+        Assert.IsType<NotFoundResult>(await new DetailsModel(new ListingQueries(db), new ConsultantQueries(db)).OnGetAsync("missing"));
     }
 
     [Fact]
     public async Task Similar_is_same_deal_and_city_same_kind_first_at_most_three()
     {
         await using var db = NewDb();
-        var m = new DetailsModel(new ListingQueries(db));
+        var m = new DetailsModel(new ListingQueries(db), new ConsultantQueries(db));
         await m.OnGetAsync("sale-tehran-old");
         // Other Tehran sales: apartment first, then villa; never itself, Karaj, rentals or drafts.
         Assert.Equal(["sale-tehran-new", "sale-tehran-villa"], m.Similar.Select(x => x.Slug));

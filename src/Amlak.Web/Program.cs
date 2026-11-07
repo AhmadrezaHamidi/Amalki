@@ -61,6 +61,7 @@ builder.Services.AddScoped<PhotoStorage>();
 builder.Services.AddHttpClient("bots", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<ChannelPublisher>();
 builder.Services.AddScoped<Amlak.Web.Read.ListingQueries>();
+builder.Services.AddScoped<Amlak.Web.Read.ConsultantQueries>();
 builder.Services.AddScoped<Amlak.Web.Read.AdminQueries>();
 builder.Services.AddScoped<AdminNotifier>();
 builder.Services.AddScoped<BotDiagnostics>();

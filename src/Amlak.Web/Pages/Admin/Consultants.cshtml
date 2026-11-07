@@ -1,0 +1,57 @@
+@page
+@model Amlak.Web.Pages.Admin.ConsultantsModel
+@{ ViewData["Title"] = "مشاوران"; ViewData["Robots"] = "noindex,nofollow"; }
+<div class="wrap page-pad">
+    <div class="admin-head">
+        <h1>مشاوران</h1>
+        <a class="btn sm quiet" href="/مشاوران" target="_blank" rel="noopener">دیدن صفحهٔ مشاوران</a>
+    </div>
+    <p class="hint">صفحهٔ هر آگهی، مشاوری را نشان می‌دهد که شهر آن آگهی در فهرست شهرهایش است (اولی به ترتیب نمایش). مشاوری که شهرش خالی است برای همهٔ شهرها نمایش داده می‌شود.</p>
+
+    @if (Model.Items.Count > 0)
+    {
+        <div class="tablewrap">
+            <table class="table">
+                <thead><tr><th>ترتیب</th><th>نام</th><th>موبایل</th><th>شهرها</th><th>درخواست باز</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+                <tbody>
+                @foreach (var c in Model.Items)
+                {
+                    <tr>
+                        <td>@Fa.Digits(c.SortOrder.ToString())</td>
+                        <td><strong>@c.Name</strong><br /><span class="hint">@c.Title</span></td>
+                        <td><a href="tel:@c.Phone" dir="ltr">@Fa.Digits(c.Phone)</a></td>
+                        <td class="wrap-cell">@(c.Cities == "" ? "همهٔ شهرها" : c.Cities)</td>
+                        <td>@Fa.Digits(Model.OpenLeads.GetValueOrDefault(c.Id).ToString())</td>
+                        <td><span class="pill @(c.Active ? "pub" : "draft")">@(c.Active ? "فعال" : "پنهان")</span></td>
+                        <td>
+                            <div class="actions">
+                                <a class="btn sm quiet" href="?edit=@c.Id#form">ویرایش</a>
+                                <form method="post" asp-page-handler="Toggle" asp-route-id="@c.Id"><button class="btn sm @(c.Active ? "quiet" : "")">@(c.Active ? "پنهان کن" : "فعال کن")</button></form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <form method="post" asp-page-handler="Save" class="form-card" id="form" style="max-width:720px;margin-top:24px;display:flex;flex-direction:column;gap:10px">
+        <h2 style="margin:0">@(Model.Editing ? "ویرایش مشاور" : "افزودن مشاور")</h2>
+        <div asp-validation-summary="All" class="err" role="alert"></div>
+        <input type="hidden" asp-for="Input.Id" />
+        <label class="field">نام و نام خانوادگی<input asp-for="Input.Name" maxlength="80" /></label>
+        <label class="field">عنوان شغلی<input asp-for="Input.Title" maxlength="80" placeholder="مشاور ارشد فروش" /></label>
+        <label class="field">موبایل<input asp-for="Input.Phone" dir="ltr" inputmode="tel" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
+        <label class="field">شهرها (با ، جدا کنید؛ خالی = همهٔ شهرها)<input asp-for="Input.Cities" placeholder="تهران، لواسان" /></label>
+        <label class="field">سال‌های سابقه<input asp-for="Input.YearsOfExperience" type="number" min="0" max="60" /></label>
+        <label class="field">تخصص<input asp-for="Input.Specialty" maxlength="120" placeholder="آپارتمان‌های شمال تهران" /></label>
+        <label class="field">معرفی کوتاه<textarea asp-for="Input.Bio" rows="3" maxlength="600"></textarea></label>
+        <label class="field">نشانی عکس (اختیاری)<input asp-for="Input.PhotoUrl" dir="ltr" placeholder="/img/team/name.jpg" /></label>
+        <label class="field">ترتیب نمایش<input asp-for="Input.SortOrder" type="number" /></label>
+        <div style="display:flex;gap:8px">
+            <button class="btn">@(Model.Editing ? "ذخیرهٔ تغییرات" : "افزودن مشاور")</button>
+            @if (Model.Editing) { <a class="btn quiet" href="/Admin/Consultants">انصراف</a> }
+        </div>
+    </form>
+</div>

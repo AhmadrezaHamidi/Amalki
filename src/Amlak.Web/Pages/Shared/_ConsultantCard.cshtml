@@ -1,0 +1,38 @@
+@model Consultant
+@{
+    // Compact: inside a form page or a listing's side panel (no "ask for advice" link, the form is right there).
+    var compact = ViewData["Compact"] is true;
+    var propertyId = ViewData["PropertyId"] as int?;
+    var tel = Fa.Latin(Model.Phone);
+    var initials = string.Concat(Model.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0]));
+    var cities = Model.CityList;
+}
+<article class="consultant @(compact ? "compact" : "")" id="consultant-@Model.Id">
+    <div class="c-head">
+        @if (Model.PhotoUrl is { } photo)
+        {
+            <img class="c-avatar" src="@photo" alt="" width="64" height="64" loading="lazy" />
+        }
+        else
+        {
+            <span class="c-avatar" aria-hidden="true">@initials</span>
+        }
+        <div>
+            <strong class="c-name">@Model.Name</strong>
+            <span class="c-title">@Model.Title</span>
+        </div>
+    </div>
+    <ul class="c-facts">
+        @if (Model.YearsOfExperience > 0) { <li>@Icons.Get("clock", 16) @Fa.Digits(Model.YearsOfExperience.ToString()) سال سابقه</li> }
+        <li>@Icons.Get("pin", 16) @(cities.Count == 0 ? "همهٔ شهرها" : string.Join("، ", cities))</li>
+        @if (Model.Specialty is { } sp) { <li>@Icons.Get("key", 16) @sp</li> }
+    </ul>
+    @if (!compact && Model.Bio is { } bio) { <p class="c-bio">@bio</p> }
+    <div class="c-actions">
+        <a class="btn @(compact ? "ghost" : "") block" href="tel:@tel">@Icons.Get("phone", 18) تماس با مشاور <bdi dir="ltr">@Fa.Digits(tel)</bdi></a>
+        @if (!compact)
+        {
+            <a class="btn ghost block" href="/تماس?consultantId=@Model.Id@(propertyId is { } pid ? $"&propertyId={pid}" : "")">@Icons.Get("send", 18) درخواست مشاوره</a>
+        }
+    </div>
+</article>

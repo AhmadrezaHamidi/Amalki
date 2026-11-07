@@ -7,6 +7,7 @@ public static class UseCases
     [
         typeof(Listings.ListingCommands),
         typeof(Leads.LeadCommands),
+        typeof(Consultants.ConsultantCommands),
         typeof(Support.TicketCommands),
         typeof(Identity.OtpLogin),
     ];

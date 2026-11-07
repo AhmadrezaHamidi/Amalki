@@ -91,6 +91,7 @@
         <nav id="admin-nav" class="admin-nav">
             <a href="/Admin" aria-current="@(On("/Admin") ? "page" : null)">@Icons.Get("home", 18) داشبورد</a>
             <a href="/Admin/Listings" aria-current="@(On("/Admin/Listings") || On("/Admin/Edit") ? "page" : null)">@Icons.Get("apartment", 18) آگهی‌ها @if (pendingListings > 0) { <span class="count" title="در انتظار بررسی">@Fa.Digits(pendingListings.ToString())</span> }</a>
+            <a href="/Admin/Consultants" aria-current="@(On("/Admin/Consultants") ? "page" : null)">@Icons.Get("user", 18) مشاوران</a>
             <a href="/Admin/Leads" aria-current="@(On("/Admin/Leads") ? "page" : null)">@Icons.Get("phone", 18) درخواست‌های تماس @if (newLeads > 0) { <span class="count">@Fa.Digits(newLeads.ToString())</span> }</a>
             <a href="/Admin/Tickets" aria-current="@(On("/Admin/Tickets") ? "page" : null)">@Icons.Get("send", 18) تیکت‌های پشتیبانی @if (openTickets > 0) { <span class="count">@Fa.Digits(openTickets.ToString())</span> }</a>
             <a href="/Admin/Sms" aria-current="@(On("/Admin/Sms") ? "page" : null)">@Icons.Get("send", 18) پیامک گروهی</a>
@@ -118,7 +119,8 @@ else
                 <a href="@Taxonomy.EncodedPath(null, Taxonomy.Find("اجاره-کوتاه-مدت"))" aria-current="@(browsingDeal == DealType.ShortTerm ? "page" : null)">کوتاه‌مدت</a>
                 <a class="nav-extra" href="/پیگیری" aria-current="@(path == "/پیگیری" ? "page" : null)">پیگیری با پیامک</a>
                 <a class="nav-extra" href="/پشتیبانی" aria-current="@(path.StartsWith("/پشتیبانی") ? "page" : null)">پشتیبانی</a>
-                <a class="nav-extra" href="/تماس" aria-current="@(path == "/تماس" ? "page" : null)">مشاوره</a>
+                <a class="nav-extra" href="/مشاوران" aria-current="@(path == "/مشاوران" || path == "/تماس" ? "page" : null)">تماس با مشاور</a>
+                <a class="nav-extra" href="/تعرفه-ها" aria-current="@(path == "/تعرفه-ها" ? "page" : null)">تعرفه‌ها</a>
             </nav>
             <div class="head-actions">
                 <a class="btn quiet icon fav-link" href="/نشان‌شده" aria-label="نشان‌شده‌ها">@Icons.Get("heart")<span class="fav-count" data-fav-count hidden></span></a>
@@ -158,7 +160,9 @@ else
                 <strong>ارتباط با ما</strong>
                 @if (!string.IsNullOrWhiteSpace(phone)) { <a href="tel:@Fa.Latin(phone).Replace(" ", "")"><bdi dir="ltr">@phone</bdi></a> }
                 @if (!string.IsNullOrWhiteSpace(address)) { <span>@address</span> }
+                <a href="/مشاوران">تماس با مشاور</a>
                 <a href="/تماس">فرم درخواست مشاوره</a>
+                <a href="/تعرفه-ها">تعرفهٔ ثبت آگهی</a>
                 <a href="/پشتیبانی">پشتیبانی و پیگیری تیکت</a>
                 @if (!string.IsNullOrWhiteSpace(telegram)) { <a href="@telegram" rel="noopener" target="_blank">کانال تلگرام</a> }
                 @if (!string.IsNullOrWhiteSpace(bale)) { <a href="@bale" rel="noopener" target="_blank">کانال بله</a> }
@@ -168,13 +172,13 @@ else
     </footer>
     // App-style tab bar on phones. Pages with their own sticky action bar (listing detail) hide it.
     var onSaved = path == "/نشان‌شده";
-    var onSupport = path.StartsWith("/پشتیبانی") || path == "/تماس";
+    var onSupport = path.StartsWith("/پشتیبانی") || path == "/تماس" || path == "/مشاوران";
     <nav class="tabbar" aria-label="دسترسی سریع موبایل">
         <a href="/" aria-current="@(path == "/" ? "page" : null)">@Icons.Get("home", 22)<span>خانه</span></a>
         <a href="@Taxonomy.Root" aria-current="@(onList ? "page" : null)">@Icons.Get("search", 22)<span>آگهی‌ها</span></a>
         <a href="/ثبت-آگهی" class="tab-post" aria-current="@(path == "/ثبت-آگهی" ? "page" : null)"><span class="tab-post-btn">@Icons.Get("plus", 24)</span><span>ثبت آگهی</span></a>
         <a href="/نشان‌شده" aria-current="@(onSaved ? "page" : null)" class="tab-fav">@Icons.Get("heart", 22)<span>نشان‌شده</span><span class="fav-count" data-fav-count hidden></span></a>
-        <a href="/پشتیبانی" aria-current="@(onSupport ? "page" : null)">@Icons.Get("user", 22)<span>پشتیبانی</span></a>
+        <a href="/مشاوران" aria-current="@(onSupport ? "page" : null)">@Icons.Get("phone", 22)<span>مشاور</span></a>
     </nav>
 }
 <script src="~/js/site.js" asp-append-version="true" defer></script>

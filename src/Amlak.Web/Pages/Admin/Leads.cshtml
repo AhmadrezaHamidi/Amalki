@@ -17,7 +17,7 @@
     {
         <div class="tablewrap">
             <table class="table">
-                <thead><tr><th>زمان</th><th>نام</th><th>موبایل</th><th>آگهی</th><th>پیام</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+                <thead><tr><th>زمان</th><th>نام</th><th>موبایل</th><th>آگهی</th><th>مشاور</th><th>پیام</th><th>وضعیت</th><th>عملیات</th></tr></thead>
                 <tbody>
                 @foreach (var l in Model.Items)
                 {
@@ -26,6 +26,7 @@
                         <td>@l.Name</td>
                         <td><a href="tel:@l.Phone" dir="ltr">@Fa.Digits(l.Phone)</a></td>
                         <td class="wrap-cell">@if (l.PropertyId is { } pid) { <a href="/Admin/Edit/@pid">@l.PropertyTitle</a> } else { <span class="hint">مشاورهٔ عمومی</span> }</td>
+                        <td>@(l.ConsultantName ?? "—")</td>
                         <td class="wrap-cell" style="max-width:320px">@l.Message</td>
                         <td><span class="pill @(l.Handled ? "draft" : "pub")">@(l.Handled ? "پیگیری‌شده" : "جدید")</span></td>
                         <td>

@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PropertyPhoto> PropertyPhotos => Set<PropertyPhoto>();
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<Consultant> Consultants => Set<Consultant>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
     public DbSet<PhoneCode> PhoneCodes => Set<PhoneCode>();
@@ -125,6 +126,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(x => x.CreatedAtUtc); // "all leads" view, newest first
             // Keep the lead when its listing is deleted.
             e.HasOne(x => x.Property).WithMany().HasForeignKey(x => x.PropertyId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Consultant).WithMany().HasForeignKey(x => x.ConsultantId).OnDelete(DeleteBehavior.SetNull);
+        });
+        b.Entity<Consultant>(e =>
+        {
+            e.Ignore(x => x.DomainEvents);
+            e.Ignore(x => x.CityList);
+            e.Property(x => x.Name).HasMaxLength(Consultant.MaxName);
+            e.Property(x => x.Title).HasMaxLength(Consultant.MaxTitle);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Specialty).HasMaxLength(Consultant.MaxSpecialty);
+            e.Property(x => x.Bio).HasMaxLength(Consultant.MaxBio);
+            e.Property(x => x.Cities).HasMaxLength(Consultant.MaxCities);
+            e.Property(x => x.PhotoUrl).HasMaxLength(300);
+            e.HasIndex(x => new { x.Active, x.SortOrder });
         });
         b.Entity<Ticket>(e =>
         {
