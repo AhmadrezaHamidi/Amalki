@@ -1,7 +1,7 @@
 // Ashianeh service worker: makes the site installable and usable on a flaky connection.
 // Pages: network first, then the last copy seen, then /offline.html. Static files and photos:
 // cached copy first, refreshed in the background. Admin, account and form posts never touch the cache.
-const VERSION = 'v1';
+const VERSION = 'v2'; // bump to drop old cached pages/assets (v2: Royal white redesign)
 const PAGES = `pages-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = '/offline.html';
