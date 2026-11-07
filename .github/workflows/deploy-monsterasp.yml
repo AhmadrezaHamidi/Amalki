@@ -1,0 +1,111 @@
+# Free hosting on MonsterASP.NET (https://www.monsterasp.net): ASP.NET Core 9 on IIS + a free MSSQL database.
+# Setup, secrets and variables: docs/DEPLOY-FREE.md.
+#
+# Runs by hand (Actions -> "Deploy to MonsterASP" -> Run workflow), and on every push to main once the
+# repository variable MONSTERASP_AUTO_DEPLOY is "true".
+name: Deploy to MonsterASP
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency: monsterasp
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || vars.MONSTERASP_AUTO_DEPLOY == 'true'
+    # Web Deploy (msdeploy.exe) only exists on Windows.
+    runs-on: windows-latest
+    environment:
+      name: monsterasp
+      url: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Check settings
+        shell: pwsh
+        env:
+          DB: ${{ secrets.MONSTERASP_DB_CONNECTION }}
+          SITE: ${{ vars.SITE_URL }}
+          WEBSITE: ${{ secrets.MONSTERASP_WEBSITE_NAME }}
+        run: |
+          $missing = @()
+          if (-not $env:DB) { $missing += 'secret MONSTERASP_DB_CONNECTION' }
+          if (-not $env:WEBSITE) { $missing += 'secret MONSTERASP_WEBSITE_NAME (and the other MONSTERASP_* Web Deploy secrets)' }
+          if (-not $env:SITE) { $missing += 'variable SITE_URL' }
+          if ($missing) { Write-Error ("Missing: " + ($missing -join ', ') + ". See docs/DEPLOY-FREE.md"); exit 1 }
+
+      - name: Publish
+        run: dotnet publish src/Amlak.Web/Amlak.Web.csproj -c Release -o publish -p:UseAppHost=false
+
+      # Settings for the hosted site. Secrets stay in GitHub and on the server, never in the repository.
+      - name: Write appsettings.Production.json
+        shell: pwsh
+        env:
+          DB: ${{ secrets.MONSTERASP_DB_CONNECTION }}
+          SITE: ${{ vars.SITE_URL }}
+          DEMO: ${{ vars.DEMO_MODE || 'true' }}
+          SEED: ${{ vars.SEED_DEMO || 'true' }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          SMS_PROVIDER: ${{ vars.SMS_PROVIDER || 'Log' }}
+          SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
+          SMS_TEMPLATE: ${{ vars.SMS_TEMPLATE }}
+          SMS_SENDER: ${{ vars.SMS_SENDER }}
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ vars.TELEGRAM_CHAT_ID }}
+          TG_ADMIN: ${{ vars.TELEGRAM_ADMIN_CHAT_ID }}
+          TG_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          BALE_TOKEN: ${{ secrets.BALE_BOT_TOKEN }}
+          BALE_CHAT: ${{ vars.BALE_CHAT_ID }}
+          BALE_ADMIN: ${{ vars.BALE_ADMIN_CHAT_ID }}
+        run: |
+          $settings = [ordered]@{
+            ConnectionStrings = @{ Default = $env:DB }
+            Database = @{ Migrate = $true; SeedDemo = ($env:SEED -eq 'true') }
+            Demo = @{ Enabled = ($env:DEMO -eq 'true') }
+            Site = @{ BaseUrl = $env:SITE.TrimEnd('/') }
+            # Photos on the site's own disk (wwwroot/uploads); the deploy below never deletes that folder.
+            Storage = @{ Provider = 'Local' }
+            # Login cookies survive app-pool recycles (shared IIS has no user profile for the key ring).
+            DataProtection = @{ KeysPath = 'App_Data/keys' }
+            Admin = @{ Email = $env:ADMIN_EMAIL; Password = $env:ADMIN_PASSWORD }
+            Sms = @{ Provider = $env:SMS_PROVIDER; ApiKey = $env:SMS_API_KEY; Template = $env:SMS_TEMPLATE; Sender = $env:SMS_SENDER }
+            Telegram = @{ BotToken = $env:TG_TOKEN; ChatId = $env:TG_CHAT; AdminChatId = $env:TG_ADMIN; WebhookSecret = $env:TG_SECRET }
+            Bale = @{ BotToken = $env:BALE_TOKEN; ChatId = $env:BALE_CHAT; AdminChatId = $env:BALE_ADMIN }
+          }
+          $settings | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 publish/appsettings.Production.json
+          New-Item -ItemType Directory -Force publish/App_Data/keys | Out-Null
+          Set-Content publish/App_Data/keys/.keep ''
+
+      # Pinned to the 2.2.0 commit because this step receives the Web Deploy password.
+      - name: Deploy with Web Deploy
+        uses: rasmusbuchholdt/simply-web-deploy@cf9160163099a3b6b8ddf3978ed26b348221bbb8
+        with:
+          website-name: ${{ secrets.MONSTERASP_WEBSITE_NAME }}
+          server-computer-name: ${{ secrets.MONSTERASP_SERVER }}
+          server-username: ${{ secrets.MONSTERASP_USERNAME }}
+          server-password: ${{ secrets.MONSTERASP_PASSWORD }}
+          # Remove files that are no longer in the build, but keep visitors' photos and the key ring.
+          target-delete: true
+          skip-directory-paths: uploads,App_Data
+
+      - name: Smoke test
+        shell: pwsh
+        env:
+          SITE: ${{ vars.SITE_URL }}
+        run: |
+          # The first request starts the app and applies the migrations, which can take a while.
+          $url = $env:SITE.TrimEnd('/') + '/healthz'
+          for ($i = 1; $i -le 10; $i++) {
+            try {
+              $r = Invoke-WebRequest -Uri $url -TimeoutSec 60 -UseBasicParsing
+              if ($r.StatusCode -eq 200) { Write-Host "Healthy: $url"; exit 0 }
+            } catch { Write-Host "Attempt ${i}: $($_.Exception.Message)" }
+            Start-Sleep -Seconds 15
+          }
+          Write-Error "Site did not become healthy: $url"; exit 1
