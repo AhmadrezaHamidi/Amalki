@@ -184,3 +184,11 @@
   }));
   window.addEventListener('appinstalled', () => installBtns.forEach((b) => { b.hidden = true; }));
 })();
+
+// Test mode: "fill" puts the shown one-time code into the code box (inline handlers are blocked by the CSP).
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-demo-fill]');
+  if (!b) return;
+  const input = b.form?.querySelector('[name=Code]') || document.getElementById('Code');
+  if (input) { input.value = b.dataset.demoFill; input.focus(); }
+});

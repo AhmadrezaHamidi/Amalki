@@ -1,0 +1,12 @@
+@model string?
+@using Microsoft.Extensions.DependencyInjection
+@{
+    // Demo mode only (DemoMode): the code that was "sent", so the flow can be tried without a real SMS.
+    var code = Context.RequestServices.GetService<Amlak.Web.Services.DemoCodes>()?.For(Model);
+}
+@if (code is not null)
+{
+    <div class="demo-code" role="status">حالت آزمایشی، پیامک واقعی فرستاده نشد. کد: <bdi dir="ltr"><b>@code</b></bdi>
+        <button type="button" class="btn quiet sm" data-demo-fill="@code">پر کردن</button>
+    </div>
+}

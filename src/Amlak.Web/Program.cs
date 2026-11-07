@@ -34,6 +34,8 @@ builder.Services.AddAuthorizationBuilder()
 
 // Adapters (Amlak.Infrastructure): file storage on local disk or MinIO, SMS through the log or Kavenegar.
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.WebRootPath);
+// Test mode (Demo:Enabled + mock SMS): codes shown on screen, one-click demo admin / visitor login.
+builder.Services.AddDemoMode(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TicketAccess>();
 // /healthz for the load balancer or uptime monitor: 200 when the app can reach SQL Server, 503 otherwise.
@@ -145,6 +147,7 @@ app.UseOutputCache(); // after auth, so the default policy can see signed-in adm
 
 app.MapHealthChecks("/healthz").DisableHttpMetrics();
 app.MapSeo();
+app.MapDemoMode();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

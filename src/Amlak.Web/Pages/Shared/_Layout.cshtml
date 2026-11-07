@@ -63,6 +63,15 @@
 </head>
 <body class="@ViewData["BodyClass"]">
 <a class="skip" href="#main">رفتن به محتوا</a>
+@if (Amlak.Web.Services.DemoMode.IsOn(Cfg))
+{
+    // Test mode bar: same for everyone, so the output cache can keep it. The buttons post without a token on purpose.
+    <div class="demo-bar" role="region" aria-label="حالت آزمایشی">
+        <span>حالت آزمایشی، پیامک واقعی خاموش است</span>
+        <form method="post" action="/demo/login/admin"><button class="btn sm">ورود مدیر</button></form>
+        <form method="post" action="/demo/login/user"><button class="btn sm ghost">ورود کاربر عادی</button></form>
+    </div>
+}
 @if (isAdmin && User.IsInRole("Admin"))
 {
     // Badge counts for the sidebar; only admin pages pay for this one-row view read.
