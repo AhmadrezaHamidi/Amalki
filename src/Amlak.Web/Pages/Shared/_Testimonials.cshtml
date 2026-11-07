@@ -1,0 +1,51 @@
+@*
+    Customer reviews strip for the home page: two rows of cards that drift slowly in opposite directions
+    (pure CSS, no script). Each row is rendered twice so the loop is seamless; the copy is hidden from
+    screen readers. Hover or keyboard focus pauses it; with reduced motion it becomes a swipeable row.
+    Sample reviews for now — replace with real, consented customer reviews before launch.
+*@
+@{
+    var reviews = new (string Name, string Role, string Text, int Stars)[]
+    {
+        ("سارا محمدی", "خریدار آپارتمان، سعادت‌آباد", "عکس‌های آگهی دقیقاً همان چیزی بود که در بازدید دیدم. مشاور تا روز قرارداد کنارمان بود.", 5),
+        ("رضا کریمی", "مالک، ونک", "ملکم را سپردم و در کمتر از سه هفته با قیمت منصفانه فروخته شد. قیمت‌گذاری کارشناسی واقعاً کمک کرد.", 5),
+        ("نگار احمدی", "مستأجر، پاسداران", "برخلاف سایت‌های دیگر، آگهی تکراری و قدیمی نبود. همان روز اول برای بازدید هماهنگ شد.", 5),
+        ("علی رضایی", "خریدار ویلا، شمال", "مدارک را قبل از قرارداد بررسی کردند و خیالم راحت بود. برخوردشان خیلی حرفه‌ای بود.", 4),
+        ("مریم حسینی", "مالک، زعفرانیه", "عکاسی حرفه‌ای و انتشار هم‌زمان در تلگرام و بله باعث شد خیلی زود تماس بگیرند.", 5),
+        ("حمید نوری", "سرمایه‌گذار، الهیه", "برای خرید دفتر اداری چند گزینهٔ دقیق و مرتبط پیشنهاد دادند؛ وقتم هدر نرفت.", 5),
+        ("لیلا صادقی", "مستأجر، جردن", "پاسخ‌گویی سریع و صادقانه بود. شرایط رهن و اجاره را شفاف توضیح دادند.", 4),
+        ("کامران مرادی", "خریدار، نیاوران", "تجربهٔ خرید ملک لوکس بدون دردسر. پیگیری‌ها تا تحویل کلید ادامه داشت.", 5),
+    };
+    var rows = new[] { reviews.Where((_, i) => i % 2 == 0).ToArray(), reviews.Where((_, i) => i % 2 == 1).ToArray() };
+}
+<section class="section reviews" aria-labelledby="reviews-title">
+    <div class="section-head reviews-head">
+        <div>
+            <h2 id="reviews-title">مشتری‌ها دربارهٔ ما چه می‌گویند</h2>
+            <p class="reviews-sub">تجربهٔ خریداران، مالکان و مستأجرانی که با ما معامله کرده‌اند</p>
+        </div>
+    </div>
+    @for (var r = 0; r < rows.Length; r++)
+    {
+        <div class="marquee@(r == 1 ? " rev" : "")" role="group" tabindex="0" aria-label="ردیف @(r == 0 ? "اول" : "دوم") نظرات مشتریان">
+            <div class="marquee-track">
+                @for (var copy = 0; copy < 2; copy++)
+                {
+                    <ul class="marquee-group" aria-hidden="@(copy == 1 ? "true" : null)">
+                        @foreach (var t in rows[r])
+                        {
+                            <li class="review">
+                                <span class="stars" role="img" aria-label="@Fa.Digits(t.Stars.ToString()) از ۵ ستاره">@(new string('★', t.Stars))<i>@(new string('★', 5 - t.Stars))</i></span>
+                                <blockquote>«@t.Text»</blockquote>
+                                <div class="review-by">
+                                    <span class="avatar" aria-hidden="true">@t.Name[0]</span>
+                                    <span><b>@t.Name</b><small>@t.Role</small></span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+</section>
