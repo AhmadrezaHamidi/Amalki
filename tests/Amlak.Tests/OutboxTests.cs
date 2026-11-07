@@ -58,6 +58,8 @@ public sealed class OutboxTests : IDisposable
             new ChannelPublisher(db, http, cfg, photos, NullLogger<ChannelPublisher>.Instance),
             new AdminNotifier(http, cfg, NullLogger<AdminNotifier>.Instance),
             photos, new AlertService(db, new SmsGateway(db, _sms, _clock), cfg, _clock),
+            new Amlak.Web.Services.Bot.BotTicketNotifier(db, new Amlak.Web.Services.Bot.BotClients(http, cfg),
+                NullLogger<Amlak.Web.Services.Bot.BotTicketNotifier>.Instance),
             _clock, NullLogger<OutboxDispatcher>.Instance);
     }
 

@@ -25,6 +25,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SmsOptOut> SmsOptOuts => Set<SmsOptOut>();
     public DbSet<SmsLog> SmsLogs => Set<SmsLog>();
     public DbSet<SmsCampaign> SmsCampaigns => Set<SmsCampaign>();
+    public DbSet<MessengerAccount> MessengerAccounts => Set<MessengerAccount>();
+    public DbSet<MessengerInbox> MessengerInbox => Set<MessengerInbox>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
         SaveWithEventsAsync(acceptAllChangesOnSuccess, sync: true, default).GetAwaiter().GetResult();
@@ -159,6 +161,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(x => x.Phone);
         });
         b.Entity<AlertSent>().HasIndex(x => new { x.PropertyId, x.SavedSearchId, x.Kind, x.Price }).IsUnique();
+        b.Entity<MessengerAccount>(e =>
+        {
+            e.Property(x => x.ChatId).HasMaxLength(32);
+            e.Property(x => x.Name).HasMaxLength(120);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.ReplyingToTicket).HasMaxLength(16);
+            e.HasIndex(x => new { x.Messenger, x.ChatId }).IsUnique();
+            e.HasIndex(x => x.Phone); // ticket answers go to every chat linked to the ticket's phone
+        });
+        b.Entity<MessengerInbox>().HasKey(x => new { x.Messenger, x.UpdateId });
         b.Entity<SmsOptOut>(e => { e.HasKey(x => x.Phone); e.Property(x => x.Phone).HasMaxLength(20); });
         b.Entity<SmsLog>(e =>
         {

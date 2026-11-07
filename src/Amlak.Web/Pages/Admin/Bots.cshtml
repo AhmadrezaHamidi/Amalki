@@ -17,6 +17,9 @@
                 <div><dt>توکن</dt><dd dir="ltr">@(s.HasToken ? s.MaskedToken : "تنظیم نشده")</dd></div>
                 <div><dt>کانال (ChatId)</dt><dd dir="ltr">@(s.ChatId ?? "تنظیم نشده")</dd></div>
                 <div><dt>چت مدیر (AdminChatId)</dt><dd dir="ltr">@(s.AdminChatId ?? "تنظیم نشده")</dd></div>
+                <div><dt>دریافت پیام کاربران</dt><dd>@(Model.Polling(s.Messenger) ? "Polling (برای تست محلی)" : Model.HasSecret(s.Messenger) ? "Webhook" : "خاموش")</dd></div>
+                @{ var acc = Model.Accounts.GetValueOrDefault(s.Messenger); }
+                <div><dt>کاربران بات</dt><dd>@Fa.Digits(acc.Users.ToString()) نفر · @Fa.Digits(acc.Linked.ToString()) با شمارهٔ وصل‌شده</dd></div>
             </dl>
 
             @if (!s.HasToken)
@@ -30,6 +33,7 @@
                     <button class="btn" asp-page-handler="Check">بررسی اتصال و یافتن شناسهٔ چت</button>
                     @if (s.AdminChatId is not null) { <button class="btn quiet" asp-page-handler="Test" name="admin" value="true">پیام آزمایشی به چت مدیر</button> }
                     @if (s.ChatId is not null) { <button class="btn quiet" asp-page-handler="Test" name="admin" value="false">پیام آزمایشی به کانال</button> }
+                    @if (Model.HasSecret(s.Messenger) && !Model.Polling(s.Messenger)) { <button class="btn quiet" asp-page-handler="Webhook" title="@Model.WebhookUrl(s.Messenger)">ثبت Webhook</button> }
                 </form>
             }
 
