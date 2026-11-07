@@ -7,6 +7,9 @@ public sealed record BotResult(bool Ok, string? MessageId, string? Error)
     /// <summary>Every message id of a media group (album); for a single message, just <see cref="MessageId"/>.</summary>
     public IReadOnlyList<string> MessageIds { get; init; } = MessageId is null ? [] : [MessageId];
 
+    /// <summary>The raw <c>result</c> payload, for calls such as getMe/getUpdates that return more than an id.</summary>
+    public JsonElement? Result { get; init; }
+
     public static BotResult Fail(string error) => new(false, null, error);
 }
 
@@ -65,6 +68,10 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
             ? Post("editMessageCaption", Form(replyMarkup, ("chat_id", chatId), ("message_id", messageId), ("caption", Clip(text, MaxCaption))), ct)
             : Post("editMessageText", Form(replyMarkup, ("chat_id", chatId), ("message_id", messageId), ("text", Clip(text, 4000))), ct);
 
+    /// <summary>A parameterless Bot API method (getMe, getUpdates); the payload is on <see cref="BotResult.Result"/>.</summary>
+    public Task<BotResult> CallAsync(string method, CancellationToken ct = default) =>
+        Post(method, new MultipartFormDataContent(), ct);
+
     public Task<BotResult> DeleteAsync(string messageId, CancellationToken ct = default) =>
         Post("deleteMessage", Form(null, ("chat_id", chatId), ("message_id", messageId)), ct);
 
@@ -103,14 +110,15 @@ public class BotApiClient(HttpClient http, string apiBase, string token, string 
             if (root.TryGetProperty("ok", out var ok) && ok.GetBoolean())
             {
                 var ids = new List<string>();
-                if (root.TryGetProperty("result", out var r))
+                JsonElement r = default;
+                if (root.TryGetProperty("result", out r))
                 {
                     // sendMediaGroup answers with an array of messages, the other methods with one.
                     var messages = r.ValueKind == JsonValueKind.Array ? r.EnumerateArray().ToList() : [r];
                     foreach (var msg in messages)
                         if (msg.ValueKind == JsonValueKind.Object && msg.TryGetProperty("message_id", out var m)) ids.Add(m.ToString());
                 }
-                return new BotResult(true, ids.FirstOrDefault(), null) { MessageIds = ids };
+                return new BotResult(true, ids.FirstOrDefault(), null) { MessageIds = ids, Result = r.ValueKind == JsonValueKind.Undefined ? null : r.Clone() };
             }
             var desc = root.TryGetProperty("description", out var d) ? d.GetString() : null;
             return BotResult.Fail(Scrub(desc ?? $"HTTP {status}"));

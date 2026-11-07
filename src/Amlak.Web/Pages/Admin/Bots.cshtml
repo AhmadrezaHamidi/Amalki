@@ -1,0 +1,68 @@
+@page
+@model Amlak.Web.Pages.Admin.BotsModel
+@{ ViewData["Title"] = "ربات‌های تلگرام و بله"; ViewData["Robots"] = "noindex,nofollow"; }
+<div class="wrap page-pad">
+    <div class="admin-head">
+        <div><h1>ربات‌های تلگرام و بله</h1>
+            <p class="hint">توکن فقط از user-secrets یا متغیر محیطی خوانده می‌شود و این‌جا نمایش داده نمی‌شود. راهنما: docs/CHANNELS.md</p></div>
+    </div>
+    @if (TempData["Flash"] is string flash) { <div class="alert ok" role="status">@flash</div> }
+    @if (TempData["Error"] is string error) { <div class="alert bad" role="alert">@error</div> }
+
+    @foreach (var s in Model.Settings)
+    {
+        <section class="form form-card" style="margin-bottom:20px">
+            <h2>@s.Label</h2>
+            <dl class="specs">
+                <div><dt>توکن</dt><dd dir="ltr">@(s.HasToken ? s.MaskedToken : "تنظیم نشده")</dd></div>
+                <div><dt>کانال (ChatId)</dt><dd dir="ltr">@(s.ChatId ?? "تنظیم نشده")</dd></div>
+                <div><dt>چت مدیر (AdminChatId)</dt><dd dir="ltr">@(s.AdminChatId ?? "تنظیم نشده")</dd></div>
+            </dl>
+
+            @if (!s.HasToken)
+            {
+                <p class="hint">در پوشهٔ <code>src/Amlak.Web</code>: <code dir="ltr">dotnet user-secrets set "@s.Section:BotToken" "&lt;توکن&gt;"</code> · در Docker: <code dir="ltr">@(s.Section.ToUpperInvariant())_BOT_TOKEN</code> در فایل <code>.env</code></p>
+            }
+            else
+            {
+                <form method="post" class="row-actions" style="margin-top:12px">
+                    <input type="hidden" name="messenger" value="@s.Messenger" />
+                    <button class="btn" asp-page-handler="Check">بررسی اتصال و یافتن شناسهٔ چت</button>
+                    @if (s.AdminChatId is not null) { <button class="btn quiet" asp-page-handler="Test" name="admin" value="true">پیام آزمایشی به چت مدیر</button> }
+                    @if (s.ChatId is not null) { <button class="btn quiet" asp-page-handler="Test" name="admin" value="false">پیام آزمایشی به کانال</button> }
+                </form>
+            }
+
+            @if (Model.CheckedMessenger == s.Messenger && Model.Check is { } c)
+            {
+                <div class="alert @(c.Ok ? "ok" : "bad")" role="status" style="margin-top:12px">
+                    @if (c.Ok)
+                    {
+                        <strong>ربات وصل است: <span dir="ltr">@@@c.Username</span></strong>
+                        @if (c.Error is not null) { <p class="hint">فهرست چت‌ها خوانده نشد: @c.Error</p> }
+                        else if (c.Chats.Count == 0)
+                        {
+                            <p class="hint">هنوز پیامی به ربات نرسیده. در @s.Label به <span dir="ltr">@@@c.Username</span> پیام <code>/start</code> بدهید (یا ربات را ادمین کانال کنید و در کانال یک پست بگذارید) و دوباره «بررسی اتصال» را بزنید.</p>
+                        }
+                        else
+                        {
+                            <p>چت‌هایی که اخیراً به ربات پیام داده‌اند. شناسهٔ چت خودتان را در <code>AdminChatId</code> و شناسهٔ کانال را در <code>ChatId</code> بگذارید:</p>
+                            <div class="tablewrap"><table class="table">
+                                <thead><tr><th>نام</th><th>نوع</th><th>شناسه</th><th>دستور تنظیم</th></tr></thead>
+                                <tbody>
+                                @foreach (var chat in c.Chats)
+                                {
+                                    var key = chat.Type is "channel" or "group" or "supergroup" ? "ChatId" : "AdminChatId";
+                                    <tr><td>@chat.Title</td><td>@chat.Type</td><td dir="ltr">@chat.Id</td>
+                                        <td dir="ltr"><code>dotnet user-secrets set "@s.Section:@key" "@chat.Id"</code></td></tr>
+                                }
+                                </tbody>
+                            </table></div>
+                        }
+                    }
+                    else { <strong>اتصال برقرار نشد: @c.Error</strong> }
+                </div>
+            }
+        </section>
+    }
+</div>
