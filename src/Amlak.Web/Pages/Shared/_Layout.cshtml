@@ -91,6 +91,7 @@
             <a href="/Admin/Leads" aria-current="@(On("/Admin/Leads") ? "page" : null)">@Icons.Get("phone", 18) درخواست‌های تماس @if (newLeads > 0) { <span class="count">@Fa.Digits(newLeads.ToString())</span> }</a>
             <a href="/Admin/Tickets" aria-current="@(On("/Admin/Tickets") ? "page" : null)">@Icons.Get("send", 18) تیکت‌های پشتیبانی @if (openTickets > 0) { <span class="count">@Fa.Digits(openTickets.ToString())</span> }</a>
             <a href="/Admin/Sms" aria-current="@(On("/Admin/Sms") ? "page" : null)">@Icons.Get("send", 18) پیامک گروهی</a>
+            <a href="/Admin/Bots" aria-current="@(On("/Admin/Bots") ? "page" : null)">@Icons.Get("send", 18) ربات تلگرام و بله</a>
             <a href="/" target="_blank" rel="noopener">@Icons.Get("share", 18) مشاهدهٔ سایت</a>
             <form method="post" action="/Account/Logout">@Html.AntiForgeryToken()<button>@Icons.Get("close", 18) خروج</button></form>
             <span class="admin-user">@User.Identity?.Name</span>

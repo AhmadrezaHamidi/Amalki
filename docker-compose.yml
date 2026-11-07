@@ -58,8 +58,11 @@ services:
       Sms__Sender: ${SMS_SENDER:-}
       Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
       Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
+      Telegram__AdminChatId: ${TELEGRAM_ADMIN_CHAT_ID:-}
+      Telegram__ApiBase: ${TELEGRAM_API_BASE:-https://api.telegram.org}
       Bale__BotToken: ${BALE_BOT_TOKEN:-}
       Bale__ChatId: ${BALE_CHAT_ID:-}
+      Bale__AdminChatId: ${BALE_ADMIN_CHAT_ID:-}
     volumes: [keys:/home/app/.aspnet/DataProtection-Keys]
 
 volumes:

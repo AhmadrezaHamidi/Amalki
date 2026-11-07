@@ -62,6 +62,7 @@ builder.Services.AddScoped<ChannelPublisher>();
 builder.Services.AddScoped<Amlak.Web.Read.ListingQueries>();
 builder.Services.AddScoped<Amlak.Web.Read.AdminQueries>();
 builder.Services.AddScoped<AdminNotifier>();
+builder.Services.AddScoped<BotDiagnostics>();
 // Domain events saved with each change are handled here, outside the request (channel posts, admin alerts, file cleanup).
 builder.Services.AddScoped<Amlak.Web.Services.Events.OutboxDispatcher>();
 builder.Services.AddHostedService<Amlak.Web.Services.Events.OutboxProcessor>();
