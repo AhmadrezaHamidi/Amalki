@@ -562,3 +562,30 @@ a.stat:hover{border-color:var(--primary);color:var(--ink)}
 .demo-bar .btn.ghost{background:transparent;color:#422006}
 .demo-code{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:10px 12px;border:1px dashed #D97706;background:color-mix(in srgb,#FDE68A 18%,transparent);border-radius:var(--radius-sm);font-size:.9rem}
 .demo-code b{font-size:1.15rem;letter-spacing:.15em}
+
+/* ---- customer reviews marquee (home) ---- */
+/* Two rows drift in opposite directions; each track holds the cards twice, so moving it by half its own
+   width loops seamlessly. RTL: the overflow sits on the left, so the row moves right (+50%). */
+.reviews-head{justify-content:center;text-align:center}.reviews-sub{margin-top:4px;font-size:.95rem}
+.marquee{--gap:16px;--speed:60s;overflow:hidden;padding-block:6px;outline:none;
+  -webkit-mask-image:linear-gradient(to left,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(to left,transparent,#000 8%,#000 92%,transparent)}
+.marquee+.marquee{margin-top:var(--gap)}
+.marquee:focus-visible{box-shadow:var(--focus);border-radius:var(--radius)}
+.marquee-track{display:flex;gap:var(--gap);width:max-content;animation:marquee var(--speed) linear infinite}
+.marquee.rev .marquee-track{animation-direction:reverse;--speed:70s}
+.marquee:hover .marquee-track,.marquee:focus-within .marquee-track{animation-play-state:paused}
+.marquee-group{display:flex;gap:var(--gap);list-style:none;margin:0;padding:0}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(calc(50% + var(--gap) / 2))}}
+.review{width:320px;flex:none;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.review blockquote{margin:0;color:var(--ink-2);line-height:1.9;font-size:.95rem;flex:1}
+.review .stars{color:#E0A526;letter-spacing:2px;font-size:1rem;line-height:1}.review .stars i{font-style:normal;color:var(--line)}
+.review-by{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line-soft);padding-top:12px}
+.review-by b{display:block;font-size:.93rem}.review-by small{display:block;color:var(--muted);font-size:.8rem}
+.avatar{width:40px;height:40px;border-radius:999px;flex:none;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary-dark);font-weight:800}
+[data-ui=delta] .review{box-shadow:none}[data-ui=delta] .avatar{background:#fff;color:#0F3F6F}
+@media(max-width:600px){.marquee{--gap:12px}.review{width:268px;padding:16px}}
+/* Reduced motion: no drift, the first copy becomes a swipeable row. */
+@media(prefers-reduced-motion:reduce){
+  .marquee{overflow-x:auto;scroll-snap-type:x mandatory;-webkit-mask-image:none;mask-image:none;scrollbar-width:thin}
+  .marquee-track{animation:none;width:auto}.marquee-group[aria-hidden]{display:none}.review{scroll-snap-align:start}
+}
