@@ -3,7 +3,7 @@
 @{ ViewData["Title"] = "ورود مدیر"; ViewData["Robots"] = "noindex,nofollow"; }
 <div class="wrap">
     <form method="post" class="auth form">
-        <span class="brand-mark" style="align-self:center">@Icons.Get("home", 22)</span>
+        <span class="brand-mark" style="align-self:center">@Brand.Mark(32)</span>
         <h1 style="text-align:center">ورود به پنل مدیریت</h1>
         <div asp-validation-summary="ModelOnly" class="err" role="alert"></div>
         <input type="hidden" asp-for="ReturnUrl" />

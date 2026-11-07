@@ -78,6 +78,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap:8px;color:var(--primary);font-weight:800;font-size:1.3rem;flex:none}
 .brand:hover{color:var(--primary)}
 .brand-mark{width:36px;height:36px;border-radius:10px;background:var(--primary);display:grid;place-items:center;color:var(--on-primary)}
+/* Royal Fine Homes wordmark: serif capitals as on the logo. */
+.brand-word{display:flex;flex-direction:column;line-height:1;font-family:Georgia,'Times New Roman',serif;color:var(--ink)}
+.brand-word b{font-size:1.32rem;font-weight:700;letter-spacing:.06em}
+.brand-word small{font-size:.6rem;letter-spacing:.32em;margin-top:3px;color:var(--muted)}
+[data-ui=delta] .brand-word,[data-ui=delta] .brand-word small{color:#fff}
 .head-search{flex:0 1 520px;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 14px;border-radius:12px;background:var(--soft);min-width:0}
 .head-search svg{color:var(--muted);flex:none}
 .head-search input{flex:1;min-width:0;border:0;background:transparent;outline:none;height:100%;font-size:.95rem;color:var(--ink)}

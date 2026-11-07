@@ -6,7 +6,7 @@
 @{
     var site = (Cfg["Site:BaseUrl"] ?? $"{Model.Request.Scheme}://{Model.Request.Host}").TrimEnd('/');
     var cat = Model.Category;
-    var siteName = Cfg["Site:Name"] ?? "آشیانه";
+    var siteName = Cfg["Site:Name"] ?? "Royal Fine Homes";
     var where = string.Join(" ", new[] { Model.Areas.Count > 0 ? string.Join("، ", Model.Areas) : Model.District, Model.City }.Where(x => !string.IsNullOrWhiteSpace(x)));
     // Opening sentence from real data (count and price range); it doubles as the meta description.
     var intro = SeoText.ListIntro(siteName, cat?.Name ?? "ملک", where, Model.Total, Model.MinFound, Model.MaxFound, Model.Deal);

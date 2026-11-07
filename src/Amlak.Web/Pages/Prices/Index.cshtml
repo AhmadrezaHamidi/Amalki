@@ -11,7 +11,7 @@
     var rent = Taxonomy.Find("رهن-و-اجاره");
     ViewData["Title"] = $"قیمت ملک و میانگین قیمت هر متر در {where}";
     var top = Model.Rows.Where(r => r.SalePricePerM2 is not null).Take(3).ToList();
-    ViewData["Description"] = $"میانگین قیمت هر متر آپارتمان و ملک و میانگین رهن در {where}، از روی آگهی‌های منتشرشده در آشیانه"
+    ViewData["Description"] = $"میانگین قیمت هر متر آپارتمان و ملک و میانگین رهن در {where}، از روی آگهی‌های منتشرشده در Royal Fine Homes"
         + (top.Count > 0 ? "؛ " + string.Join("، ", top.Select(r => $"{r.Name} هر متر {Fa.Money(r.SalePricePerM2)}")) + " تومان." : ".");
     ViewData["Canonical"] = site + IndexModel.Path(Model.City);
     if (Model.Rows.Count == 0) ViewData["Robots"] = "noindex,follow";

@@ -3,8 +3,9 @@
     var title = ViewData["Title"] as string;
     var desc = ViewData["Description"] as string ?? "خرید، فروش، رهن و اجارهٔ آپارتمان، ویلا و ملک تجاری با آگهی‌های بررسی‌شده.";
     var canonical = ViewData["Canonical"] as string ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
-    var ogImage = ViewData["OgImage"] as string;
-    var siteName = Cfg["Site:Name"] ?? "آشیانه";
+    // Pages without their own photo share the brand card (absolute URL from Site:BaseUrl, like the rest of the head).
+    var ogImage = ViewData["OgImage"] as string ?? $"{(Cfg["Site:BaseUrl"] ?? $"{Context.Request.Scheme}://{Context.Request.Host}").TrimEnd('/')}/img/brand/og.jpg";
+    var siteName = Cfg["Site:Name"] ?? "Royal Fine Homes";
     var phone = Cfg["Site:Phone"];
     var telegram = Cfg["Site:TelegramUrl"];
     var bale = Cfg["Site:BaleUrl"];
@@ -28,7 +29,7 @@
     @if (ui?.Id == "delta")
     {
         // Delta is dark in both schemes.
-        <meta name="theme-color" content="#0B1220" />
+        <meta name="theme-color" content="#0F3F6F" />
     }
     else
     {
@@ -92,7 +93,7 @@ else
 {
     <header class="site-head" data-head>
         <div class="wrap">
-            <a class="brand" href="/" aria-label="@siteName — صفحهٔ اصلی"><span class="brand-mark">@Icons.Get("home", 20)</span>@siteName</a>
+            <a class="brand" href="/" aria-label="@siteName — صفحهٔ اصلی"><span class="brand-mark">@Brand.Mark(30)</span><span class="brand-word" dir="ltr"><b>ROYAL</b><small>FINE HOMES</small></span></a>
             <form class="head-search" method="get" action="@Taxonomy.Root" role="search">
                 @Icons.Get("search", 20)
                 <label class="sr-only" for="head-q">جست‌وجو در آگهی‌ها</label>
@@ -138,7 +139,7 @@ else
                 <a href="/نشان‌شده">نشان‌شده‌ها</a>
                 <a href="/پیگیری">پیگیری خانه با پیامک</a>
                 <a href="/#faq">پرسش‌های متداول</a>
-                <button class="foot-install" type="button" data-install hidden>@Icons.Get("download", 18) نصب اپلیکیشن آشیانه</button>
+                <button class="foot-install" type="button" data-install hidden>@Icons.Get("download", 18) نصب اپلیکیشن Royal Fine Homes</button>
             </nav>
             <div class="col">
                 <strong>ارتباط با ما</strong>

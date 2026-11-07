@@ -27,7 +27,7 @@
                 var m = t.Messages[i];
                 <li class="msg @(m.FromStaff ? "staff" : "")" id="@(i == t.Messages.Count - 1 ? "last" : null)">
                     <div class="bubble">@m.Body</div>
-                    <span class="hint">@(m.FromStaff ? "پشتیبانی آشیانه" : "شما") · @Fa.Digits(m.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</span>
+                    <span class="hint">@(m.FromStaff ? "پشتیبانی Royal Fine Homes" : "شما") · @Fa.Digits(m.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</span>
                 </li>
             }
         </ol>

@@ -25,7 +25,7 @@
     };
 }
 @section Head {
-    @foreach (var node in JsonLd.Site(cfg["Site:Name"] ?? "آشیانه", site))
+    @foreach (var node in JsonLd.Site(cfg["Site:Name"] ?? "Royal Fine Homes", site))
     {
         @Html.Raw(JsonLd.Script(node))
     }

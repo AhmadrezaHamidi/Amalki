@@ -32,7 +32,7 @@ public static class SeoEndpoints
             var items = await db.Properties.AsNoTracking()
                 .Where(p => p.Status == ListingStatus.Published)
                 .OrderByDescending(p => p.PublishedAtUtc).Take(20).ToListAsync(ct);
-            return Results.Text(SeoFiles.Llms(cfg["Site:Name"] ?? "آشیانه", BaseUrl(cfg, req), items), "text/plain; charset=utf-8");
+            return Results.Text(SeoFiles.Llms(cfg["Site:Name"] ?? "Royal Fine Homes", BaseUrl(cfg, req), items), "text/plain; charset=utf-8");
         }).CacheOutput(SiteCache.Listings);
 
         // Short link for SMS: a Persian slug is long once encoded, and every 67 characters is another billed part.
