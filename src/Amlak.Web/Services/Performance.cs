@@ -56,6 +56,14 @@ public static class Performance
             });
             services.AddDataProtection().SetApplicationName("amlak").PersistKeysToStackExchangeRedis(mux, "amlak:dp-keys");
         }
+        // Shared Windows hosting (IIS without a loaded user profile, e.g. MonsterASP) keeps the keys only in memory,
+        // so every app-pool recycle would sign everyone out. DataProtection:KeysPath (relative to the app folder,
+        // e.g. "App_Data/keys") stores them on disk instead. Docs: docs/DEPLOY-FREE.md.
+        else if (cfg["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+        {
+            services.AddDataProtection().SetApplicationName("amlak")
+                .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, keysPath)));
+        }
 
         // Traces and metrics (requests, SQL, outgoing HTTP to bots/SMS, runtime, visitors' Web Vitals) go to
         // any OpenTelemetry collector when OTEL_EXPORTER_OTLP_ENDPOINT is set (Jaeger, Grafana, SigNoz...).
