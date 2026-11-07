@@ -33,7 +33,13 @@
 }
 
 <section class="home-hero">
+    @* Photo backdrop: only the Royal theme shows it (display:none elsewhere). Decorative, so empty alt. *@
+    <picture class="hero-bg" aria-hidden="true">
+        <source media="(min-width: 961px)" srcset="/img/home/hero-1600.webp" type="image/webp" />
+        <img src="/img/home/hero-960.webp" alt="" width="960" height="640" fetchpriority="high" decoding="async" />
+    </picture>
     <div class="wrap">
+        <p class="eyebrow" dir="ltr">ROYAL FINE HOMES</p>
         <h1>خرید، رهن و اجارهٔ ملک<br /><span>با آگهی‌های بررسی‌شده و عکس واقعی</span></h1>
         <form class="home-search" method="get" action="@Taxonomy.Root" role="search" aria-label="جست‌وجوی ملک">
             <fieldset class="tabs">
@@ -45,7 +51,16 @@
             <div class="home-search-row">
                 <label class="home-q">@Icons.Get("search", 20)<span class="sr-only">محله، شهر یا عنوان</span>
                     <input name="q" placeholder="محله، شهر یا عنوان آگهی" autocomplete="off" enterkeyhint="search" /></label>
-                <button class="btn lg">جست‌وجو</button>
+                <label class="home-kind"><span class="sr-only">نوع ملک</span>
+                    <select name="kind">
+                        <option value="">همهٔ انواع ملک</option>
+                        <option value="Apartment">آپارتمان</option>
+                        <option value="Villa">خانه و ویلا</option>
+                        <option value="Land">زمین و کلنگی</option>
+                        <option value="Commercial">مغازه و تجاری</option>
+                        <option value="Office">دفتر اداری</option>
+                    </select></label>
+                <button class="btn lg">@Icons.Get("search", 18)<span>جست‌وجو</span></button>
             </div>
         </form>
         <div class="trust">
@@ -57,7 +72,26 @@
 </section>
 
 <div class="wrap">
-    <section class="section first" aria-labelledby="cats-title">
+    <section class="section first showcase" aria-labelledby="types-title">
+        <div class="section-head">
+            <div><p class="kicker">مجموعه‌ها</p><h2 id="types-title">ملک مورد نظرت را انتخاب کن</h2></div>
+        </div>
+        <div class="types">
+            @foreach (var (slug, label, sub, img) in new[] {
+                ("خرید-آپارتمان", "آپارتمان", "خرید آپارتمان در بهترین محله‌ها", "apartment"),
+                ("خرید-ویلا", "خانه و ویلا", "ویلا و خانه‌های حیاط‌دار", "villa"),
+                ("اجاره-کوتاه-مدت", "اجارهٔ روزانه", "اقامت کوتاه‌مدت و سفر", "daily"),
+                ("خرید-دفتر-اداری", "اداری و تجاری", "دفتر کار، مغازه و ملک تجاری", "office") })
+            {
+                <a class="type" href="@Taxonomy.EncodedPath(null, Taxonomy.Find(slug))">
+                    <img src="/img/home/type-@(img).webp" alt="" width="640" height="427" loading="lazy" decoding="async" />
+                    <span class="type-b"><strong>@label</strong><small>@sub</small><i>@Icons.Get("chev-left", 18)</i></span>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="section cats-section" aria-labelledby="cats-title">
         <h2 id="cats-title" class="sr-only">دسته‌بندی‌ها</h2>
         <nav class="cats" aria-label="دسته‌بندی آگهی‌ها">
             @foreach (var (slug, label, icon) in new[] {

@@ -5,42 +5,37 @@
 /* ===== shared building blocks ===== */
 /* Photo-on-top card grid (portal style) instead of the classifieds row. */
 [data-ui=kilid] .listings,[data-ui=ihome] .listings,[data-ui=jabama] .listings,[data-ui=jajiga] .listings,
-[data-ui=shab] .listings,[data-ui=delta] .listings{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+[data-ui=shab] .listings{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
 [data-ui=kilid] .listings .card,[data-ui=ihome] .listings .card,[data-ui=jabama] .listings .card,[data-ui=jajiga] .listings .card,
-[data-ui=shab] .listings .card,[data-ui=delta] .listings .card{flex-direction:column;padding:0;gap:0;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius)}
+[data-ui=shab] .listings .card{flex-direction:column;padding:0;gap:0;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius)}
 [data-ui=kilid] .listings .ph,[data-ui=ihome] .listings .ph,[data-ui=jabama] .listings .ph,[data-ui=jajiga] .listings .ph,
-[data-ui=shab] .listings .ph,[data-ui=delta] .listings .ph{width:auto;aspect-ratio:4/3;border-radius:0}
+[data-ui=shab] .listings .ph{width:auto;aspect-ratio:4/3;border-radius:0}
 [data-ui=kilid] .listings .card .b,[data-ui=ihome] .listings .card .b,[data-ui=jabama] .listings .card .b,[data-ui=jajiga] .listings .card .b,
-[data-ui=shab] .listings .card .b,[data-ui=delta] .listings .card .b{padding:12px 14px 14px;gap:4px}
+[data-ui=shab] .listings .card .b{padding:12px 14px 14px;gap:4px}
 [data-ui=kilid] .listings .fav,[data-ui=ihome] .listings .fav,[data-ui=jabama] .listings .fav,[data-ui=jajiga] .listings .fav,
-[data-ui=shab] .listings .fav,[data-ui=delta] .listings .fav{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+[data-ui=shab] .listings .fav{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.18)}
 @media(max-width:900px){
   [data-ui=kilid] .listings,[data-ui=ihome] .listings,[data-ui=jabama] .listings,[data-ui=jajiga] .listings,
-  [data-ui=shab] .listings,[data-ui=delta] .listings{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  [data-ui=shab] .listings{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
   [data-ui=kilid] .listings .card,[data-ui=ihome] .listings .card,[data-ui=jabama] .listings .card,[data-ui=jajiga] .listings .card,
-  [data-ui=shab] .listings .card,[data-ui=delta] .listings .card{border:1px solid var(--line);border-radius:var(--radius);padding:0}
+  [data-ui=shab] .listings .card{border:1px solid var(--line);border-radius:var(--radius);padding:0}
   [data-ui=kilid] .listings .ph,[data-ui=ihome] .listings .ph,[data-ui=jabama] .listings .ph,[data-ui=jajiga] .listings .ph,
-  [data-ui=shab] .listings .ph,[data-ui=delta] .listings .ph{width:auto}
+  [data-ui=shab] .listings .ph{width:auto}
 }
 /* Hero with the brand colour behind it (white type). */
-[data-ui=kilid] .home-hero,[data-ui=melkradar] .home-hero,[data-ui=jabama] .home-hero,[data-ui=delta] .home-hero,
+[data-ui=kilid] .home-hero,[data-ui=melkradar] .home-hero,[data-ui=jabama] .home-hero,
 [data-ui=melkana] .home-hero{background:var(--hero);border:0;color:#fff}
-[data-ui=kilid] .home-hero h1 span,[data-ui=melkradar] .home-hero h1 span,[data-ui=jabama] .home-hero h1 span,
-[data-ui=delta] .home-hero h1 span,[data-ui=melkana] .home-hero h1 span{color:rgba(255,255,255,.82)}
-[data-ui=kilid] .home-hero .trust,[data-ui=melkradar] .home-hero .trust,[data-ui=jabama] .home-hero .trust,
-[data-ui=delta] .home-hero .trust,[data-ui=melkana] .home-hero .trust,
-[data-ui=kilid] .home-hero .trust svg,[data-ui=melkradar] .home-hero .trust svg,[data-ui=jabama] .home-hero .trust svg,
-[data-ui=delta] .home-hero .trust svg,[data-ui=melkana] .home-hero .trust svg{color:rgba(255,255,255,.88)}
-[data-ui=kilid] .home-search .tabs,[data-ui=melkradar] .home-search .tabs,[data-ui=jabama] .home-search .tabs,
-[data-ui=delta] .home-search .tabs,[data-ui=melkana] .home-search .tabs{background:rgba(255,255,255,.16)}
-[data-ui=kilid] .home-search .tabs span,[data-ui=melkradar] .home-search .tabs span,[data-ui=jabama] .home-search .tabs span,
-[data-ui=delta] .home-search .tabs span,[data-ui=melkana] .home-search .tabs span{color:#fff}
+[data-ui=kilid] .home-hero h1 span,[data-ui=melkradar] .home-hero h1 span,[data-ui=jabama] .home-hero h1 span,[data-ui=melkana] .home-hero h1 span{color:rgba(255,255,255,.82)}
+[data-ui=kilid] .home-hero .trust,[data-ui=melkradar] .home-hero .trust,[data-ui=jabama] .home-hero .trust,[data-ui=melkana] .home-hero .trust,
+[data-ui=kilid] .home-hero .trust svg,[data-ui=melkradar] .home-hero .trust svg,[data-ui=jabama] .home-hero .trust svg,[data-ui=melkana] .home-hero .trust svg{color:rgba(255,255,255,.88)}
+[data-ui=kilid] .home-search .tabs,[data-ui=melkradar] .home-search .tabs,[data-ui=jabama] .home-search .tabs,[data-ui=melkana] .home-search .tabs{background:rgba(255,255,255,.16)}
+[data-ui=kilid] .home-search .tabs span,[data-ui=melkradar] .home-search .tabs span,[data-ui=jabama] .home-search .tabs span,[data-ui=melkana] .home-search .tabs span{color:#fff}
 [data-ui=kilid] .home-search .tabs input:checked+span,[data-ui=melkradar] .home-search .tabs input:checked+span,
 [data-ui=jabama] .home-search .tabs input:checked+span,[data-ui=melkana] .home-search .tabs input:checked+span{background:#fff;color:var(--primary)}
 /* Main action keeps site.css's --cta; light CTA colours (amber, gold) need dark type. */
-[data-ui=melkradar] .btn:not([class*=" "]),[data-ui=delta] .btn:not([class*=" "]),
-[data-ui=melkradar] .btn.lg:not(.light):not(.outline-light):not(.ghost),[data-ui=delta] .btn.lg:not(.light):not(.outline-light):not(.ghost),
-[data-ui=melkradar] .btn.post,[data-ui=delta] .btn.post{color:var(--on-cta)}
+[data-ui=melkradar] .btn:not([class*=" "]),
+[data-ui=melkradar] .btn.lg:not(.light):not(.outline-light):not(.ghost),
+[data-ui=melkradar] .btn.post{color:var(--on-cta)}
 [data-ui] .tabbar .tab-post-btn{color:var(--on-cta,#fff);box-shadow:0 6px 16px color-mix(in srgb,var(--cta) 40%,transparent)}
 
 /* ===== 1. دیوار — flat classifieds feed ===== */
@@ -131,24 +126,7 @@
 [data-ui=shab] .btn,[data-ui=shab] .tabs,[data-ui=shab] .tabs span,[data-ui=shab] .home-search-row{border-radius:999px}
 [data-ui=shab] .home-search-row .btn{border-radius:999px}
 
-/* ===== 9. دلتا — premium agency, in the Royal Fine Homes brand ===== */
-/* Always dark: the logo's royal navy (#0F3F6F) as hero and bands, white as the action colour, sharp corners. */
-[data-ui=delta]{--bg:#071A30;--surface:#0B2340;--soft:#103058;--soft-2:#15396A;--ink:#F4F7FB;--ink-2:#DCE5F0;--muted:#A3B5CA;
-  --line:#1E4170;--line-soft:#14335A;--ph:#14335A;--ph-2:#0B2340;--ph-ink:#7F98B6;
-  --primary:#BFD6F2;--primary-dark:#E3EEFB;--primary-soft:#163B66;--on-primary:#0F3F6F;--cta:#FFFFFF;--cta-dark:#DCE7F5;--on-cta:#0F3F6F;
-  --rent:#9CC3EE;--radius:4px;--radius-sm:2px;--glass:rgba(11,35,64,.96);--band:#0F3F6F;--cta-soft:var(--primary-soft);
-  --hero:linear-gradient(160deg,#0F3F6F 0%,#0A2A4D 75%);color-scheme:dark}
-[data-ui=delta] .home-hero h1{font-weight:300;letter-spacing:-.01em}
-[data-ui=delta] .home-hero h1 span{color:var(--primary)}
-[data-ui=delta] .home-search .tabs input:checked+span{background:#fff;color:#0F3F6F}
-[data-ui=delta] .home-search-row{background:var(--surface);border-color:var(--line)}
-[data-ui=delta] .card .price{color:var(--primary-dark)}
-[data-ui=delta] .ph .tag{background:#0F3F6F;color:#fff;border:1px solid rgba(255,255,255,.7)}
-[data-ui=delta] .site-head{border-bottom-color:var(--line);background:#0F3F6F}
-[data-ui=delta] .head-search{background:rgba(255,255,255,.1)}
-[data-ui=delta] .brand-mark{background:transparent;color:#fff}
-[data-ui=delta] .btn.lg,[data-ui=delta] .home-search-row .btn{border-radius:var(--radius)}
-[data-ui=delta] .safety{color:var(--primary-dark);border:1px solid color-mix(in srgb,var(--primary) 35%,transparent)}
+/* ===== 9. دلتا: Royal Fine Homes, the live theme. Its whole look lives in royal.css (loaded only for delta). ===== */
 
 /* ===== 10. ملکانه — agency workspace ===== */
 /* Indigo on slate, compact cards with a coloured edge per deal type: reads like an agent's file list. */

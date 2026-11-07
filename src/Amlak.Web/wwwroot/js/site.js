@@ -315,3 +315,25 @@ document.addEventListener('click', e => {
   document.addEventListener('visibilitychange', send);
   window.addEventListener('pagehide', () => send(true));
 })();
+
+// Royal theme polish: a header shadow once the page scrolls, and home sections that ease in as they enter the view.
+// Opacity/transform only, so no layout shift; skipped for reduced motion and in every other UI variant.
+(() => {
+  if (document.documentElement.dataset.ui !== 'delta') return;
+  const head = document.querySelector('[data-head]');
+  if (head) {
+    const onScroll = () => head.classList.toggle('scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+  if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const items = document.querySelectorAll('.home main .section');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  items.forEach((el) => {
+    if (el.getBoundingClientRect().top < innerHeight) return; // already on screen: leave it as is
+    el.classList.add('reveal');
+    io.observe(el);
+  });
+})();
