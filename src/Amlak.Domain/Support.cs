@@ -10,19 +10,22 @@ public class Lead : AggregateRoot
     public int Id { get; private set; }
     public int? PropertyId { get; private set; }
     public Property? Property { get; private set; }
+    /// <summary>The consultant the visitor asked for (from the consultants page or the listing's consultant card).</summary>
+    public int? ConsultantId { get; private set; }
+    public Consultant? Consultant { get; private set; }
     public string Name { get; private set; } = "";
     public string Phone { get; private set; } = "";
     public string? Message { get; private set; }
     public bool Handled { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
 
-    public static Lead Submit(string name, PhoneNumber phone, string? message, int? propertyId, DateTime nowUtc)
+    public static Lead Submit(string name, PhoneNumber phone, string? message, int? propertyId, DateTime nowUtc, int? consultantId = null)
     {
         name = (name ?? "").Trim();
         message = string.IsNullOrWhiteSpace(message) ? null : message.Trim();
         if (name.Length is 0 or > MaxName) throw new DomainException("نام را وارد کنید (حداکثر ۸۰ نویسه)");
         if (message?.Length > MaxMessage) throw new DomainException("پیام حداکثر ۱۰۰۰ نویسه است");
-        var lead = new Lead { Name = name, Phone = phone.Value, Message = message, PropertyId = propertyId, CreatedAtUtc = nowUtc };
+        var lead = new Lead { Name = name, Phone = phone.Value, Message = message, PropertyId = propertyId, ConsultantId = consultantId, CreatedAtUtc = nowUtc };
         lead.Raise(new LeadSubmitted(lead, nowUtc));
         return lead;
     }

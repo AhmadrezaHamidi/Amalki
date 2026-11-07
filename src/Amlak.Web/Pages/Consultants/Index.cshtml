@@ -1,0 +1,33 @@
+@page "/مشاوران"
+@model Amlak.Web.Pages.Consultants.IndexModel
+@{
+    ViewData["Title"] = "تماس با مشاور املاک";
+    ViewData["Description"] = "مشاوران املاک Royal Fine Homes: تماس مستقیم یا ثبت درخواست مشاورهٔ رایگان برای خرید، فروش، رهن و اجاره.";
+}
+<div class="wrap page-pad">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / مشاوران</nav>
+    <header class="page-intro">
+        <h1>تماس با مشاور</h1>
+        <p>هر مشاور فقط در شهر و منطقهٔ خودش کار می‌کند، پس قیمت‌ها و کوچه‌پس‌کوچه‌ها را می‌شناسد. مستقیم زنگ بزنید یا درخواست بگذارید تا خودش تماس بگیرد. مشاوره رایگان است.</p>
+    </header>
+    @if (Model.Team.Count == 0)
+    {
+        <div class="panel" style="position:static">
+            <p>فهرست مشاوران به‌زودی اضافه می‌شود. تا آن موقع از فرم مشاوره استفاده کنید.</p>
+            <a class="btn" href="/تماس">درخواست مشاوره</a>
+        </div>
+    }
+    else
+    {
+        <div class="consultants">
+            @foreach (var c in Model.Team) { <partial name="_ConsultantCard" model="c" /> }
+        </div>
+    }
+    <section class="consult-cta" aria-labelledby="cta-title">
+        <div>
+            <h2 id="cta-title">نمی‌دانید با چه کسی صحبت کنید؟</h2>
+            <p>فرم را پر کنید؛ درخواست شما به مشاور همان منطقه می‌رسد.</p>
+        </div>
+        <a class="btn light lg" href="/تماس">درخواست مشاورهٔ رایگان</a>
+    </section>
+</div>

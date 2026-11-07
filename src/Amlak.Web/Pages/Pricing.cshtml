@@ -1,0 +1,63 @@
+@page "/تعرفه-ها"
+@model PricingModel
+@{
+    ViewData["Title"] = "تعرفهٔ ثبت آگهی و پلن‌ها";
+    ViewData["Description"] = "قیمت ثبت آگهی ملک در Royal Fine Homes: آگهی رایگان، آگهی ویژه و رویال برای مالکان، و اشتراک ماهانه برای مشاوران و آژانس‌ها.";
+    var groups = new (string Id, string Title, string Lead)[]
+    {
+        (Plans.Owners, "برای مالکان", "یک ملک برای فروش یا اجاره دارید."),
+        (Plans.Agencies, "برای مشاوران و آژانس‌ها", "هر ماه چندین آگهی ثبت می‌کنید."),
+    };
+}
+<div class="wrap page-pad">
+    <nav class="crumbs" aria-label="مسیر"><a href="/">خانه</a> / تعرفه‌ها</nav>
+    <header class="page-intro">
+        <h1>تعرفه‌ها</h1>
+        <p>ثبت آگهی رایگان است. اگر می‌خواهید زودتر دیده شوید، یکی از پلن‌ها را انتخاب کنید. همهٔ قیمت‌ها به تومان است.</p>
+    </header>
+
+    @foreach (var g in groups)
+    {
+        <section class="plans-group" aria-labelledby="g-@g.Id">
+            <div class="plans-head"><h2 id="g-@g.Id">@g.Title</h2><span>@g.Lead</span></div>
+            <div class="plans">
+                @foreach (var p in Model.Plans.Where(x => x.Audience == g.Id))
+                {
+                    <article class="plan @(p.Highlight ? "hot" : "")">
+                        @if (p.Highlight) { <span class="plan-tag">پرطرفدار</span> }
+                        <h3>@p.Name</h3>
+                        <p class="plan-pitch">@p.Pitch</p>
+                        <div class="plan-price">
+                            @if (p.Price == 0) { <strong>رایگان</strong> }
+                            else { <strong>@Fa.Money(p.Price)</strong><small>تومان · @p.Per</small> }
+                        </div>
+                        <ul>@foreach (var f in p.Features) { <li>@Icons.Get("check", 18)@f</li> }</ul>
+                        @if (p.Price == 0)
+                        {
+                            <a class="btn ghost block" href="/ثبت-آگهی">ثبت آگهی رایگان</a>
+                        }
+                        else
+                        {
+                            <a class="btn @(p.Highlight ? "" : "ghost") block" href="/تماس?plan=@p.Id&topic=@Uri.EscapeDataString(p.Audience == Plans.Owners ? "فروش ملک" : "سایر")">انتخاب پلن @p.Name</a>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="plans-group" aria-labelledby="fee-title">
+        <div class="plans-head"><h2 id="fee-title">کمیسیون معامله</h2></div>
+        <div class="fee-box">
+            <p>اگر معامله با مشاور Royal Fine Homes بسته شود، حق‌الزحمه طبق <strong>تعرفهٔ مصوب اتحادیهٔ مشاوران املاک</strong> همان شهر گرفته می‌شود و قرارداد با کد رهگیری ثبت می‌شود. هزینهٔ آگهی جدا از کمیسیون است و مشاوره پیش از معامله رایگان است.</p>
+            <a class="btn" href="/مشاوران">@Icons.Get("phone", 18) تماس با مشاور</a>
+        </div>
+    </section>
+
+    <section class="plans-group faq-mini" aria-labelledby="pfaq">
+        <div class="plans-head"><h2 id="pfaq">پرسش‌های رایج</h2></div>
+        <details><summary>پرداخت چطور انجام می‌شود؟</summary><p>پلن را انتخاب کنید و فرم را بفرستید. مشاور ما تماس می‌گیرد، آگهی را با شما هماهنگ می‌کند و لینک پرداخت می‌فرستد.</p></details>
+        <details><summary>اگر ملکم زودتر فروش رفت چه؟</summary><p>آگهی را از حساب خودتان یا با یک تماس می‌بندیم. روزهای باقی‌ماندهٔ پلن ویژه را می‌توانید روی آگهی بعدی‌تان استفاده کنید.</p></details>
+        <details><summary>آگهی رایگان هم بررسی می‌شود؟</summary><p>بله. همهٔ آگهی‌ها پیش از انتشار بررسی می‌شوند تا آگهی تکراری یا جعلی منتشر نشود.</p></details>
+    </section>
+</div>

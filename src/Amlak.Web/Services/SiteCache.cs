@@ -59,7 +59,7 @@ public sealed class ListingCacheInterceptor(IOutputCacheStore store) : SaveChang
     {
         if (c is null) return;
         var touched = c.ChangeTracker.Entries().Any(x =>
-            (x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) && x.Entity is Property or PropertyPhoto);
+            (x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) && x.Entity is Property or PropertyPhoto or Consultant);
         if (touched) Dirty.AddOrUpdate(c, true);
     }
 }

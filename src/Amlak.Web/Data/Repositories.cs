@@ -40,6 +40,12 @@ public sealed class EfTicketRepository(AppDbContext db) : ITicketRepository
     public void Add(Ticket ticket) => db.Tickets.Add(ticket);
 }
 
+public sealed class EfConsultantRepository(AppDbContext db) : IConsultantRepository
+{
+    public async Task<Consultant?> GetAsync(int id, CancellationToken ct = default) => await db.Consultants.FindAsync([id], ct);
+    public void Add(Consultant consultant) => db.Consultants.Add(consultant);
+}
+
 public sealed class EfPhoneCodeRepository(AppDbContext db) : IPhoneCodeRepository
 {
     public Task<bool> IssuedSinceAsync(string phone, DateTime sinceUtc, CancellationToken ct = default) =>
@@ -60,6 +66,7 @@ public static class PersistenceRegistration
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IListingRepository, EfListingRepository>();
         services.AddScoped<ILeadRepository, EfLeadRepository>();
+        services.AddScoped<IConsultantRepository, EfConsultantRepository>();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
         services.AddScoped<IPhoneCodeRepository, EfPhoneCodeRepository>();
         foreach (var useCase in UseCases.All) services.AddScoped(useCase);

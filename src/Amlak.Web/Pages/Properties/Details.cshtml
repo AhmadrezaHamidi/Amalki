@@ -29,7 +29,9 @@
     };
     var crumbLd = JsonLd.Breadcrumbs(
         [("خانه", site + "/"), .. crumbs.Select(c => (c.Name, site + c.Path)), (p.Title, SeoFiles.PropertyUrl(site, p))]);
-    var phone = Cfg["Site:Phone"];
+    var consultant = Model.Consultant;
+    // Calls go to the area's consultant when there is one, else to the office line.
+    var phone = consultant is not null ? Fa.Digits(consultant.Phone) : Cfg["Site:Phone"];
     var photos = p.Photos;
     var shown = photos.Take(5).ToList();
     var perMeter = PriceText.PerSquareMeter(p);
@@ -179,6 +181,11 @@
                 <span>اجارهٔ ماهانه: <strong>@Fa.Money(p.MonthlyRent)</strong> تومان</span>
             }
             <hr />
+            @if (consultant is not null)
+            {
+                <span class="hint">مشاور این ملک</span>
+                <partial name="_ConsultantCard" model="consultant" view-data='new ViewDataDictionary(ViewData) { ["Compact"] = true }' />
+            }
             <strong style="font-size:1.05rem">درخواست تماس و بازدید</strong>
             @if (Model.Sent)
             {
@@ -189,6 +196,7 @@
                 @* This page is output-cached, so the per-visitor antiforgery token is fetched by site.js on submit. *@
                 <form method="post" action="/تماس" class="js-only" data-csrf>
                     <input type="hidden" name="Input.PropertyId" value="@p.Id" />
+                    @if (consultant is not null) { <input type="hidden" name="Input.ConsultantId" value="@consultant.Id" /> }
                     <label class="field">نام<input name="Input.Name" required maxlength="80" autocomplete="name" /></label>
                     <label class="field">شمارهٔ موبایل<input name="Input.Phone" required inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09xxxxxxxxx" style="text-align:right" /></label>
                     <label class="field">پیام (اختیاری)<textarea name="Input.Message" rows="2" maxlength="1000" placeholder="مثلاً زمان مناسب برای بازدید"></textarea></label>
@@ -198,7 +206,7 @@
                 </form>
                 <a class="btn lg block no-js-only" href="/تماس?propertyId=@p.Id">ثبت درخواست تماس</a>
             }
-            @if (!string.IsNullOrWhiteSpace(phone))
+            @if (consultant is null && !string.IsNullOrWhiteSpace(phone))
             {
                 <a class="btn ghost lg block" href="tel:@Fa.Latin(phone).Replace(" ", "")">@Icons.Get("phone", 18) تماس مستقیم: <bdi dir="ltr">@phone</bdi></a>
             }
@@ -208,6 +216,6 @@
 
 <div class="mobile-cta">
     <div class="p"><small>@(hidden ? "قیمت" : rent ? "رهن" : shortTerm ? "هر شب" : "قیمت")</small><strong>@(hidden ? "توافقی" : Fa.Money(rent ? p.Deposit : p.Price))</strong></div>
-    @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس تلفنی">@Icons.Get("phone")</a> }
-    <a class="btn" href="#contact">درخواست بازدید</a>
+    @if (!string.IsNullOrWhiteSpace(phone)) { <a class="btn ghost icon" href="tel:@Fa.Latin(phone).Replace(" ", "")" aria-label="تماس با مشاور">@Icons.Get("phone")</a> }
+    <a class="btn" href="#contact">تماس با مشاور</a>
 </div>

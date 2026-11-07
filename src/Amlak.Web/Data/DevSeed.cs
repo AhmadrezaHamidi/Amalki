@@ -11,9 +11,11 @@ public static class DevSeed
     public static async Task RunAsync(AppDbContext db, string? webRoot = null)
     {
         await db.Database.MigrateAsync();
+        await AddConsultantsAsync(db);
         if (await db.Properties.AnyAsync())
         {
             await AddDemoCopiesAsync(db, webRoot);
+            await AddSamplesAsync(db, webRoot);
             return;
         }
 
@@ -49,6 +51,49 @@ public static class DevSeed
             Make("آپارتمان ۷۰ متری نزدیک دانشگاه", DealType.Rent, PropertyKind.Apartment, "تبریز", "ولیعصر", 70, 2, null, 300_000_000, 12_000_000, 1, "08.jpg", "06.jpg"));
         // Sample data must not be posted to the real channels.
         foreach (var p in db.ChangeTracker.Entries<Property>()) p.Entity.ClearDomainEvents();
+        await db.SaveChangesAsync();
+        await AddSamplesAsync(db, webRoot);
+    }
+
+    /// <summary>How many generated listings a demo database gets: enough for several pages per city and real price averages.</summary>
+    public const int SampleCount = 240;
+
+    /// <summary>Adds the generated sample listings once (databases seeded before they existed get them too).</summary>
+    private static async Task AddSamplesAsync(AppDbContext db, string? webRoot)
+    {
+        if (await db.Properties.AnyAsync(x => x.Slug.StartsWith(SampleListings.SlugPrefix))) return;
+        var items = SampleListings.Make(SampleCount, DateTime.UtcNow,
+            onPhoto: webRoot is null ? null : photo => RecordDemoCopies(photo, webRoot),
+            photoExists: webRoot is null ? null : f => File.Exists(Path.Combine(webRoot, "img", "demo", f)));
+        foreach (var p in items) p.ClearDomainEvents();
+        db.Properties.AddRange(items);
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>A sample team so /مشاوران and the listing pages have someone to call. Only when there is no consultant yet.</summary>
+    private static async Task AddConsultantsAsync(AppDbContext db)
+    {
+        if (await db.Consultants.AnyAsync()) return;
+        var now = DateTime.UtcNow;
+        ConsultantProfile P(string name, string title, string phone, string cities, int years, string specialty, string bio, int order) =>
+            new(name, title, PhoneNumber.Parse(phone), cities, years, specialty, bio, null, order);
+        db.Consultants.AddRange(
+            Consultant.Create(P("سارا محمدی", "مدیر فروش تهران و لواسان", "09120000101", "تهران، لواسان", 12, "آپارتمان و ویلای لوکس",
+                "دوازده سال در الهیه، زعفرانیه و لواسان معامله کرده و قیمت هر کوچه را می‌داند.", 1), now),
+            Consultant.Create(P("علی رضایی", "مشاور ارشد رهن و اجاره", "09120000102", "تهران", 8, "رهن و اجارهٔ آپارتمان",
+                "در غرب و مرکز تهران مستأجر و مالک را سریع به هم می‌رساند و قرارداد را با کد رهگیری می‌بندد.", 2), now),
+            Consultant.Create(P("مریم کریمی", "کارشناس قیمت‌گذاری", "09120000103", "", 15, "قیمت‌گذاری و سرمایه‌گذاری",
+                "پیش از خرید یا فروش، ارزش واقعی ملک را بر اساس معاملات اخیر محله برآورد می‌کند.", 3), now),
+            Consultant.Create(P("حسین احمدی", "مشاور املاک تجاری و اداری", "09120000104", "تهران، کرج", 10, "مغازه و دفتر اداری",
+                "ملک تجاری و اداری را با بررسی سند، کاربری و گردش مالی منطقه معرفی می‌کند.", 4), now),
+            Consultant.Create(P("نگار حسینی", "مشاور املاک مشهد", "09120000105", "مشهد", 7, "آپارتمان مسکونی",
+                "وکیل‌آباد، سجاد و احمدآباد را خوب می‌شناسد.", 5), now),
+            Consultant.Create(P("رضا موسوی", "مشاور املاک اصفهان و شیراز", "09120000106", "اصفهان، شیراز", 9, "خانه و ویلای ویلایی",
+                "از جلفا تا معالی‌آباد، خانه‌های ویلایی و آپارتمان‌های نوساز را معرفی می‌کند.", 6), now),
+            Consultant.Create(P("پریسا نوری", "مشاور ویلا و اجارهٔ کوتاه‌مدت شمال", "09120000107", "رامسر، نوشهر، چالوس، کلاردشت، رشت، ماسال", 6, "ویلای شمال",
+                "ویلای مناسب سفر یا خرید در شمال را با بازدید حضوری انتخاب می‌کند.", 7), now),
+            Consultant.Create(P("امیر قاسمی", "مشاور املاک کرج و تبریز", "09120000108", "کرج، تبریز", 5, "آپارتمان اقتصادی",
+                "برای خرید خانهٔ اول با بودجهٔ محدود بهترین گزینه‌ها را پیدا می‌کند.", 8), now));
         await db.SaveChangesAsync();
     }
 
