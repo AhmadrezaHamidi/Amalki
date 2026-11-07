@@ -1,0 +1,62 @@
+# Royal Fine Homes on one ArvanCloud server: web (ASP.NET Core) + SQL Server. Photos stay on the server's disk.
+# Do not run this by hand the first time: deploy/arvan/install.sh creates .env with random passwords and checks
+# that the images can be downloaded. Guide (Persian): docs/DEPLOY-ARVAN.md
+name: amalki
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?run install.sh first}
+      # SQL Server takes all the memory it can; leave room for the site on a 4 GB server.
+      MSSQL_MEMORY_LIMIT_MB: ${DB_MEMORY_MB:-1536}
+    volumes: [db-data:/var/opt/mssql]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 18
+      start_period: 30s
+
+  web:
+    # install.sh builds this image on the server, or ship-images.sh sends a ready one from your computer.
+    image: amalki-web:latest
+    build: ../..
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["${HTTP_PORT:-80}:8080"]
+    environment:
+      ConnectionStrings__Default: "Server=db;Database=Amlak;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      Database__Migrate: "true"
+      Database__SeedDemo: ${SEED_DEMO:-true}
+      Demo__Enabled: ${DEMO_MODE:-true}
+      Site__BaseUrl: ${SITE_URL:?run install.sh first}
+      Ui__Variant: delta
+      Storage__Provider: Local
+      DataProtection__KeysPath: /home/app/keys
+      Admin__Email: ${ADMIN_EMAIL:-}
+      Admin__Password: ${ADMIN_PASSWORD:-}
+      Sms__Provider: ${SMS_PROVIDER:-Log}
+      Sms__ApiKey: ${SMS_API_KEY:-}
+      Sms__Template: ${SMS_TEMPLATE:-}
+      Sms__Sender: ${SMS_SENDER:-}
+      Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
+      Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
+      Telegram__AdminChatId: ${TELEGRAM_ADMIN_CHAT_ID:-}
+      # Telegram is filtered in Iran: point this at your own relay outside Iran (docs/CHANNELS.md).
+      Telegram__ApiBase: ${TELEGRAM_API_BASE:-https://api.telegram.org}
+      Telegram__WebhookSecret: ${TELEGRAM_WEBHOOK_SECRET:-}
+      Bale__BotToken: ${BALE_BOT_TOKEN:-}
+      Bale__ChatId: ${BALE_CHAT_ID:-}
+      Bale__AdminChatId: ${BALE_ADMIN_CHAT_ID:-}
+    volumes:
+      - uploads:/app/wwwroot/uploads
+      - keys:/home/app/keys
+
+volumes:
+  db-data:
+  uploads:
+  keys:

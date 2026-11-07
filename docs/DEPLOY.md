@@ -1,6 +1,7 @@
 # راه‌اندازی کامل با Docker (سایت + SQL Server + MinIO)
 
 > میزبانی رایگان بدون سرور (MonsterASP.NET، خارج از ایران): [DEPLOY-FREE.md](DEPLOY-FREE.md)
+> سرور ابری آروان با یک دستور: [DEPLOY-ARVAN.md](DEPLOY-ARVAN.md)
 
 ```bash
 cp .env.example .env      # همهٔ رمزها را عوض کنید
