@@ -154,8 +154,8 @@ public sealed class ListingQueryTests : IDisposable
     public async Task Home_shows_latest_and_counts_published_by_kind()
     {
         await using var db = NewDb();
-        var m = new Amlak.Web.Pages.IndexModel(new ListingQueries(db));
-        await m.OnGetAsync();
+        var m = new Amlak.Web.Pages.IndexModel(new Contexts(NewDb));
+        await m.OnGetAsync(default);
         Assert.Equal(6, m.Latest.Count);
         Assert.Equal("sale-tehran-new", m.Latest[0].Slug);
         Assert.Equal(4, m.CountByKind[PropertyKind.Apartment]); // the draft apartment is not counted
@@ -192,4 +192,10 @@ public sealed class ListingQueryTests : IDisposable
         Assert.Equal("bulk-49", last.Items[^1].Slug);
         Assert.Empty(first.Items.Select(x => x.Id).Intersect(last.Items.Select(x => x.Id)));
     }
+}
+
+/// <summary>IDbContextFactory over a test connection (Microsoft.Data.Sqlite runs async calls synchronously, so sharing it is safe).</summary>
+internal sealed class Contexts(Func<AppDbContext> make) : IDbContextFactory<AppDbContext>
+{
+    public AppDbContext CreateDbContext() => make();
 }

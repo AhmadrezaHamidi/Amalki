@@ -11,7 +11,11 @@ public static class DevSeed
     public static async Task RunAsync(AppDbContext db, string? webRoot = null)
     {
         await db.Database.MigrateAsync();
-        if (await db.Properties.AnyAsync()) return;
+        if (await db.Properties.AnyAsync())
+        {
+            await AddDemoCopiesAsync(db, webRoot);
+            return;
+        }
 
         var now = DateTime.UtcNow;
         Property Make(string title, DealType deal, PropertyKind kind, string city, string district, int area, int? beds,
@@ -22,7 +26,10 @@ public static class DevSeed
                 ListingDetails.Of(title, $"{title} در {district} {city}. نمونهٔ آزمایشی برای نمایش طراحی.", kind, area, city, district, beds),
                 Pricing.For(deal, price, deposit, rent), at);
             foreach (var f in photos)
-                if (webRoot is not null && File.Exists(Path.Combine(webRoot, "img", "demo", f))) p.AddPhoto($"/img/demo/{f}", at);
+            {
+                if (webRoot is null || !File.Exists(Path.Combine(webRoot, "img", "demo", f))) continue;
+                RecordDemoCopies(p.AddPhoto($"/img/demo/{f}", at), webRoot);
+            }
             p.Publish(at);
             return p;
         }
@@ -43,5 +50,27 @@ public static class DevSeed
         // Sample data must not be posted to the real channels.
         foreach (var p in db.ChangeTracker.Entries<Property>()) p.Entity.ClearDomainEvents();
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>Databases seeded before the WebP copies shipped: point their demo photos at the copies too.</summary>
+    private static async Task AddDemoCopiesAsync(AppDbContext db, string? webRoot)
+    {
+        if (webRoot is null) return;
+        var old = await db.PropertyPhotos.Where(x => x.Url.StartsWith("/img/demo/") && (x.Variants == null || x.Variants == "")).ToListAsync();
+        foreach (var photo in old) RecordDemoCopies(photo, webRoot);
+        if (old.Count > 0) await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Light WebP copies (img/demo/07-480.webp...) ship with the demo photos, so a phone loads ~15 KB
+    /// instead of the ~250 KB JPEG. Records them with the photo's pixel size (keeps the layout from jumping).
+    /// </summary>
+    private static void RecordDemoCopies(PropertyPhoto photo, string webRoot)
+    {
+        var dir = Path.Combine(webRoot, "img", "demo");
+        var file = Path.GetFileName(photo.Url);
+        var widths = PhotoVariants.Widths.Where(w => File.Exists(Path.Combine(dir, Path.GetFileName(PhotoVariants.UrlFor(file, w))))).ToList();
+        using var codec = SkiaSharp.SKCodec.Create(Path.Combine(dir, file));
+        if (widths.Count > 0 && codec is not null) photo.RecordCopies(codec.Info.Width, codec.Info.Height, widths);
     }
 }

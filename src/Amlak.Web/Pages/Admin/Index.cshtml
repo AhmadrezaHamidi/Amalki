@@ -41,7 +41,7 @@
                 {
                     <li>
                         <div>
-                            <span class="grow"><strong>@l.Name <bdi dir="ltr" class="hint">@Fa.Digits(l.Phone)</bdi></strong><small>@(l.Property?.Title ?? "مشاورهٔ عمومی")</small></span>
+                            <span class="grow"><strong>@l.Name <bdi dir="ltr" class="hint">@Fa.Digits(l.Phone)</bdi></strong><small>@(l.PropertyTitle ?? "مشاورهٔ عمومی")</small></span>
                             <a class="btn sm ghost" href="tel:@l.Phone">تماس</a>
                         </div>
                     </li>
@@ -65,5 +65,41 @@
             <span class="pill @(Model.Channels.Contains(Messenger.Telegram) ? "pub" : "draft")">تلگرام: @(Model.Channels.Contains(Messenger.Telegram) ? "تنظیم‌شده" : "تنظیم نشده")</span>
             <span class="pill @(Model.Channels.Contains(Messenger.Bale) ? "pub" : "draft")">بله: @(Model.Channels.Contains(Messenger.Bale) ? "تنظیم‌شده" : "تنظیم نشده")</span>
         </span>
+    </section>
+
+    @* Real-user monitoring: what visitors' own phones measured (WebVitals). *@
+    <section class="form-card" aria-labelledby="dash-speed">
+        <div class="section-head" style="margin-bottom:8px"><h2 id="dash-speed">سرعت سایت از دید بازدیدکننده‌ها</h2><span class="hint">۷۵٪ بازدیدها، ۲۴ ساعت اخیر</span></div>
+        @if (Model.Vitals.Count == 0)
+        {
+            <p class="hint">هنوز گزارشی نرسیده. هر بازدیدکننده هنگام ترک صفحه سرعتی را که گوشی‌اش دیده می‌فرستد.</p>
+        }
+        else
+        {
+            string Page(string p) => p switch { "home" => "صفحهٔ اصلی", "list" => "فهرست آگهی‌ها", "detail" => "صفحهٔ آگهی", _ => "سایر صفحه‌ها" };
+            string Show(WebVitals.Summary? x) => x is null ? "—" : x.Metric == "cls" ? Fa.Digits(x.P75.ToString("0.00")) : Fa.Digits((x.P75 / 1000).ToString("0.0")) + " ث";
+            string Css(WebVitals.Summary? x) => x is null ? "" : x.Rating switch { "good" => "pub", "ni" => "wait", _ => "closed" };
+            <div class="tablewrap">
+                <table class="table">
+                    <thead><tr><th>صفحه</th><th title="بزرگ‌ترین بخش صفحه کِی دیده شد">LCP</th><th title="پاسخ به لمس و کلیک">INP</th><th title="جابه‌جا شدن صفحه">CLS</th><th title="اولین بایت از سرور">TTFB</th><th>نمونه</th></tr></thead>
+                    <tbody>
+                    @foreach (var page in WebVitals.PageTypes.Where(p => Model.Vitals.Any(v => v.Page == p)))
+                    {
+                        var row = Model.Vitals.Where(v => v.Page == page).ToDictionary(v => v.Metric);
+                        <tr>
+                            <td>@Page(page)</td>
+                            @foreach (var m in new[] { "lcp", "inp", "cls", "ttfb" })
+                            {
+                                var x = row.GetValueOrDefault(m);
+                                <td><span class="pill @Css(x)">@Show(x)</span></td>
+                            }
+                            <td>@Fa.Digits(row.Values.Max(v => v.Samples).ToString())</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <p class="hint">معیار گوگل برای «خوب»: LCP زیر ۲٫۵ ثانیه، INP زیر ۰٫۲ ثانیه، CLS زیر ۰٫۱، TTFB زیر ۰٫۸ ثانیه.</p>
+        }
     </section>
 </div>

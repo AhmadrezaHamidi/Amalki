@@ -37,6 +37,8 @@
 
 - Demo mode (2026-11-07): `Demo:Enabled` (on in Development, `DEMO_MODE` in compose) + mock SMS shows the OTP on the page with a fill button, and a yellow top bar logs in as demo admin or demo visitor (POST /demo/login/admin|user). Off whenever Sms:Provider=Kavenegar. 168 tests pass.
 
+- Speed pass (2026-11-07, docs/PERFORMANCE.md, 31-item checklist): Brotli/gzip for pages, browser cache for fonts/images/icons, WebP copies for demo photos (DevSeed also fixes older demo databases), first list photo eager, pooled DbContexts + 15 s SQL / 20 s page time limits, home queries in parallel, bulk SMS N+1 fixed, sitemap and lead lists select only needed columns, leads paged, migration `PerformanceIndexes`, debounced header search suggestions (`/api/suggest`), photo/list skeletons, no double submits, real-user Web Vitals (`/rum`, p75 on admin dashboard), optional Redis (`Redis:Connection`) and OpenTelemetry (`OTEL_EXPORTER_OTLP_ENDPOINT`). Slow-phone test `tools/perf/slow-phone.js`: home LCP 5.5 s → 1.2 s, list 6.0 s → 0.4 s.
+
 ## Next task
 - Bots (design doc above): phase 0 real-bot test, then two-way Bale/Telegram bot on the same use cases.
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)

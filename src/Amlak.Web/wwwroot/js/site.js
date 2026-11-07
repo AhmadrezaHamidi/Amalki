@@ -192,3 +192,126 @@ document.addEventListener('click', e => {
   const input = b.form?.querySelector('[name=Code]') || document.getElementById('Code');
   if (input) { input.value = b.dataset.demoFill; input.focus(); }
 });
+
+// ---- skeletons: a photo box stops shimmering once its photo has loaded ----
+(() => {
+  const done = (img) => img.closest('.ph')?.classList.add('loaded');
+  document.querySelectorAll('.ph img').forEach((img) => { if (img.complete) done(img); });
+  document.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') done(e.target); }, true);
+  document.addEventListener('error', (e) => { if (e.target.tagName === 'IMG') done(e.target); }, true);
+  // Next page of results or new filters: dim the current cards while the server answers (slow networks).
+  const list = document.querySelector('.listings');
+  if (list) {
+    const busy = () => list.setAttribute('aria-busy', 'true');
+    document.querySelectorAll('form.filters, form[data-autosubmit]').forEach((f) => f.addEventListener('submit', busy));
+    document.querySelectorAll('.pager a, a.chip, a.qchip').forEach((a) => a.addEventListener('click', (e) => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) busy(); }));
+    // Coming back with the back button restores the page from memory: undo the dimming.
+    window.addEventListener('pageshow', () => list.removeAttribute('aria-busy'));
+  }
+})();
+
+// ---- no double submits: a second tap while the first is still sending is ignored ----
+(() => {
+  document.addEventListener('submit', (e) => {
+    const f = e.target;
+    if (e.defaultPrevented || (f.method || 'get').toLowerCase() !== 'post' || f.target === '_blank') return;
+    if (f.dataset.sending) { e.preventDefault(); return; }
+    f.dataset.sending = '1';
+    // Disabled after this tick, so the clicked button's name/value still goes with the form.
+    const btn = e.submitter;
+    setTimeout(() => { if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); } }, 0);
+  });
+  window.addEventListener('pageshow', () => document.querySelectorAll('form[data-sending]').forEach((f) => {
+    delete f.dataset.sending;
+    f.querySelectorAll('[aria-busy=true]').forEach((b) => { b.disabled = false; b.removeAttribute('aria-busy'); });
+  }));
+})();
+
+// ---- header search suggestions: debounced, stale requests cancelled, answers remembered, 5 s time limit ----
+(() => {
+  const input = document.getElementById('head-q');
+  if (!input || !window.fetch || !window.AbortController) return;
+  const box = document.createElement('ul');
+  box.className = 'suggest'; box.id = 'head-suggest'; box.hidden = true; box.setAttribute('role', 'listbox');
+  input.after(box);
+  input.setAttribute('role', 'combobox'); input.setAttribute('aria-controls', box.id);
+  input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-expanded', 'false');
+  const cache = new Map(); // same text typed again: no new request
+  let timer = 0, ctrl = null, active = -1;
+  const fa = (n) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const open = (on) => { box.hidden = !on; input.setAttribute('aria-expanded', String(on)); if (!on) active = -1; };
+  const render = (items) => {
+    box.innerHTML = items.length
+      ? items.map((x, i) => `<li><a id="sg-${i}" role="option" href="${esc(x.url)}"><span>${esc(x.label)} <small>${esc(x.hint)}</small></span><small>${fa(x.count)} آگهی</small></a></li>`).join('')
+      : '<li class="none">جایی با این نام پیدا نشد؛ Enter را بزنید تا در عنوان آگهی‌ها هم بگردیم.</li>';
+    open(true);
+  };
+  const skeleton = () => { box.innerHTML = '<li class="sk"></li><li class="sk"></li><li class="sk"></li>'; open(true); };
+  const load = async (q) => {
+    if (cache.has(q)) return render(cache.get(q));
+    ctrl?.abort(); // the answer for "سعا" is useless once "سعادت" is typed
+    ctrl = new AbortController();
+    const signal = AbortSignal.any ? AbortSignal.any([ctrl.signal, AbortSignal.timeout(5000)]) : ctrl.signal;
+    skeleton();
+    try {
+      const r = await fetch('/api/suggest?q=' + encodeURIComponent(q), { signal });
+      if (!r.ok) throw new Error(r.status);
+      const items = await r.json();
+      cache.set(q, items);
+      if (input.value.trim() === q) render(items);
+    } catch (err) {
+      if (err.name !== 'AbortError' || input.value.trim() === q) open(false);
+    }
+  };
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { ctrl?.abort(); open(false); return; }
+    timer = setTimeout(() => load(q), 250); // wait until typing pauses
+  });
+  input.addEventListener('keydown', (e) => {
+    const links = [...box.querySelectorAll('a')];
+    if (box.hidden || !links.length) { if (e.key === 'Escape') open(false); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + links.length) % links.length;
+      links.forEach((a, i) => a.setAttribute('aria-selected', String(i === active)));
+      input.setAttribute('aria-activedescendant', links[active].id);
+    } else if (e.key === 'Enter' && active >= 0) {
+      e.preventDefault(); location.href = links[active].href;
+    } else if (e.key === 'Escape') open(false);
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.head-search')) open(false); });
+})();
+
+// ---- real-user speed (RUM): Core Web Vitals of this page view, sent once when the visitor leaves ----
+(() => {
+  if (!('PerformanceObserver' in window) || !navigator.sendBeacon || location.pathname.startsWith('/Admin')) return;
+  const v = {};
+  const watch = (type, fn, opts = {}) => { try { new PerformanceObserver((l) => l.getEntries().forEach(fn)).observe({ type, buffered: true, ...opts }); } catch { /* unsupported */ } };
+  watch('largest-contentful-paint', (e) => { v.lcp = e.startTime; });
+  watch('paint', (e) => { if (e.name === 'first-contentful-paint') v.fcp = e.startTime; });
+  // CLS: largest burst of layout shifts (shifts less than 1 s apart, at most 5 s long), as Chrome scores it.
+  let burst = 0, first = 0, last = 0;
+  watch('layout-shift', (e) => {
+    if (e.hadRecentInput) return;
+    if (burst && e.startTime - last < 1000 && e.startTime - first < 5000) burst += e.value;
+    else { burst = e.value; first = e.startTime; }
+    last = e.startTime;
+    v.cls = Math.max(v.cls || 0, burst);
+  });
+  // INP: the slowest tap/click/key response (close to Chrome's value when a page has few interactions).
+  watch('event', (e) => { if (e.interactionId) v.inp = Math.max(v.inp || 0, e.duration); }, { durationThreshold: 40 });
+  const nav = performance.getEntriesByType('navigation')[0];
+  if (nav) v.ttfb = nav.responseStart;
+  let sent = false;
+  const send = (force) => {
+    if (sent || (force !== true && document.visibilityState !== 'hidden')) return;
+    sent = true;
+    const round = (n) => (n == null ? null : Math.round(n * 1000) / 1000);
+    navigator.sendBeacon('/rum', JSON.stringify({ path: decodeURI(location.pathname), lcp: round(v.lcp), inp: round(v.inp), cls: round(v.cls), fcp: round(v.fcp), ttfb: round(v.ttfb) }));
+  };
+  document.addEventListener('visibilitychange', send);
+  window.addEventListener('pagehide', () => send(true));
+})();

@@ -4,10 +4,14 @@
     var shortTerm = Model.Deal == DealType.ShortTerm;
     // "tall" = photo on top (home page highlights); default = classifieds row, photo beside the text.
     var tall = ViewData["CardStyle"] as string == "tall";
+    // The first EagerCards cards on the page load their photo at once with high priority; the rest lazily.
+    var n = Context.Items["card#"] as int? ?? 0;
+    Context.Items["card#"] = n + 1;
+    var eager = n < (ViewData["EagerCards"] as int? ?? 0);
 }
 <article class="card @(tall ? "tall" : "")">
     <div class="ph">
-        @if (Model.Cover is { } p) { @PhotoVariants.Img(p, tall ? "(max-width: 700px) 78vw, 300px" : "(max-width: 900px) 116px, 148px", tall ? 640 : 320, tall ? 480 : 320) }
+        @if (Model.Cover is { } p) { @PhotoVariants.Img(p, tall ? "(max-width: 700px) 78vw, 300px" : "(max-width: 900px) 116px, 148px", tall ? 640 : 320, tall ? 480 : 320, eager) }
         else { @Icons.Get("photo", 30) }
         <span class="tag @(rent ? "rent" : "")">@Labels.Deal(Model.Deal)</span>
     </div>

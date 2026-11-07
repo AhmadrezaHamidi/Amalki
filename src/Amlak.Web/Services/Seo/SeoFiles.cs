@@ -25,7 +25,9 @@ public static class SeoFiles
     /// Divar-style landing pages that have at least one published listing: every city, every
     /// city + category, and every city + category + district, plus the all-cities category pages.
     /// </summary>
-    public static List<string> LandingPaths(IEnumerable<Property> published)
+    public static List<string> LandingPaths(IEnumerable<Property> published) => LandingPaths(published.Select(SitemapEntry.Of));
+
+    public static List<string> LandingPaths(IEnumerable<SitemapEntry> published)
     {
         var list = published.ToList();
         var paths = new List<string>();
@@ -46,9 +48,11 @@ public static class SeoFiles
         return paths;
     }
 
-    private static bool Matches(Category c, Property p) => p.Deal == c.Deal && (c.Kind is null || p.Kind == c.Kind);
+    private static bool Matches(Category c, SitemapEntry p) => p.Deal == c.Deal && (c.Kind is null || p.Kind == c.Kind);
 
-    public static string Sitemap(IEnumerable<Property> published, string baseUrl)
+    public static string Sitemap(IEnumerable<Property> published, string baseUrl) => Sitemap(published.Select(SitemapEntry.Of), baseUrl);
+
+    public static string Sitemap(IEnumerable<SitemapEntry> published, string baseUrl)
     {
         published = published.ToList();
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
@@ -64,8 +68,8 @@ public static class SeoFiles
         foreach (var p in published.Take(Math.Max(0, MaxSitemapUrls - urls.Count)))
         {
             var url = new XElement(ns + "url",
-                new XElement(ns + "loc", PropertyUrl(baseUrl, p)),
-                new XElement(ns + "lastmod", (p.PublishedAtUtc ?? p.CreatedAtUtc).ToString("yyyy-MM-dd")),
+                new XElement(ns + "loc", PropertyUrl(baseUrl, p.Slug)),
+                new XElement(ns + "lastmod", p.LastModUtc.ToString("yyyy-MM-dd")),
                 new XElement(ns + "priority", "0.7"));
             foreach (var photo in p.Photos.OrderBy(x => x.SortOrder).Take(10))
                 url.Add(new XElement(img + "image", new XElement(img + "loc", Absolute(baseUrl, photo.Url))));
@@ -123,3 +127,16 @@ public static class SeoFiles
         return sb.ToString();
     }
 }
+
+/// <summary>
+/// The few columns a sitemap needs from a listing. The endpoint selects just these instead of loading
+/// whole listings (description and all) with every photo row, up to 50,000 of them.
+/// </summary>
+public sealed record SitemapEntry(string Slug, DealType Deal, PropertyKind Kind, string City, string District, DateTime LastModUtc,
+    IReadOnlyList<SitemapPhoto> Photos)
+{
+    public static SitemapEntry Of(Property p) => new(p.Slug, p.Deal, p.Kind, p.City, p.District, p.PublishedAtUtc ?? p.CreatedAtUtc,
+        p.Photos.Select(x => new SitemapPhoto(x.SortOrder, x.Url)).ToList());
+}
+
+public sealed record SitemapPhoto(int SortOrder, string Url);

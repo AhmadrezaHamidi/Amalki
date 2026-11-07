@@ -21,9 +21,13 @@ public static class SeoEndpoints
 
         app.MapGet("/sitemap.xml", async (AppDbContext db, IConfiguration cfg, HttpRequest req, CancellationToken ct) =>
         {
-            var items = await db.Properties.AsNoTracking().Include(p => p.Photos)
+            // Only the columns the sitemap prints (SitemapEntry); photos in a second query by listing (split query).
+            var items = await db.Properties.AsNoTracking()
                 .Where(p => p.Status == ListingStatus.Published)
-                .OrderByDescending(p => p.PublishedAtUtc).Take(SeoFiles.MaxSitemapUrls).ToListAsync(ct);
+                .OrderByDescending(p => p.PublishedAtUtc).Take(SeoFiles.MaxSitemapUrls)
+                .Select(p => new SitemapEntry(p.Slug, p.Deal, p.Kind, p.City, p.District, p.PublishedAtUtc ?? p.CreatedAtUtc,
+                    p.Photos.Select(x => new SitemapPhoto(x.SortOrder, x.Url)).ToList()))
+                .AsSplitQuery().ToListAsync(ct);
             return Results.Text(SeoFiles.Sitemap(items, BaseUrl(cfg, req)), "application/xml; charset=utf-8");
         }).CacheOutput(SiteCache.Listings);
 
