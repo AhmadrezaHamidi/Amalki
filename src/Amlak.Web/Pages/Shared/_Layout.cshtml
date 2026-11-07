@@ -57,7 +57,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script>document.documentElement.classList.remove('no-js')</script>
     @* Self-hosted variable Vazirmatn (one file, all weights): no third-party round trip, which is slow or blocked in Iran. *@
-    <link rel="preload" href="/fonts/Vazirmatn-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    @if (ui?.Id == "delta") { <link rel="preload" href="/fonts/Estedad-Arabic-Variable.woff2" as="font" type="font/woff2" crossorigin /> }
+    else { <link rel="preload" href="/fonts/Vazirmatn-Variable.woff2" as="font" type="font/woff2" crossorigin /> }
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @if (ui is not null || uiPreview) { <link rel="stylesheet" href="~/css/variants.css" asp-append-version="true" /> }
     @if (ui?.Id == "delta") { <link rel="stylesheet" href="~/css/royal.css" asp-append-version="true" /> }

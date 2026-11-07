@@ -30,9 +30,15 @@
   }
 }
 
-/* ---- type ---- */
-body{font-size:15.5px;line-height:1.8;font-feature-settings:"kern"}
-h1,h2,h3{color:var(--ink);letter-spacing:0}
+/* ---- type: Estedad (OFL, self-hosted, split in an Arabic-script and a Latin file) ----
+   A modern geometric Persian face: crisper and more "brand" than Vazirmatn at display sizes, still very readable
+   in body copy, Persian digits built in, about half the bytes of Vazirmatn. No Vazirmatn in the stack: a symbol Estedad lacks (★) would
+   download the whole 110 KB file just for that glyph. */
+@font-face{font-family:'Estedad';src:url('/fonts/Estedad-Arabic-Variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
+@font-face{font-family:'Estedad';src:url('/fonts/Estedad-Latin-Variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+body{font-family:'Estedad',system-ui,sans-serif;font-size:15.5px;line-height:1.85;font-feature-settings:"kern";text-rendering:optimizeLegibility}
+h1,h2,h3{color:var(--ink);letter-spacing:0;line-height:1.5}
+h1,h2{font-weight:800}
 ::selection{background:var(--primary);color:#fff}
 .wrap{max-width:1280px;padding-inline:32px}
 @media(max-width:700px){.wrap{padding-inline:16px}}
@@ -73,7 +79,7 @@ h1,h2,h3{color:var(--ink);letter-spacing:0}
 .head-search{background:var(--soft);border:1px solid transparent;border-radius:999px;height:44px;padding-inline:16px 8px;transition:background .2s,border-color .2s,box-shadow .2s}
 .head-search:focus-within{background:var(--surface);border-color:var(--primary);box-shadow:0 0 0 4px var(--ring-soft)}
 .nav{gap:4px}
-.nav a{position:relative;color:var(--ink-2);font-weight:500;padding:8px 12px;border-radius:8px}
+.nav a{position:relative;color:var(--ink-2);font-weight:500;font-size:.95rem;padding:8px 12px;border-radius:8px}
 .nav a:hover{background:transparent;color:var(--primary)}
 .nav a::after{content:"";position:absolute;inset-inline:12px;bottom:2px;height:2px;border-radius:2px;background:var(--gold);transform:scaleX(0);transition:transform .3s var(--ease)}
 .nav a:hover::after,.nav a[aria-current=page]::after{transform:scaleX(1)}
@@ -98,8 +104,8 @@ h1,h2,h3{color:var(--ink);letter-spacing:0}
   background:linear-gradient(180deg,rgba(8,26,48,.72) 0%,rgba(8,26,48,.42) 45%,rgba(8,26,48,.82) 100%)}
 .home-hero .wrap{min-height:clamp(540px,76vh,720px);justify-content:center;gap:22px;padding-block:72px 64px}
 .home-hero .eyebrow{color:#E4CFA6}
-.home-hero h1{color:#fff;font-size:clamp(2rem,4.6vw,3.5rem);font-weight:800;line-height:1.35;text-shadow:0 2px 24px rgba(0,0,0,.25)}
-.home-hero h1 span{display:inline-block;margin-top:10px;font-size:.42em;font-weight:400;color:rgba(255,255,255,.88);line-height:1.6}
+.home-hero h1{color:#fff;font-size:clamp(2rem,4.6vw,3.4rem);font-weight:900;line-height:1.4;text-shadow:0 2px 24px rgba(0,0,0,.25)}
+.home-hero h1 span{display:inline-block;margin-top:10px;font-size:.42em;font-weight:300;color:rgba(255,255,255,.88);line-height:1.6}
 .home-search{width:min(860px,100%);gap:0;align-items:stretch}
 .home-search .tabs{align-self:flex-start;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-radius:12px 12px 0 0;padding:6px 6px 0;gap:2px}
@@ -198,7 +204,7 @@ h1,h2,h3{color:var(--ink);letter-spacing:0}
 .card .b{padding:14px 4px 0;gap:4px}
 .card .price{order:-1;margin:0;font-size:1.22rem;font-weight:800;color:var(--ink);line-height:1.6}
 .card .price small{font-size:.8rem;font-weight:500;color:var(--muted)}
-.card h3{font-size:.98rem;font-weight:600;color:var(--ink-2);-webkit-line-clamp:1}
+.card h3{font-size:.98rem;font-weight:500;color:var(--ink-2);-webkit-line-clamp:1}
 .card .meta{font-size:.86rem;color:var(--muted);gap:0 12px}
 .card .meta span+span::before{content:"";display:inline-block;width:3px;height:3px;border-radius:999px;background:var(--gold);vertical-align:middle;margin-inline-end:12px}
 .card .when{font-size:.8rem;color:var(--muted);margin-top:6px}
