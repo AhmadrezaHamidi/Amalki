@@ -41,6 +41,7 @@
                     <input type="hidden" name="Phone" value="@Model.Phone" />
                     <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
                     <p>کد ارسال‌شده به <bdi dir="ltr">@Fa.Digits(Model.Phone ?? "")</bdi> را وارد کنید.</p>
+                    <partial name="_DemoCode" model="Model.Phone" />
                     <label for="Code">کد تأیید</label>
                     <input id="Code" name="Code" inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="6" required autofocus />
                     <span asp-validation-for="Code" class="err"></span>

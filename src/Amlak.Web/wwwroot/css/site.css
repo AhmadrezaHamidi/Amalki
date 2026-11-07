@@ -537,3 +537,11 @@ a.stat:hover{border-color:var(--primary);color:var(--ink)}
   .admin-nav a[aria-current=page]{background:#1F3354}
 }
 .checks.districts{max-height:220px;overflow:auto}
+
+/* ---- test mode (DemoMode) ---- */
+.demo-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;padding:6px 16px;background:#FDE68A;color:#422006;font-size:.85rem;font-weight:600}
+.demo-bar form{margin:0}
+.demo-bar .btn{min-height:32px;padding:0 14px;background:#422006;color:#FDE68A;border-color:#422006}
+.demo-bar .btn.ghost{background:transparent;color:#422006}
+.demo-code{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:10px 12px;border:1px dashed #D97706;background:color-mix(in srgb,#FDE68A 18%,transparent);border-radius:var(--radius-sm);font-size:.9rem}
+.demo-code b{font-size:1.15rem;letter-spacing:.15em}

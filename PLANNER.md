@@ -35,6 +35,8 @@
 
 - Royal Fine Homes brand (2026-11-07): client logo (white on royal navy #0F3F6F) applied to the Delta design. Site name is now "Royal Fine Homes" (`Site:Name`, manifest, offline page, Persian texts). Emblem redrawn as one-colour SVG (`Services/Brand.cs`) for the header with a serif ROYAL / FINE HOMES wordmark; favicon, PWA and maskable icons regenerated; full logo `wwwroot/img/brand/royal-logo.jpg`, share card `og.jpg` used as default og:image and JSON-LD logo. Delta palette moved from ink + gold to the logo's navy + white. Screenshots: docs/screenshots/royal/.
 
+- Demo mode (2026-11-07): `Demo:Enabled` (on in Development, `DEMO_MODE` in compose) + mock SMS shows the OTP on the page with a fill button, and a yellow top bar logs in as demo admin or demo visitor (POST /demo/login/admin|user). Off whenever Sms:Provider=Kavenegar. 168 tests pass.
+
 ## Next task
 - Bots (design doc above): phase 0 real-bot test, then two-way Bale/Telegram bot on the same use cases.
 - Real-bot check: set Telegram/Bale tokens + chat ids in user-secrets, publish one listing, confirm message appears, edit, unpublish. (Needs user's bot tokens; Telegram is filtered in Iran so the server may need Telegram:ApiBase pointing to a reachable mirror/proxy.)
