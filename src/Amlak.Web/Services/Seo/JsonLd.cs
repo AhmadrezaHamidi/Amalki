@@ -41,6 +41,7 @@ public static class JsonLd
         {
             ["@context"] = "https://schema.org", ["@type"] = "RealEstateAgent",
             ["name"] = name, ["url"] = baseUrl + "/", ["areaServed"] = "IR", ["inLanguage"] = "fa",
+            ["logo"] = baseUrl + "/img/brand/royal-logo.jpg", ["image"] = baseUrl + "/img/brand/og.jpg",
         },
         new Dictionary<string, object>
         {
