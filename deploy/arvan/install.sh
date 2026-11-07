@@ -64,24 +64,38 @@ ENV
 fi
 set -a; . ./.env; set +a
 
-# 4. Images. Microsoft's registry (mcr.microsoft.com) may refuse servers in Iran; then send the images from a
-#    computer that can reach it (deploy/arvan/ship-images.sh) and run this script again.
+# 4. Images. Microsoft's registry (mcr.microsoft.com) is unreachable from many servers in Iran. Two ways round it:
+#    - IMAGE_REGISTRY=ghcr.io/<github-user>: pull both images that GitHub Actions built and mirrored there
+#      (.github/workflows/arvan-images.yml; run `docker login ghcr.io` once if the packages are private);
+#    - deploy/arvan/ship-images.sh from a computer that can reach mcr.microsoft.com.
+MSSQL_IMAGE=mcr.microsoft.com/mssql/server:2022-latest
 need_ship() {
   die "Could not download $1 on this server (probably blocked from Iran).
-On your own computer (with VPN and Docker), from the project folder, run:
-    bash deploy/arvan/ship-images.sh root@${SITE_URL#http://}
-then run this script again. Details: docs/DEPLOY-ARVAN.md"
+Use the images GitHub builds instead (docs/DEPLOY-ARVAN.md, \"GitHub images\"):
+    docker login ghcr.io -u <github-user>      # password: a GitHub token with read:packages
+    IMAGE_REGISTRY=ghcr.io/<github-user> sudo -E bash deploy/arvan/install.sh
+or from your own computer: bash deploy/arvan/ship-images.sh root@${SITE_URL#http://}"
 }
-if ! docker image inspect mcr.microsoft.com/mssql/server:2022-latest >/dev/null 2>&1; then
-  say "Downloading SQL Server image (about 600 MB)"
-  docker pull mcr.microsoft.com/mssql/server:2022-latest || need_ship "the SQL Server image"
-fi
-if [ "${SKIP_BUILD:-}" != "1" ] && ! docker image inspect amalki-web:shipped >/dev/null 2>&1; then
-  say "Building the site image"
-  docker compose build web || need_ship "the .NET images or NuGet packages for the build"
+if [ -n "${IMAGE_REGISTRY:-}" ]; then
+  reg=${IMAGE_REGISTRY%/}
+  say "Downloading images from $reg"
+  docker pull "$reg/mssql-server:2022-latest" || die "Could not pull $reg/mssql-server:2022-latest. Run: docker login ${reg%%/*}"
+  docker pull "$reg/amalki-web:latest" || die "Could not pull $reg/amalki-web:latest. Run: docker login ${reg%%/*}"
+  docker tag "$reg/mssql-server:2022-latest" "$MSSQL_IMAGE"
+  docker tag "$reg/amalki-web:latest" amalki-web:latest
+  grep -q '^IMAGE_REGISTRY=' .env || echo "IMAGE_REGISTRY=$reg" >> .env
 else
-  say "Using the site image sent from your computer"
-  docker image inspect amalki-web:shipped >/dev/null 2>&1 && docker tag amalki-web:shipped amalki-web:latest
+  if ! docker image inspect "$MSSQL_IMAGE" >/dev/null 2>&1; then
+    say "Downloading SQL Server image (about 600 MB)"
+    docker pull "$MSSQL_IMAGE" || need_ship "the SQL Server image"
+  fi
+  if [ "${SKIP_BUILD:-}" != "1" ] && ! docker image inspect amalki-web:shipped >/dev/null 2>&1; then
+    say "Building the site image"
+    docker compose build web || need_ship "the .NET images or NuGet packages for the build"
+  else
+    say "Using the site image sent from your computer"
+    docker image inspect amalki-web:shipped >/dev/null 2>&1 && docker tag amalki-web:shipped amalki-web:latest
+  fi
 fi
 
 # 5. Start.

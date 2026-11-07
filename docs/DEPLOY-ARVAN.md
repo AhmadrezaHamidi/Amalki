@@ -38,19 +38,24 @@ sudo bash deploy/arvan/install.sh
 
 در پایان آدرس را چاپ می‌کند: `http://IP_SERVER`. نوار زرد بالای سایت → «ورود مدیر» / «ورود کاربر عادی».
 
-## اگر گفت «Could not download ...» (تحریم ایمیج‌های مایکروسافت)
+## اگر گفت «Could not download ...» (سرورهای مایکروسافت از ایران در دسترس نیستند)
 
-ایمیج‌های SQL Server و .NET روی `mcr.microsoft.com` هستند و ممکن است به IP ایران جواب ندهند. در این صورت ایمیج‌ها را روی کامپیوتر خودتان (با VPN) بسازید و به سرور بفرستید:
+ابرک‌های داخل ایران معمولاً به `mcr.microsoft.com` (ایمیج SQL Server و .NET) و NuGet راه ندارند، ولی GitHub در دسترس است.
+پس ایمیج‌ها را GitHub Actions می‌سازد و در GitHub Container Registry همین حساب می‌گذارد:
 
-1. روی کامپیوتر خودتان Docker Desktop نصب باشد و پروژه را clone کرده باشید.
-2. در پوشهٔ پروژه (ویندوز: داخل WSL یا Git Bash):
+1. در GitHub: **Actions → Arvan images → Run workflow** (با هر تغییر در `src/` روی main هم خودکار اجرا می‌شود). حدود ۵ دقیقه.
+2. یک توکن بسازید: GitHub → Settings → Developer settings → **Personal access tokens (classic)** → Generate، فقط تیک **read:packages**. توکن را کپی کنید (فقط یک بار نشان داده می‌شود).
+3. روی سرور:
    ```bash
-   bash deploy/arvan/ship-images.sh root@IP_SERVER
+   cd ~/Amalki && git pull
+   docker login ghcr.io -u AhmadrezaHamidi        # Password: همان توکن
+   IMAGE_REGISTRY=ghcr.io/ahmadrezahamidi sudo -E bash deploy/arvan/install.sh
    ```
-   (حدود ۷۰۰ مگ از طریق SSH فرستاده می‌شود.)
-3. دوباره روی سرور: `cd Amalki && sudo bash deploy/arvan/install.sh`. این بار ایمیج فرستاده‌شده را استفاده می‌کند و چیزی دانلود نمی‌کند.
+   اسکریپت هر دو ایمیج را از GitHub می‌گیرد و چیزی از مایکروسافت دانلود نمی‌کند. `IMAGE_REGISTRY` در `.env` ذخیره می‌شود، پس دفعهٔ بعد فقط `sudo bash deploy/arvan/install.sh` کافی است.
 
-اگر `git clone` روی سرور کار نکرد: از GitHub فایل ZIP پروژه را بگیرید (Code → Download ZIP)، با `scp Amalki.zip root@IP_SERVER:` بفرستید و روی سرور `unzip` کنید.
+بستهٔ ایمیج‌ها خصوصی است؛ فقط با توکن خودتان دانلود می‌شوند.
+
+راه دیگر (اگر GitHub هم در دسترس نبود): روی کامپیوتر خودتان با Docker Desktop و VPN، در پوشهٔ پروژه (WSL یا Git Bash) `bash deploy/arvan/ship-images.sh root@IP_SERVER` و بعد دوباره install.sh روی سرور.
 
 ## تنظیمات بعدی
 
@@ -74,7 +79,7 @@ sudo bash deploy/arvan/install.sh
 | کار | دستور (در پوشهٔ `Amalki/deploy/arvan`) |
 |---|---|
 | لاگ سایت | `docker compose logs -f web` |
-| به‌روزرسانی به آخرین نسخهٔ main | `cd ~/Amalki && git pull && sudo bash deploy/arvan/install.sh` |
+| به‌روزرسانی به آخرین نسخهٔ main | `cd ~/Amalki && git pull && sudo bash deploy/arvan/install.sh` (با `IMAGE_REGISTRY` ایمیج تازه از GitHub گرفته می‌شود) |
 | ری‌استارت | `docker compose restart web` |
 | پشتیبان دیتابیس | `sudo bash backup.sh` (فایل در `deploy/arvan/backups/`) |
 
